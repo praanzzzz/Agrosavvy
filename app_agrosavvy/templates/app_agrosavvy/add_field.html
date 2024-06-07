@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Form section -->
+        <div class="col-md-6 ml-1">
+            <div class="card shadow p-4">
+                <h1 class="mb-4">Add Field</h1>
+                <form id="fieldForm" method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="form-group">
+                        <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
+                        <button type="submit" class="btn btn-success">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Map section -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div id="map" style="height: 680px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submitForm() {
+        $('#fieldForm').submit(function (e) {
+            e.preventDefault();
+            var formData = $('#fieldForm').serialize();
+            var url = '{% url "add_field" %}';
+            console.log('Submitting form data:', formData);
+            console.log('URL for the request:', url);
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: formData,
+                beforeSend: function (xhr, settings) {
+                    xhr.setRequestHeader('X-CSRFToken', $('input[name=csrfmiddlewaretoken]').val());
+                },
+                success: function (response) {
+                    console.log('Response from server:', response);
+                    if (response.status == 'success') {
+                        alert('Field saved successfully!');
+                        window.location.href = '/';
+                    } else {
+                        alert('Error saving field.');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error occurred during AJAX request:', error);
+                }
+            });
+        });
+    }
+
+    function initializeMap() {
+        mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
+
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [123.876705, 10.308258],
+            zoom: 10
+        });
+
+        var marker = new mapboxgl.Marker({ draggable: true })
+            .setLngLat([120.9842, 14.5995])
+            .addTo(map);
+
+        function onDragEnd() {
+            var lngLat = marker.getLngLat();
+            document.getElementById('id_latitude').value = lngLat.lat;
+            document.getElementById('id_longitude').value = lngLat.lng;
+            getAddress(lngLat.lng, lngLat.lat);
+        }
+
+        marker.on('dragend', onDragEnd);
+
+        function getAddress(lng, lat) {
+            var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`;
+            $.get(url, function (data) {
+                if (data.features.length > 0) {
+                    var place = data.features[0];
+                    var context = place.context;
+                    var barangay = '';
+                    var city_municipality = '';
+                    var country = '';
+
+                    place.context.forEach(function (item) {
+                        if (item.id.includes('neighborhood') || item.id.includes('locality')) {
+                            barangay = item.text;
+                        } else if (item.id.includes('place')) {
+                            city_municipality = item.text;
+                        } else if (item.id.includes('country')) {
+                            country = item.text;
+                        }
+                    });
+
+                    document.getElementById('id_barangay').value = barangay;
+                    document.getElementById('id_city_municipality').value = city_municipality;
+                    document.getElementById('id_country').value = country;
+                }
+            });
+        }
+
+        $('#geocodeButton').click(function () {
+            var address = $('#id_barangay').val() + ', ' + $('#id_city_municipality').val() + ', ' + $('#id_country').val();
+            var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
+            $.get(url, function (data) {
+                if (data.features.length > 0) {
+                    var lngLat = data.features[0].center;
+                    marker.setLngLat(lngLat);
+                    map.flyTo({ center: lngLat });
+                    document.getElementById('id_latitude').value = lngLat[1];
+                    document.getElementById('id_longitude').value = lngLat[0];
+                } else {
+                    alert('Address not found');
+                }
+            });
+        });
+    }
+
+    $(document).ready(function () {
+        submitForm();
+        initializeMap();
+    });
+</script>
+
+{% endblock %}
