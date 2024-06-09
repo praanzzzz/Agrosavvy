@@ -1,4 +1,20 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
+class CustomUser(AbstractUser):
+    user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    email = models.EmailField(unique=True)
+    firstname = models.CharField(max_length=30, blank=True)
+    lastname = models.CharField(max_length=30, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    is_farmer = models.BooleanField(default=False)
+    is_barangay_officer = models.BooleanField(default=False)
+    is_da_admin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.username
+
+
 
 class Crop(models.Model):
     CROP_CHOICES = [
@@ -36,6 +52,8 @@ class Field(models.Model):
     ph = models.FloatField(null=True)
     # fk -crop
     crop = models.ForeignKey(Crop, on_delete=models.CASCADE, null=True, blank=True)
+    # foreign key - user (owner of the field)
+    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='fields')
 
     def __str__(self):
         return self.field_name
