@@ -1,2 +1,2 @@
 # Agrosavvy
-Crop Recommendation with OpenAI and Mapbox
+Crop Recommendation with OpenAI and Mapbox using Django Python
