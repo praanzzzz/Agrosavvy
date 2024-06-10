@@ -1,0 +1,62 @@
+{% extends 'bofa_base.html' %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="text-center mt-4">Dashboard</h1>
+            <h5 class="display-6 mb-3 fw-bolder">Hello, {{user.username}} -bofa --acCess own data</h5>
+
+            <!-- Table to display fields -->
+            <div class="mt-4">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Acres</th>
+                            <th>Location</th>
+                            <th>Soil Data</th>
+                            <th>Crop Planted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in fields %}
+                        <tr>
+                            <td>{{ field.field_id }}</td>
+                            <td>{{ field.field_name }}</td>
+                            <td>{{ field.field_acres }}</td>
+                            <td>
+                                {{ field.barangay }},
+                                {{ field.city_municipality }},
+                                {{ field.country }}
+                            </td>
+                            <td>
+                                Nitrogen: {{ field.nitrogen }},<br>
+                                Phosphorous: {{ field.phosphorous }},<br>
+                                Potassium: {{ field.potassium }},<br>
+                                pH: {{ field.ph }}
+                            </td>
+                            <td>{{ field.crop.crop_type }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <!-- Update button -->
+                                    <a href="{% url 'bofa_update_field' field.field_id %}"
+                                        class="btn btn-primary btn-sm">Update</a>
+                                    <!-- Delete button -->
+                                    <form action="{% url 'delete_field' field.field_id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

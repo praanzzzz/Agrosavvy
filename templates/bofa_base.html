@@ -7,7 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
   <!-- mapbox -->
-
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <!--cdn js font awesome for icons version 6.1.1-->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <!--linking the css file. much better way than hardcoding the url-->
@@ -16,18 +18,26 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
+<style>
+  #map {
+    width: 100%;
+    height: 600px;
+  };
 
+</style>
 <body>
-  <div class="container">
-    <div class="row justify-content-center align-items-center" style="height: 100vh;">
-      <div class="col-md-6 text-center">
-        <h1>Landing page</h1>
-        <!-- Add a button to go to the login page -->
-        <a href="{% url 'register' %}" class="btn btn-primary">Go to Register Page</a><br><br>
-        <a href="{% url 'bofa_map' %}" class="btn btn-primary">Get started</a><br><br>
-      </div>
-    </div>
+  <!-- include sidebar here- py function -->
+  {% include 'bofa_sidebar.html' %}
+
+  {% block content %}
+
+  {% for message in messages %}
+  <div class="alert alert-{{ message.level_tag }}" role="alert">
+    {{ message }}
   </div>
+  {% endfor %}
+
+  {% endblock %}
 
   <!--version bootstrap 5.0-->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>

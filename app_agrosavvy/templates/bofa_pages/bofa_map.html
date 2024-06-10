@@ -1,0 +1,37 @@
+{% extends 'bofa_base.html' %}
+{% block content %}
+
+<div class="container">
+    <h1 class="mt-5 mb-4 text-center">All Fields Map</h1>
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Map container -->
+            <div id="map" class="rounded shadow-lg" style="height: 500px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
+
+    // Initialize Mapbox map
+    var map = new mapboxgl.Map({
+        container: 'map', // Container element ID
+        style: 'mapbox://styles/mapbox/streets-v11', // Map style
+        center: [123.876705, 10.308258], // Default center coordinates
+        zoom: 10 // Default zoom level
+    });
+
+    // Parse JSON data passed from server-side
+    var fields = JSON.parse('{{ fields_json|escapejs }}');
+
+    // Add markers for each field on the map
+    fields.forEach(function(field) {
+        var marker = new mapboxgl.Marker()
+            .setLngLat([field.longitude, field.latitude]) // Set marker coordinates
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(field.name)) // Set popup with field name
+            .addTo(map); // Add marker to the map
+    });
+</script>
+
+{% endblock %}

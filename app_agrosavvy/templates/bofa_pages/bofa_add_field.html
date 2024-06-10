@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bofa_base.html' %}
 
 {% block content %}
 <div class="container mt-4">
@@ -31,7 +31,7 @@
         $('#fieldForm').submit(function (e) {
             e.preventDefault();
             var formData = $('#fieldForm').serialize();
-            var url = '{% url "add_field" %}';
+            var url = '{% url "bofa_add_field" %}';
             console.log('Submitting form data:', formData);
             console.log('URL for the request:', url);
             $.ajax({
@@ -45,7 +45,7 @@
                     console.log('Response from server:', response);
                     if (response.status == 'success') {
                         alert('Field saved successfully!');
-                        window.location.href = 'dashboard';
+                        window.location.href = 'bofa_dashboard';
                     } else {
                         alert('Error saving field.');
                     }
