@@ -1,28 +1,56 @@
 # Agrosavvy
 Crop Recommendation with OpenAI and Mapbox using Django Python
 
-How to run:
 
-1. install and setup python
-2. create Agrosavvy folder in your computer
-navigate inside this folder using cmd
-3. create environment
-      python -m venv env
-4. activate the environment
-      env\Scripts\activate
+# StudyBuddy
+</div>
 
+### Cloning the repository
 
-5. Install django:
-    navigate to the env file (inside env) using cmd
-    pip install django
-6. Create a project
-   navigete to the agrosavvy folder
-     py manage.py startproject project_agrosavvy
-7. Create app
-     py manage.py startapp app_agrosavvy
-8. Configure some stuff
-     go to project_agrosavvy/settings.py
-       copy the codes in this github
-9. To be continued. himo rako later nga ma copy rani ditso ang files
+--> Clone the repository using the command below :
+```bash
+not yet available
 
+```
 
+--> Move into the directory where we have the project files : 
+```bash
+cd Agrosavvy
+
+```
+
+--> Create a virtual environment :
+```bash
+# Let's install virtualenv first
+pip install virtualenv
+
+# Then we create our virtual environment
+virtualenv env
+
+```
+
+--> Activate the virtual environment :
+```bash
+env\scripts\activate
+
+```
+
+--> Install the requirements :
+```bash
+pip install -r requirements.txt
+
+```
+
+#
+
+### Running the App
+
+--> To run the App, we use :
+```bash
+python manage.py runserver
+
+```
+
+> ⚠ Then, the development server will be started at http://127.0.0.1:8000/
+
+#
