@@ -2,7 +2,6 @@
 Crop Recommendation with OpenAI and Mapbox using Django Python
 
 
-# StudyBuddy
 </div>
 
 ### Cloning the repository
