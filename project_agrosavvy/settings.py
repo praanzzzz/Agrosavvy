@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'authtestdb.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

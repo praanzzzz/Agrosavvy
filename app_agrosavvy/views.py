@@ -21,21 +21,69 @@ from django.contrib.auth.decorators import login_required
 def landing_page(request):
     return render(request, 'app_agrosavvy/landing_page.html', {})
 
-def register(request):
+# def register(request):
+#     msg = None
+#     if request.method == 'POST':
+#         form = SignUpForm(request.POST)
+#         if form.is_valid():
+#             user = form.save()
+#             msg = 'user created'
+#             return redirect('my_login')
+#         else:
+#             msg = 'form is not valid'
+#     else:
+#         form = SignUpForm()
+#     return render(request,'auth_pages/register.html', {'form': form, 'msg': msg})
+
+
+def register_da_admin(request):
     msg = None
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.is_da_admin = True
+            user.save()
             msg = 'user created'
-            #login later
             return redirect('my_login')
         else:
             msg = 'form is not valid'
     else:
         form = SignUpForm()
-    return render(request,'auth_pages/register.html', {'form': form, 'msg': msg})
+    return render(request,'auth_pages/register_da_admin.html', {'form': form, 'msg': msg})
 
+
+def register_barangay_officer(request):
+    msg = None
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_barangay_officer = True
+            user.save()
+            msg = 'user created'
+            return redirect('my_login')
+        else:
+            msg = 'form is not valid'
+    else:
+        form = SignUpForm()
+    return render(request,'auth_pages/register_barangay_officer.html', {'form': form, 'msg': msg})
+
+def register_farmer(request):
+    msg = None
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_farmer = True
+            user.save()
+            msg = 'user created'
+            return redirect('my_login')
+        else:
+            msg = 'form is not valid'
+    else:
+        form = SignUpForm()
+    return render(request,'auth_pages/register_farmer.html', {'form': form, 'msg': msg})
 
 
 def my_login(request):
@@ -49,7 +97,7 @@ def my_login(request):
             if user is not None and user.is_da_admin:
                 login(request, user)
                 return redirect('dashboard')
-            elif user is not None and user.is_barangay_officer or user.is_farmer:
+            elif user is not None and (user.is_barangay_officer or user.is_farmer):
                 login(request, user)    
                 return redirect('bofa_dashboard')
             else:

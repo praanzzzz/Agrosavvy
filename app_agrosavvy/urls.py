@@ -6,7 +6,10 @@ from app_agrosavvy import views
 urlpatterns = [
     #auth urls
     path('my_login', views.my_login, name='my_login'),
-    path('register', views.register, name='register'),
+    # path('register', views.register, name='register'),
+    path('register/farmer/', views.register_farmer, name='register_farmer'),
+    path('register/barangay_officer/', views.register_barangay_officer, name='register_barangay_officer'),
+    path('register/da_admin/', views.register_da_admin, name='register_da_admin'),
     path('my_logout', views.my_logout, name='my_logout'),
 
 

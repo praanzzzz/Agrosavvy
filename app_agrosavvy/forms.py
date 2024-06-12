@@ -26,7 +26,7 @@ class LoginForm(forms.Form):
         )
     )
 
-
+#we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
 class SignUpForm(UserCreationForm):
     username = forms.CharField(
         widget=forms.TextInput(
@@ -49,13 +49,8 @@ class SignUpForm(UserCreationForm):
             }
         )
     )
-    email = forms.CharField(
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control"
-            }
-        )
-    )
+
+    #fields from models
     firstname = forms.CharField(
         widget=forms.TextInput(
             attrs={
@@ -70,6 +65,15 @@ class SignUpForm(UserCreationForm):
             }
         )
     )
+    email = forms.CharField(
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control"
+            }
+        )
+    )
+    
+    #connecting default and custom fields from usercreationforms to abstractuser default and custom fields
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'password1', 'password2', 'is_da_admin', 'is_barangay_officer', 'is_farmer','firstname','lastname')
+        fields = ('username', 'password1', 'password2', 'email', 'firstname','lastname')

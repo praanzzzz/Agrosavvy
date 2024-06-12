@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+#abstract user is a helper class with default fields: username, password1 and password2
 class CustomUser(AbstractUser):
     user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
     email = models.EmailField(unique=True)
