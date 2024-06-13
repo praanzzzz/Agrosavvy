@@ -8,7 +8,7 @@ Crop Recommendation with OpenAI and Mapbox using Django Python
 
 --> Clone the repository using the command below :
 ```bash
-not yet available
+https://github.com/praanzzzz/Agrosavvy.git
 
 ```
 
