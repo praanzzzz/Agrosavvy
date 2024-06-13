@@ -13,7 +13,7 @@ Agrosavvy
 
 --> Clone the repository using the command below :
 ```bash
-https://github.com/praanzzzz/Agrosavvy.git
+gh repo clone praanzzzz/Agrosavvy
 
 ```
 
