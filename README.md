@@ -4,6 +4,11 @@ Crop Recommendation with OpenAI and Mapbox using Django Python
 
 </div>
 
+-->Create :Agrosavvy" folder : 
+```bash
+Agrosavvy
+```
+
 ### Cloning the repository
 
 --> Clone the repository using the command below :
