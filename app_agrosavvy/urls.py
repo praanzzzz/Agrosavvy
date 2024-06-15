@@ -13,7 +13,7 @@ urlpatterns = [
     path('my_logout', views.my_logout, name='my_logout'),
 
 
-    #main pages
+    #main pages for da admin
     path('', views.landing_page, name='landing_page'),
     path('dashboard', views.dashboard, name='dashboard'),
     path('ai', views.ai, name='ai'),
@@ -22,7 +22,7 @@ urlpatterns = [
     path('weather', views.weather, name='weather'),
     path('settings', views.settings, name='settings'),
 
-    #field management for da admin and bofa (brgy officers and farmers)
+    #field management for da admin
     path('update_field/<int:field_id>/', views.update_field, name='update_field'),
     path('delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
 

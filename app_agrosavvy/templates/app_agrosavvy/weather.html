@@ -1,17 +1,36 @@
 {% extends 'base.html' %}
-
 {% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1>Weather for {{ location }}</h1>
+            {% if weather_data %}
+            <ul class="list-group">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Temperature: {{ weather_data.main.temp }}°C
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Feels Like: {{ weather_data.main.feels_like }}°C
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Wind Speed: {{ weather_data.wind.speed }} m/s
+                </li>
+            </ul>
+            {% else %}
+            <p class="alert alert-warning" role="alert">
+                No weather data found for "{{ location }}".
+            </p>
+            {% endif %}
 
-<div class="container">
-  <div class="row justify-content-center align-items-center" style="height: 100vh;">
-    <div class="col-md-6 text-center">
-      <h1>Weather page</h1>
-      <h4>input address</h4>
-      <ul class="list-group">
-        <li class="list-group-item">ASk weather forecast</li>
-      </ul>
+            <form method="POST" class="mt-4">
+                <div class="form-group">
+                    {% csrf_token %}
+                    <label for="location">Enter Location:</label>
+                    <input type="text" name="location" id="location" class="form-control">
+                </div><br>
+                <button type="submit" class="btn btn-primary">Get Weather</button>
+            </form>
+        </div>
     </div>
-  </div>
 </div>
-
 {% endblock %}

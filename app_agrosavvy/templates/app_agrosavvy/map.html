@@ -29,7 +29,7 @@
     fields.forEach(function(field) {
         var marker = new mapboxgl.Marker()
             .setLngLat([field.longitude, field.latitude]) // Set marker coordinates
-            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(field.name)) // Set popup with field name
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`)) // Set popup with field name
             .addTo(map); // Add marker to the map
     });
 </script>

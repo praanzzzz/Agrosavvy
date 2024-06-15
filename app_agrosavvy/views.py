@@ -2,39 +2,24 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import Field, Crop
+from .models import Field, Crop, get_weather_data
 from .forms import FieldForm
-from django.contrib.messages import success 
+from django.contrib.messages import success
+from .forms import SignUpForm, LoginForm    
+from django.contrib.auth import authenticate, login, logout
+# from django.contrib.auth.decorators import login_required
 
 
 
 #PRAgab19-5158-794
 
+# zoho password
+# fRzQ4@Wn9ctx@da
 
-#auth imports
-from .forms import SignUpForm, LoginForm    
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+#authentication logic pages
 
-
-#auth views pages
 def landing_page(request):
     return render(request, 'app_agrosavvy/landing_page.html', {})
-
-# def register(request):
-#     msg = None
-#     if request.method == 'POST':
-#         form = SignUpForm(request.POST)
-#         if form.is_valid():
-#             user = form.save()
-#             msg = 'user created'
-#             return redirect('my_login')
-#         else:
-#             msg = 'form is not valid'
-#     else:
-#         form = SignUpForm()
-#     return render(request,'auth_pages/register.html', {'form': form, 'msg': msg})
-
 
 def register_da_admin(request):
     msg = None
@@ -47,11 +32,10 @@ def register_da_admin(request):
             msg = 'user created'
             return redirect('my_login')
         else:
-            msg = 'form is not valid'
+            msg = 'form is not valid' 
     else:
         form = SignUpForm()
     return render(request,'auth_pages/register_da_admin.html', {'form': form, 'msg': msg})
-
 
 def register_barangay_officer(request):
     msg = None
@@ -85,7 +69,6 @@ def register_farmer(request):
         form = SignUpForm()
     return render(request,'auth_pages/register_farmer.html', {'form': form, 'msg': msg})
 
-
 def my_login(request):
     form = LoginForm(request.POST or None)
     msg = None
@@ -106,14 +89,17 @@ def my_login(request):
             msg = 'error validating form'
     return render(request, 'auth_pages/my_login.html', {'form': form, 'msg': msg})
 
-
-
 def my_logout(request):
     if request.user.is_authenticated:
         logout(request)
         return redirect('my_login')
     else:
         return redirect('forbidden')
+
+
+
+
+
 
 
 
@@ -126,15 +112,12 @@ def dashboard(request):
         return render(request, 'app_agrosavvy/dashboard.html', {'fields': fields})
     else:
         return redirect('forbidden') #or go to login, change later
-
-
 def ai(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         return render(request, 'app_agrosavvy/ai.html', {})
     else:
         return redirect('forbidden')
-
-
+    
 def map(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         fields = Field.objects.all()
@@ -143,6 +126,7 @@ def map(request):
         for field in fields:
             fields_json.append({    
                 'name': field.field_name,
+                'acres': field.field_acres,
                 'latitude': field.latitude,
                 'longitude': field.longitude
             })
@@ -153,7 +137,6 @@ def map(request):
         return render(request, 'app_agrosavvy/map.html', context)
     else:
         return redirect('forbidden')
-
 
 def add_field(request):
     if request.user.is_authenticated and request.user.is_da_admin:
@@ -173,14 +156,19 @@ def add_field(request):
     else:
         return redirect('forbidden')
 
-
 def weather(request):
     if request.user.is_authenticated and request.user.is_da_admin:
-        return render(request, 'app_agrosavvy/weather.html', {})
+        if request.method == "POST":
+            location = request.POST.get("location")
+            weather_data = get_weather_data(location)
+        else:
+            location = ""
+            weather_data = None
+        context = {"location": location, "weather_data": weather_data}
+        return render(request, "app_agrosavvy/weather.html", context)
     else:
         return redirect('forbidden')
-
-
+    
 def settings(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         return render(request, 'app_agrosavvy/settings.html', {})
@@ -190,9 +178,16 @@ def settings(request):
 
 
 
+
+
+
+
+
+
+
+
+
 #CRUD fields view
-
-
 def delete_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
         field = get_object_or_404(Field, pk=field_id)
@@ -251,10 +246,8 @@ def bofa_dashboard(request):
         # Handle unauthorized access (e.g., redirect to a login page or an error page)
         return redirect('forbidden')  # Adjust the redirect as necessary
 
-
 def bofa_ai(request):
-    return render(request, 'bofa_pages/bofa_ai.html', {})
-
+    return render(request, 'bofa_pages/bofa_ai.html', {})   
 
 def bofa_map(request):
     fields = Field.objects.all()
@@ -271,8 +264,6 @@ def bofa_map(request):
         'fields_json': json.dumps(fields_json)
     }   
     return render(request, 'bofa_pages/bofa_map.html', context)
-
-
 
 def bofa_add_field(request):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
@@ -293,14 +284,26 @@ def bofa_add_field(request):
         return redirect('forbidden')  # Adjust the redirect as necessary
 
 def bofa_weather(request):
-    return render(request, 'bofa_pages/bofa_weather.html', {})
+    if request.method == "POST":
+        location = request.POST.get("location")
+        weather_data = get_weather_data(location)
+    else:
+        location = ""
+        weather_data = None
 
+    context = {"location": location, "weather_data": weather_data}
+    return render(request, "bofa_pages/bofa_weather.html", context)
 
 def bofa_settings(request):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
         return render(request, 'bofa_pages/bofa_settings.html', {})
     else:
         return redirect('forbidden')
+
+
+
+
+
 
 
 
@@ -313,37 +316,26 @@ def bofa_delete_field(request, field_id):
     else:
         return redirect('forbidden')
 
-
-
-
 def bofa_update_field(request, field_id):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
         field = get_object_or_404(Field, pk=field_id)
-
-        if field.owner != request.user:
-          
+        if field.owner != request.user:      
             return redirect('forbidden')
-
         if request.method == 'POST':
-            # Create a form instance with POST data and instance set to the field object
             form = FieldForm(request.POST, instance=field)
             if form.is_valid():
-                # Save the form but don't commit to database yet
                 updated_field = form.save(commit=False)
-                # Ensure the owner field is set to the current owner
                 updated_field.owner = field.owner
-                # Now save the updated field object to the database
                 updated_field.save()
-                return redirect('bofa_dashboard')  # Redirect to dashboard after successful update
+                return redirect('bofa_dashboard') 
         else:
-            # Create a form instance with the field data pre-filled
             form = FieldForm(instance=field)
-
-        # Render the template with the form and field data
         return render(request, 'bofa_pages/bofa_update_field.html', {'form': form, 'field_id': field.field_id})
     else:
-         # Handle unauthorized access, for example by redirecting to an error page or login page
-        return redirect('forbidden')  # Adjust the redirect as necessary
+        return redirect('forbidden') 
+
+
+
 
 
 

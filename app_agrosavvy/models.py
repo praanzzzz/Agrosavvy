@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import requests
 
 #abstract user is a helper class with default fields: username, password1 and password2
 class CustomUser(AbstractUser):
@@ -58,3 +59,19 @@ class Field(models.Model):
 
     def __str__(self):
         return self.field_name
+
+
+
+#this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
+def get_weather_data(location):
+    api_key = "784befbea8b95589ccd6e23d596ec7bb"  # Replace with your actual key
+    base_url = "https://api.openweathermap.org/data/2.5/weather"
+    params = {"q": location, "appid": api_key, "units": "metric"}  # metric or imperial
+
+    try:
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()  # Raise an exception for error codes
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting weather data: {e}")
+        return None
