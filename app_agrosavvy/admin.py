@@ -1,7 +1,7 @@
 # admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Crop, Field
+from .models import CustomUser, Crop, Field, Address, SoilData
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -25,3 +25,5 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Crop)
 admin.site.register(Field)
+admin.site.register(Address)
+admin.site.register(SoilData)

@@ -1,0 +1,66 @@
+    june 6
+    basic setup django
+
+    june 7
+    crud field and map feature
+
+    june 8
+    add ID in field
+    follow naming conventions in erd
+    recheck model if it is right
+    migrate new models
+    integrate it into the contribute template, views
+
+    june 9
+    add update fields functionality
+    push to github
+
+
+    june 10
+    organized templates structures (auth_pages, app_agrosavvy(main pages), bofa_pages (brgy officers and farmers))
+    created separate templates pages for bo and farmers
+    created separate template for add, update field for bofa
+    created bofa_base and bofa_sidebar
+    added if request.user.is_user type in every page except bofa. access bofa also for guests
+    added restrictions in accessing in views
+        use @login_required or if user.is_authenticated and RBAC
+    add get started - go to dashboard without loggin in
+    checked inputs if na assign ba jud sa owner
+    checked redirection after adding fields for bofa, redirect to bofa_url
+
+
+    june 12
+    use separate registration pages for each user type
+
+    june 14
+    Integrate basic weather api
+
+    june 15
+    improve map model to outdoors-v11
+
+    june 22
+    improved models (address and soil data. separate the forms and table).
+    fixed the address. auto complete when "show on map" button is clicked.
+    added limit to cebu city, Philippines only
+    fixed add fields based on address and soil data configs
+    fixed update field
+    bofa add and update based on new configs
+    in da admin dashboard, show who the owner is
+    fixed delete field in bofa
+    add user type in dashboard
+
+    DONE !!!!!  
+
+    
+    fix error in map.html
+
+
+
+
+    update acount 
+        -add pic
+
+
+
+    tip: just implement fetch api later on. Implement server side rendering for now ! 
+            (does not apply to maps, recommendations, addresses).

@@ -1,20 +1,14 @@
+from .models import Field, Crop, get_weather_data
+from .forms import FieldForm, AddressForm, SoilDataForm, SignUpForm, LoginForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import Field, Crop, get_weather_data
-from .forms import FieldForm
 from django.contrib.messages import success
-from .forms import SignUpForm, LoginForm    
 from django.contrib.auth import authenticate, login, logout
-# from django.contrib.auth.decorators import login_required
-
 
 
 #PRAgab19-5158-794
-
-# zoho password
-# fRzQ4@Wn9ctx@da
 
 #authentication logic pages
 
@@ -138,24 +132,42 @@ def map(request):
     else:
         return redirect('forbidden')
 
+
 def add_field(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         if request.method == 'POST':
-            form = FieldForm(request.POST)
-            if form.is_valid():
-                field = form.save(commit=False)
+            field_form = FieldForm(request.POST)
+            address_form = AddressForm(request.POST)
+            soil_data_form = SoilDataForm(request.POST)
+            
+            if field_form.is_valid() and address_form.is_valid and soil_data_form.is_valid:
+                address = address_form.save()
+                soil_data = soil_data_form.save()
+                field = field_form.save(commit=False)
+                field.address = address
+                field.soil_data = soil_data
                 field.owner = request.user
                 field.save()
-                #redirect to bofa_dashboard if bofa,logic
                 return JsonResponse({'status': 'success'})
             else:
-                return JsonResponse({'status': 'error', 'errors': form.errors})
+                return JsonResponse({'status': 'error', 'errors': {
+                    'field_form': field_form.errors,
+                    'address_form': address_form.errors,
+                    'soil_data_form': soil_data_form.errors,
+                }})
         else:
-            form = FieldForm()
-            return render(request, 'app_agrosavvy/add_field.html', {'form': form})
+            field_form = FieldForm()
+            address_form = AddressForm()
+            soil_data_form = SoilDataForm()
+        context = {
+            'field_form': field_form,
+            'address_form': address_form,
+            'soil_data_form': soil_data_form,
+        }
+        return render(request, 'app_agrosavvy/add_field.html', context)
     else:
         return redirect('forbidden')
-
+    
 def weather(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         if request.method == "POST":
@@ -177,6 +189,7 @@ def settings(request):
 
 
 
+# MANAGE ACCOUNT PROFILE VIEWS
 
 
 
@@ -185,9 +198,7 @@ def settings(request):
 
 
 
-
-
-#CRUD fields view
+# MANAGE FIELDS VIEWS
 def delete_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
         field = get_object_or_404(Field, pk=field_id)
@@ -197,29 +208,45 @@ def delete_field(request, field_id):
         return redirect('forbidden')
 
 
-
+#uses server side rendering
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
-        # Get the field object or return 404 if not found
-        field = get_object_or_404(Field, pk=field_id)
+        field = get_object_or_404(Field, field_id=field_id)
 
         if request.method == 'POST':
-            # Create a form instance with POST data and instance set to the field object
-            form = FieldForm(request.POST, instance=field)
-            if form.is_valid():
-                # Save the form but don't commit to database yet
-                updated_field = form.save(commit=False)
-                # Ensure the owner field is set to the current owner
-                updated_field.owner = field.owner
-                # Now save the updated field object to the database
-                updated_field.save()
-                return redirect('dashboard')  # Redirect to dashboard after successful update
-        else:
-            # Create a form instance with the field data pre-filled
-            form = FieldForm(instance=field)
+            field_form = FieldForm(request.POST, instance=field)
+            address_instance = field.address
+            soil_data_instance = field.soil_data
 
-        # Render the template with the form and field data
-        return render(request, 'app_agrosavvy/update_field.html', {'form': form, 'field_id': field.field_id})
+            address_form = AddressForm(request.POST, instance=address_instance)
+            soil_data_form = SoilDataForm(request.POST, instance=soil_data_instance)
+
+            if field_form.is_valid() and address_form.is_valid() and soil_data_form.is_valid():
+                updated_field = field_form.save(commit=False)
+                updated_field.owner = field.owner
+                updated_field.save()
+                updated_address = address_form.save()
+                updated_soil_data = soil_data_form.save()
+
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'errors': {
+                    'field_form': field_form.errors,
+                    'address_form': address_form.errors,
+                    'soil_data_form': soil_data_form.errors,
+                }})
+        else:
+            field_form = FieldForm(instance=field)
+            address_form = AddressForm(instance=field.address)
+            soil_data_form = SoilDataForm(instance=field.soil_data)
+
+        context = {
+            'field_form': field_form,
+            'address_form': address_form,
+            'soil_data_form': soil_data_form,
+        }
+
+        return render(request, 'app_agrosavvy/update_field.html', context)
     else:
         return redirect('forbidden')
 
@@ -243,8 +270,7 @@ def bofa_dashboard(request):
         fields = Field.objects.filter(owner=request.user)
         return render(request, 'bofa_pages/bofa_dashboard.html', {'fields': fields})
     else:
-        # Handle unauthorized access (e.g., redirect to a login page or an error page)
-        return redirect('forbidden')  # Adjust the redirect as necessary
+        return redirect('forbidden') 
 
 def bofa_ai(request):
     return render(request, 'bofa_pages/bofa_ai.html', {})   
@@ -268,20 +294,36 @@ def bofa_map(request):
 def bofa_add_field(request):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
         if request.method == 'POST':
-            form = FieldForm(request.POST)
-            if form.is_valid():
-                field = form.save(commit=False)
+            field_form = FieldForm(request.POST)
+            address_form = AddressForm(request.POST)
+            soil_data_form = SoilDataForm(request.POST)
+            if field_form.is_valid() and address_form.is_valid and soil_data_form.is_valid:
+                address = address_form.save()
+                soil_data = soil_data_form.save()
+                field = field_form.save(commit=False)
+                field.address = address
+                field.soil_data = soil_data
                 field.owner = request.user
                 field.save()
                 return JsonResponse({'status': 'success'})
             else:
-                return JsonResponse({'status': 'error', 'errors': form.errors})
+                return JsonResponse({'status': 'error', 'errors': {
+                    'field_form': field_form.errors,
+                    'address_form': address_form.errors,
+                    'soil_data_form': soil_data_form.errors,
+                }})
         else:
-            form = FieldForm()
-            return render(request, 'bofa_pages/bofa_add_field.html', {'form': form})
+            field_form = FieldForm()
+            address_form = AddressForm()
+            soil_data_form = SoilDataForm()
+        context = {
+            'field_form': field_form,
+            'address_form': address_form,
+            'soil_data_form': soil_data_form,
+        }
+        return render(request, 'bofa_pages/bofa_add_field.html', context)
     else:
-        # Handle unauthorized access, for example by redirecting to an error page or login page
-        return redirect('forbidden')  # Adjust the redirect as necessary
+        return redirect('forbidden')
 
 def bofa_weather(request):
     if request.method == "POST":
@@ -312,27 +354,51 @@ def bofa_delete_field(request, field_id):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
         field = get_object_or_404(Field, pk=field_id)
         field.delete()
-        return redirect('bofa_pages/bofa_dashboard')
+        return redirect('bofa_dashboard')
     else:
         return redirect('forbidden')
 
 def bofa_update_field(request, field_id):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
         field = get_object_or_404(Field, pk=field_id)
+
         if field.owner != request.user:      
             return redirect('forbidden')
+        
         if request.method == 'POST':
-            form = FieldForm(request.POST, instance=field)
-            if form.is_valid():
-                updated_field = form.save(commit=False)
+            field_form = FieldForm(request.POST, instance=field)
+            address_instance = field.address
+            soil_data_instance = field.soil_data
+
+            address_form = AddressForm(request.POST, instance=address_instance)
+            soil_data_form = SoilDataForm(request.POST, instance=soil_data_instance)
+
+            if field_form.is_valid() and address_form.is_valid() and soil_data_form.is_valid():
+                updated_field = field_form.save(commit=False)
                 updated_field.owner = field.owner
                 updated_field.save()
-                return redirect('bofa_dashboard') 
+                updated_address = address_form.save()
+                updated_soil_data = soil_data_form.save()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'errors': {
+                    'field_form': field_form.errors,
+                    'address_form': address_form.errors,
+                    'soil_data_form': soil_data_form.errors,
+                }})
         else:
-            form = FieldForm(instance=field)
-        return render(request, 'bofa_pages/bofa_update_field.html', {'form': form, 'field_id': field.field_id})
+            field_form = FieldForm(instance=field)
+            address_form = AddressForm(instance=field.address)
+            soil_data_form = SoilDataForm(instance=field.soil_data)
+
+        context = {
+            'field_form': field_form,
+            'address_form': address_form,
+            'soil_data_form': soil_data_form,
+        }
+        return render(request, 'bofa_pages/bofa_update_field.html', context)
     else:
-        return redirect('forbidden') 
+        return redirect('forbidden')
 
 
 
@@ -343,4 +409,4 @@ def bofa_update_field(request, field_id):
 
 #error pages
 def forbidden(request):
-    return render(request, 'app_agrosavvy/forbidden.html', {})
+    return render(request, 'error_pages/forbidden.html', {})

@@ -4,7 +4,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <h1 class="text-center mt-4">Dashboard</h1>
-            <h5 class="display-6 mb-3 fw-bolder">Hello, {{user.username}} -bofa --acCess own data</h5>
+            <h5 class="display-6 mb-3 fw-bolder">Hello, {{user.username}} -BOFA member --acesss own data</h5>
 
             <!-- Table to display fields -->
             <div class="mt-4">
@@ -12,6 +12,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Usertype</th>
+                            <th>Owner</th>
                             <th>Name</th>
                             <th>Acres</th>
                             <th>Location</th>
@@ -24,18 +26,30 @@
                         {% for field in fields %}
                         <tr>
                             <td>{{ field.field_id }}</td>
+                            <td>
+                                {% if field.owner.is_farmer %}
+                                    Farmer
+                                {% elif field.owner.is_barangay_officer %}
+                                    Barangay Officer
+                                {% elif field.owner.is_da_admin %}
+                                    DA Admin
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                            <td>{{ field.owner }}</td>
                             <td>{{ field.field_name }}</td>
                             <td>{{ field.field_acres }}</td>
                             <td>
-                                {{ field.barangay }},
-                                {{ field.city_municipality }},
-                                {{ field.country }}
+                                {{ field.address.barangay }},
+                                {{ field.address.city_municipality }},
+                                {{ field.address.country }}
                             </td>
                             <td>
-                                Nitrogen: {{ field.nitrogen }},<br>
-                                Phosphorous: {{ field.phosphorous }},<br>
-                                Potassium: {{ field.potassium }},<br>
-                                pH: {{ field.ph }}
+                                Nitrogen: {{ field.soil_data.nitrogen }},<br>
+                                Phosphorous: {{ field.soil_data.phosphorous }},<br>
+                                Potassium: {{ field.soil_data.potassium }},<br>
+                                pH: {{ field.soil_data.ph }}
                             </td>
                             <td>{{ field.crop.crop_type }}</td>
                             <td>
@@ -44,7 +58,7 @@
                                     <a href="{% url 'bofa_update_field' field.field_id %}"
                                         class="btn btn-primary btn-sm">Update</a>
                                     <!-- Delete button -->
-                                    <form action="{% url 'delete_field' field.field_id %}" method="post">
+                                    <form action="{% url 'bofa_delete_field' field.field_id %}" method="post">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger btn-sm"
                                             onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>

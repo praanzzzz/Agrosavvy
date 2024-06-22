@@ -6,12 +6,20 @@
         <!-- Form section -->
         <div class="col-md-6 ml-1">
             <div class="card shadow p-4">
-                <h1 class="mb-4">Add Field</h1>
+                <h5 class="mb-4"><strong>Add Field Details</strong></h5>
                 <form id="fieldForm" method="POST">
                     {% csrf_token %}
-                    {{ form.as_p }}
+                    {{ field_form.as_p }}
+
+                    <h5><strong>Address Details</strong> (cebu city only)</h5>
+                    {{ address_form.as_p }}
                     <div class="form-group">
                         <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
+                    </div><br>
+
+                    <h5><strong>Soil Data </strong> (if available)</h5>
+                    {{ soil_data_form.as_p }}
+                    <div class="form-group">
                         <button type="submit" class="btn btn-success">Submit</button>
                     </div>
                 </form>
@@ -27,69 +35,83 @@
 </div>
 
 <script>
+    // Ensure that the DOM is fully loaded before executing JavaScript code
+    document.addEventListener('DOMContentLoaded', function () {
+    
+    // Function to handle form submission
     function submitForm() {
-        $('#fieldForm').submit(function (e) {
+        document.getElementById('fieldForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            var formData = $('#fieldForm').serialize();
+    
+            // Client-side validation to ensure city is Cebu City
+            var cityField = document.getElementById('id_city_municipality').value;
+            if (cityField.trim().toLowerCase() !== 'cebu city') {
+                alert('The address must be in Cebu City.');
+                return;
+            }
+    
+            var formData = new FormData(this);
             var url = '{% url "bofa_add_field" %}';
-            console.log('Submitting form data:', formData);
-            console.log('URL for the request:', url);
-            $.ajax({
-                type: 'POST',
-                url: url,
-                data: formData,
-                beforeSend: function (xhr, settings) {
-                    xhr.setRequestHeader('X-CSRFToken', $('input[name=csrfmiddlewaretoken]').val());
-                },
-                success: function (response) {
-                    console.log('Response from server:', response);
-                    if (response.status == 'success') {
-                        alert('Field saved successfully!');
-                        window.location.href = 'bofa_dashboard';
-                    } else {
-                        alert('Error saving field.');
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error occurred during AJAX request:', error);
+            var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken,
                 }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Field saved successfully!');
+                    window.location.href = '{% url "bofa_dashboard" %}';
+                } else {
+                    alert('Error saving field.');
+                }
+            })
+            .catch(error => {
+                console.error('Error occurred during fetch request:', error);
             });
         });
     }
-
+    
+    // Function to initialize the map
     function initializeMap() {
         mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
-
+    
         var map = new mapboxgl.Map({
             container: 'map',
-            style: 'mapbox://styles/mapbox/streets-v11',
+            style: 'mapbox://styles/mapbox/outdoors-v11',
             center: [123.876705, 10.308258],
             zoom: 10
         });
-
+    
         var marker = new mapboxgl.Marker({ draggable: true })
             .setLngLat([120.9842, 14.5995])
             .addTo(map);
-
+    
         function onDragEnd() {
             var lngLat = marker.getLngLat();
             document.getElementById('id_latitude').value = lngLat.lat;
             document.getElementById('id_longitude').value = lngLat.lng;
             getAddress(lngLat.lng, lngLat.lat);
         }
-
+    
         marker.on('dragend', onDragEnd);
-
+    
+        // Function to fetch address details and update form fields
         function getAddress(lng, lat) {
             var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`;
-            $.get(url, function (data) {
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
                 if (data.features.length > 0) {
                     var place = data.features[0];
-                    var context = place.context;
                     var barangay = '';
                     var city_municipality = '';
                     var country = '';
-
+    
                     place.context.forEach(function (item) {
                         if (item.id.includes('neighborhood') || item.id.includes('locality')) {
                             barangay = item.text;
@@ -99,35 +121,46 @@
                             country = item.text;
                         }
                     });
-
+    
                     document.getElementById('id_barangay').value = barangay;
                     document.getElementById('id_city_municipality').value = city_municipality;
                     document.getElementById('id_country').value = country;
                 }
+            })
+            .catch(error => {
+                console.error('Error fetching address:', error);
             });
         }
-
-        $('#geocodeButton').click(function () {
-            var address = $('#id_barangay').val() + ', ' + $('#id_city_municipality').val() + ', ' + $('#id_country').val();
+    
+        // Click handler for 'Show on Map' button
+        document.getElementById('geocodeButton').addEventListener('click', function () {
+            var address = document.getElementById('id_barangay').value + ', ' + document.getElementById('id_city_municipality').value + ', ' + document.getElementById('id_country').value;
             var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
-            $.get(url, function (data) {
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
                 if (data.features.length > 0) {
                     var lngLat = data.features[0].center;
                     marker.setLngLat(lngLat);
                     map.flyTo({ center: lngLat });
                     document.getElementById('id_latitude').value = lngLat[1];
                     document.getElementById('id_longitude').value = lngLat[0];
+                    getAddress(lngLat[0], lngLat[1]);
                 } else {
                     alert('Address not found');
                 }
+            })
+            .catch(error => {
+                console.error('Error geocoding address:', error);
             });
         });
     }
-
-    $(document).ready(function () {
-        submitForm();
-        initializeMap();
+    
+    // Initialize form submission and map on document ready
+    submitForm();
+    initializeMap();
+    
     });
-</script>
+    </script>
 
 {% endblock %}

@@ -17,7 +17,7 @@
     // Initialize Mapbox map
     var map = new mapboxgl.Map({
         container: 'map', // Container element ID
-        style: 'mapbox://styles/mapbox/streets-v11', // Map style
+        style: 'mapbox://styles/mapbox/outdoors-v11',
         center: [123.876705, 10.308258], // Default center coordinates
         zoom: 10 // Default zoom level
     });
@@ -26,7 +26,7 @@
     var fields = JSON.parse('{{ fields_json|escapejs }}');
 
     // Add markers for each field on the map
-    fields.forEach(function(field) {
+    fields.forEach(function(address) {
         var marker = new mapboxgl.Marker()
             .setLngLat([field.longitude, field.latitude]) // Set marker coordinates
             .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`)) // Set popup with field name

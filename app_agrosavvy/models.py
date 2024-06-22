@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from pydantic import ValidationError
 import requests
 
 #abstract user is a helper class with default fields: username, password1 and password2
@@ -35,27 +36,39 @@ class Crop(models.Model):
 
     def __str__(self):
         return self.crop_type
+    
+class Address(models.Model):
+    address_id = models.AutoField(primary_key=True) 
+    barangay = models.CharField(max_length=100)
+    city_municipality = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    def __str__(self):
+        return f"{self.barangay}, {self.city_municipality}, {self.country}"
+
+
+    
+class SoilData(models.Model):
+    soil_id = models.AutoField(primary_key=True)
+    nitrogen = models.FloatField(null=True, blank=True)
+    phosphorous = models.FloatField(null=True, blank=True)
+    potassium = models.FloatField(null=True, blank=True)
+    ph = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"N: {self.nitrogen}, P: {self.phosphorous}, K: {self.potassium}, pH: {self.ph}"
 
 
 class Field(models.Model):
     field_id = models.AutoField(primary_key=True)
     field_name = models.CharField(max_length=100)
     field_acres = models. FloatField()
-    # address
-    barangay = models.CharField(max_length=100)
-    city_municipality = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    #soil data  
-    nitrogen = models.FloatField(null=True)
-    phosphorous = models.FloatField(null=True)
-    potassium = models.FloatField(null=True)
-    ph = models.FloatField(null=True)
-    # fk -crop
-    crop = models.ForeignKey(Crop, on_delete=models.CASCADE, null=True, blank=True)
-    # foreign key - user (owner of the field)
-    owner = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='fields')
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name='fields', null=True)
+    soil_data = models.ForeignKey(SoilData, on_delete=models.SET_NULL, related_name='fields', blank=True, null=True)
+    crop = models.ForeignKey(Crop, on_delete=models.SET_NULL, blank=True, null=True)
+    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name='fields', null=True)
 
     def __str__(self):
         return self.field_name

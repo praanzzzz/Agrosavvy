@@ -12,6 +12,8 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Usertype</th>
+                            <th>Owner</th>
                             <th>Name</th>
                             <th>Acres</th>
                             <th>Location</th>
@@ -24,18 +26,30 @@
                         {% for field in fields %}
                         <tr>
                             <td>{{ field.field_id }}</td>
+                            <td>
+                                {% if field.owner.is_farmer %}
+                                    Farmer
+                                {% elif field.owner.is_barangay_officer %}
+                                    Barangay Officer
+                                {% elif field.owner.is_da_admin %}
+                                    DA Admin
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                            <td>{{ field.owner }}</td>
                             <td>{{ field.field_name }}</td>
                             <td>{{ field.field_acres }}</td>
                             <td>
-                                {{ field.barangay }},
-                                {{ field.city_municipality }},
-                                {{ field.country }}
+                                {{ field.address.barangay }},
+                                {{ field.address.city_municipality }},
+                                {{ field.address.country }}
                             </td>
                             <td>
-                                Nitrogen: {{ field.nitrogen }},<br>
-                                Phosphorous: {{ field.phosphorous }},<br>
-                                Potassium: {{ field.potassium }},<br>
-                                pH: {{ field.ph }}
+                                Nitrogen: {{ field.soil_data.nitrogen }},<br>
+                                Phosphorous: {{ field.soil_data.phosphorous }},<br>
+                                Potassium: {{ field.soil_data.potassium }},<br>
+                                pH: {{ field.soil_data.ph }}
                             </td>
                             <td>{{ field.crop.crop_type }}</td>
                             <td>
