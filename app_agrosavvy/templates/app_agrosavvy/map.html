@@ -26,7 +26,7 @@
     var fields = JSON.parse('{{ fields_json|escapejs }}');
 
     // Add markers for each field on the map
-    fields.forEach(function(address) {
+    fields.forEach(function(field) {
         var marker = new mapboxgl.Marker()
             .setLngLat([field.longitude, field.latitude]) // Set marker coordinates
             .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`)) // Set popup with field name

@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.messages import success
 from django.contrib.auth import authenticate, login, logout
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 #PRAgab19-5158-794
@@ -118,15 +119,16 @@ def map(request):
         fields_json = []
 
         for field in fields:
-            fields_json.append({    
-                'name': field.field_name,
-                'acres': field.field_acres,
-                'latitude': field.latitude,
-                'longitude': field.longitude
-            })
+            if field.address:
+                fields_json.append({    
+                    'name': field.field_name,
+                    'acres': field.field_acres,
+                    'latitude': field.address.latitude,
+                    'longitude': field.address.longitude
+                })
 
         context = {
-            'fields_json': json.dumps(fields_json)
+            'fields_json': json.dumps(fields_json, cls=DjangoJSONEncoder)
         }   
         return render(request, 'app_agrosavvy/map.html', context)
     else:
@@ -280,14 +282,16 @@ def bofa_map(request):
     fields_json = []
 
     for field in fields:
-        fields_json.append({
-            'name': field.field_name,
-            'latitude': field.latitude,
-            'longitude': field.longitude
-        })
+        if field.address:
+            fields_json.append({
+                'name': field.field_name,
+                'acres': field.field_acres,
+                'latitude': field.address.latitude,
+                'longitude': field.address.longitude
+            })
 
     context = {
-        'fields_json': json.dumps(fields_json)
+        'fields_json': json.dumps(fields_json, cls=DjangoJSONEncoder)
     }   
     return render(request, 'bofa_pages/bofa_map.html', context)
 
