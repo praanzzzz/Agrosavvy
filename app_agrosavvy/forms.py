@@ -2,8 +2,63 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import Field, Address, SoilData, CustomUser
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 
 
+class CustomUserUpdateForm(UserChangeForm):
+    password = None
+    
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'email', 'firstname', 'lastname']  # Adjusted field names
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove help text for the username field
+        self.fields['username'].help_text = None
+
+        # Customize labels and placeholders if needed
+        self.fields['username'].label = 'Username'
+        self.fields['email'].label = 'Email Address'
+        self.fields['firstname'].label = 'First Name'
+        self.fields['lastname'].label = 'Last Name'
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})  # Add Bootstrap class for styling
+            field.widget.attrs.pop('autofocus', None)  # Remove autofocus attribute if not needed
+
+# class CustomPasswordChangeForm(PasswordChangeForm):
+#     class Meta:
+#         model = CustomUser
+#         fields = ['old_password', 'new_password1', 'new_password2']
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    old_password = forms.CharField(
+        label='',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Old Password'
+        })
+    )
+    new_password1 = forms.CharField(
+        label='',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'New Password'
+        })
+    )
+    new_password2 = forms.CharField(
+        label='',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm New Password'
+        })
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ['old_password', 'new_password1', 'new_password2']
+        
 
 class FieldForm(forms.ModelForm):
     class Meta:

@@ -19,7 +19,10 @@ urlpatterns = [
     path('map', views.map, name='map'),
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
-    path('settings', views.settings, name='settings'),
+    path('settings/', views.settings, name='settings'),
+
+    #settings section urls
+    path('settings/password_change', views.password_change, name='password_change'),
 
     #field management for da admin
     path('dashboard/update_field/<int:field_id>/', views.update_field, name='update_field'),
@@ -31,7 +34,10 @@ urlpatterns = [
     path('bofa_map', views.bofa_map, name='bofa_map'),
     path('bofa_add_field', views.bofa_add_field, name='bofa_add_field'),
     path('bofa_weather', views.bofa_weather, name='bofa_weather'),
-    path('bofa_settings', views.bofa_settings, name='bofa_settings'),
+    path('bofa_settings/', views.bofa_settings, name='bofa_settings'),
+    
+    #settings section urls
+    path('bofa_settings/bofa_password_change', views.bofa_password_change, name='bofa_password_change'),
 
     #field management for Brgy officers and farmers
     path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),

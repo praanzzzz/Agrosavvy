@@ -2,8 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from pydantic import ValidationError
 import requests
+from django.conf import settings
 
-#abstract user is a helper class with default fields: username, password1 and password2
+#abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
     user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
     email = models.EmailField(unique=True)
@@ -13,9 +14,25 @@ class CustomUser(AbstractUser):
     is_farmer = models.BooleanField(default=False)
     is_barangay_officer = models.BooleanField(default=False)
     is_da_admin = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False) 
+    #status
+    # profile picture 
 
     def __str__(self):
         return self.username
+    
+class RegistrationRequest(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    is_farmer = models.BooleanField(default=False)
+    is_barangay_officer = models.BooleanField(default=False)
+    is_da_admin = models.BooleanField(default=False)
+    request_date = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)  # Indicates if the request is approved
+    approved_date = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approvals')
+
+    def __str__(self):
+        return f"Request for {self.user.username}"
 
 
 

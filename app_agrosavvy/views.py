@@ -1,12 +1,13 @@
-from .models import Field, Crop, get_weather_data
-from .forms import FieldForm, AddressForm, SoilDataForm, SignUpForm, LoginForm
+from .models import Field, Crop, get_weather_data, CustomUser
+from .forms import FieldForm, AddressForm, SoilDataForm, SignUpForm, LoginForm, CustomUserUpdateForm, CustomPasswordChangeForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.contrib.messages import success
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib import messages
+
 
 
 #PRAgab19-5158-794
@@ -74,9 +75,11 @@ def my_login(request):
             user = authenticate(username=username, password=password)
             if user is not None and user.is_da_admin:
                 login(request, user)
+                messages.success(request, 'Account logged in successfully')
                 return redirect('dashboard')
             elif user is not None and (user.is_barangay_officer or user.is_farmer):
                 login(request, user)    
+                messages.success(request, 'Account logged in successfully')
                 return redirect('bofa_dashboard')
             else:
                 msg= 'invalid credentials'
@@ -183,15 +186,51 @@ def weather(request):
     else:
         return redirect('forbidden')
     
+#update name, email and username and also add picture
 def settings(request):
     if request.user.is_authenticated and request.user.is_da_admin:
-        return render(request, 'app_agrosavvy/settings.html', {})
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+    
+        if request.method == 'POST':
+            updateprofileform = CustomUserUpdateForm(request.POST, instance=user)
+            if updateprofileform.is_valid():
+                updateprofileform.save()
+                messages.success(request, 'Profile updated successfully.')
+            else:
+                messages.error(request, 'Error updating profile. Please check the form.')
+        else:
+            updateprofileform = CustomUserUpdateForm(instance=user)
+        
+        context = {'updateprofileform': updateprofileform}
+        return render(request, 'app_agrosavvy/settings.html', context)
     else:
         return redirect('forbidden')
 
 
 
-# MANAGE ACCOUNT PROFILE VIEWS
+
+# MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
+def password_change(request):
+    if request.user.is_authenticated:
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+        
+        if request.method == 'POST':
+            passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
+            if passwordchangeform.is_valid():
+                user = passwordchangeform.save()
+                update_session_auth_hash(request, user)  # Maintain the user's session
+                logout(request) 
+                messages.success(request, 'Your password has been changed. Please log in again.')
+                return redirect('my_login')
+            else:
+                messages.error(request, 'Error updating profile. Please check the form.')
+        else:
+            passwordchangeform = CustomPasswordChangeForm(request.user)
+        
+        context = {'passwordchangeform': passwordchangeform}
+        return render(request, 'app_agrosavvy/settings_section/password_change.html', context)
+    else:
+        return redirect('forbidden')
 
 
 
@@ -339,13 +378,49 @@ def bofa_weather(request):
 
     context = {"location": location, "weather_data": weather_data}
     return render(request, "bofa_pages/bofa_weather.html", context)
-
+    
 def bofa_settings(request):
     if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
-        return render(request, 'bofa_pages/bofa_settings.html', {})
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+    
+        if request.method == 'POST':
+            updateprofileform = CustomUserUpdateForm(request.POST, instance=user)
+            if updateprofileform.is_valid():
+                updateprofileform.save()
+                messages.success(request, 'Profile updated successfully.')
+            else:
+                messages.error(request, 'Error updating profile. Please check the form.')
+        else:
+            updateprofileform = CustomUserUpdateForm(instance=user)
+        
+        context = {'updateprofileform': updateprofileform}
+        return render(request, 'bofa_pages/bofa_settings.html', context)
     else:
         return redirect('forbidden')
 
+
+# MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
+def bofa_password_change(request):
+    if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+        
+        if request.method == 'POST':
+            passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
+            if passwordchangeform.is_valid():
+                user = passwordchangeform.save()
+                update_session_auth_hash(request, user)  # Maintain the user's session
+                logout(request) 
+                messages.success(request, 'Your password has been changed. Please log in again.')
+                return redirect('my_login')
+            else:
+                messages.error(request, 'Error updating profile. Please check the form.')
+        else:
+            passwordchangeform = CustomPasswordChangeForm(request.user)
+        
+        context = {'passwordchangeform': passwordchangeform}
+        return render(request, 'bofa_pages/bofa_settings_section/bofa_password_change.html', context)
+    else:
+        return redirect('forbidden')
 
 
 
