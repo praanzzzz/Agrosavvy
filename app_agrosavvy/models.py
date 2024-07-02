@@ -4,7 +4,8 @@ from pydantic import ValidationError
 import requests
 from django.conf import settings
 
-#abstract user is a helper class with default fields: username, password1 and password2, status
+
+# abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
     user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
     email = models.EmailField(unique=True)
@@ -14,48 +15,55 @@ class CustomUser(AbstractUser):
     is_farmer = models.BooleanField(default=False)
     is_barangay_officer = models.BooleanField(default=False)
     is_da_admin = models.BooleanField(default=False)
-    is_approved = models.BooleanField(default=False) 
-    #status
-    # profile picture 
+    active_stat = models.BooleanField(default=True) #used custom instead of default is_active
+    # is_approved = models.BooleanField(default=False)
+    # profile picture
 
     def __str__(self):
         return self.username
-    
-class RegistrationRequest(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    is_farmer = models.BooleanField(default=False)
-    is_barangay_officer = models.BooleanField(default=False)
-    is_da_admin = models.BooleanField(default=False)
-    request_date = models.DateTimeField(auto_now_add=True)
-    approved = models.BooleanField(default=False)  # Indicates if the request is approved
-    approved_date = models.DateTimeField(null=True, blank=True)
-    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='approvals')
 
-    def __str__(self):
-        return f"Request for {self.user.username}"
 
+# class RegistrationRequest(models.Model):
+#     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     is_farmer = models.BooleanField(default=False)
+#     is_barangay_officer = models.BooleanField(default=False)
+#     is_da_admin = models.BooleanField(default=False)
+#     request_date = models.DateTimeField(auto_now_add=True)
+#     approved = models.BooleanField(default=False)  # Indicates if the request is approved
+#     approved_date = models.DateTimeField(null=True, blank=True)
+#     approved_by = models.ForeignKey(
+#         settings.AUTH_USER_MODEL,
+#         on_delete=models.SET_NULL,
+#         null=True,
+#         blank=True,
+#         related_name="approvals",
+#     )
+
+#     def __str__(self):
+#         return f"Request for {self.user.username}"
 
 
 class Crop(models.Model):
     CROP_CHOICES = [
-        ('Carrots', 'Carrots'),
-        ('Potato', 'Potato'),
-        ('Garlic', 'Garlic'),
-        ('Eggplant', 'Eggplant'),
-        ('Tomato', 'Tomato'),
-        ('Squash', 'Squash'),
-        ('Bitter Gourd', 'Bitter Gourd'),
-        ('Cabbage', 'Cabbage'),
-        ('Onion', 'Onion'),
+        ("Carrots", "Carrots"),
+        ("Potato", "Potato"),
+        ("Garlic", "Garlic"),
+        ("Eggplant", "Eggplant"),
+        ("Tomato", "Tomato"),
+        ("Squash", "Squash"),
+        ("Bitter Gourd", "Bitter Gourd"),
+        ("Cabbage", "Cabbage"),
+        ("Onion", "Onion"),
     ]
     crop_id = models.AutoField(primary_key=True)
     crop_type = models.CharField(max_length=50, choices=CROP_CHOICES)
 
     def __str__(self):
         return self.crop_type
-    
+
+
 class Address(models.Model):
-    address_id = models.AutoField(primary_key=True) 
+    address_id = models.AutoField(primary_key=True)
     barangay = models.CharField(max_length=100)
     city_municipality = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
@@ -66,7 +74,6 @@ class Address(models.Model):
         return f"{self.barangay}, {self.city_municipality}, {self.country}"
 
 
-    
 class SoilData(models.Model):
     soil_id = models.AutoField(primary_key=True)
     nitrogen = models.FloatField(null=True, blank=True)
@@ -81,18 +88,27 @@ class SoilData(models.Model):
 class Field(models.Model):
     field_id = models.AutoField(primary_key=True)
     field_name = models.CharField(max_length=100)
-    field_acres = models. FloatField()
-    address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name='fields', null=True)
-    soil_data = models.ForeignKey(SoilData, on_delete=models.SET_NULL, related_name='fields', blank=True, null=True)
+    field_acres = models.FloatField()
+    address = models.ForeignKey(
+        Address, on_delete=models.SET_NULL, related_name="fields", null=True
+    )
+    soil_data = models.ForeignKey(
+        SoilData,
+        on_delete=models.SET_NULL,
+        related_name="fields",
+        blank=True,
+        null=True,
+    )
     crop = models.ForeignKey(Crop, on_delete=models.SET_NULL, blank=True, null=True)
-    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name='fields', null=True)
+    owner = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
+    )
 
     def __str__(self):
         return self.field_name
 
 
-
-#this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
+# this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):
     api_key = "784befbea8b95589ccd6e23d596ec7bb"  # Replace with your actual key
     base_url = "https://api.openweathermap.org/data/2.5/weather"

@@ -65,22 +65,17 @@
     built change password 
     bofa profile and password management 
 
+    july 2
+    added validation if user does not exist or invalid credentials using django messages
+    added django messages for user reg duplicates, validation handles automatically by django
+    fixed registraton page syntax error
+    integrated the date_of_birth in settings
+    added active_stat for manual deactivation feature
+    updated admin content
+    
     DONE !!!!! 
 
 
-
-
-    
-   routing for settings
-    add pictures in models, active status, is approved
-        profile
-        change password
-        security
-        billing - subscription
-        connected apps
-
-        for profile management let bofa access the views and templates,
-        create new folder template for it.
 
 
 
@@ -91,10 +86,14 @@
 
     POLISH
         secure API keys
-        add validation errors and messages errors (use django messages for alerts) -fix messages, does not render correctly
+        add validation errors and messages errors (use django messages for alerts)
 
         
 
     bugs:
-        when user login and credential does not exist, no parameters or guidance found that users does not exist
-        no checks if username and other credentials already exists
+        
+        
+
+    to do: user permission registrations approval
+    add profile picture
+   
