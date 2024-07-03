@@ -12,36 +12,20 @@ class CustomUser(AbstractUser):
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    # user role
     is_farmer = models.BooleanField(default=False)
     is_barangay_officer = models.BooleanField(default=False)
     is_da_admin = models.BooleanField(default=False)
-    active_stat = models.BooleanField(default=True) #used custom instead of default is_active
-    # is_approved = models.BooleanField(default=False)
+    # registration and account status info
+    active_status = models.BooleanField(default=True) #used custom instead of default is_active
+    is_approved = models.BooleanField(default=False)
+    request_date = models.DateTimeField(auto_now_add=True)
+    approved_date = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
     # profile picture
 
     def __str__(self):
         return self.username
-
-
-# class RegistrationRequest(models.Model):
-#     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     is_farmer = models.BooleanField(default=False)
-#     is_barangay_officer = models.BooleanField(default=False)
-#     is_da_admin = models.BooleanField(default=False)
-#     request_date = models.DateTimeField(auto_now_add=True)
-#     approved = models.BooleanField(default=False)  # Indicates if the request is approved
-#     approved_date = models.DateTimeField(null=True, blank=True)
-#     approved_by = models.ForeignKey(
-#         settings.AUTH_USER_MODEL,
-#         on_delete=models.SET_NULL,
-#         null=True,
-#         blank=True,
-#         related_name="approvals",
-#     )
-
-#     def __str__(self):
-#         return f"Request for {self.user.username}"
-
 
 class Crop(models.Model):
     CROP_CHOICES = [

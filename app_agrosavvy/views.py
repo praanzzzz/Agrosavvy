@@ -16,6 +16,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib import messages
 from django.contrib.auth.models import AbstractUser
+from django.utils.timezone import now
 
 #               PRAgab19-5158-794
 
@@ -31,8 +32,12 @@ def register_da_admin(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_da_admin = True
+            user.request_date = now()
             user.save()
-            messages.success(request, "Account created successfully")
+            messages.success(
+                request,
+                "Account is now for validation by the admin. Please wait for 24 hours",
+            )
             return redirect("my_login")
         else:
             messages.error(request, "Please check the form.")
@@ -47,8 +52,9 @@ def register_barangay_officer(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_barangay_officer = True
+            user.request_date = now()
             user.save()
-            messages.success(request, "Account created successfully")
+            messages.success(request, "Account is now for validation by the admin. Please wait for 24 hours")
             return redirect("my_login")
         else:
             messages.error(request, "Please check the form")
@@ -63,8 +69,9 @@ def register_farmer(request):
         if form.is_valid():
             user = form.save(commit=False)
             user.is_farmer = True
+            user.request_date = now()
             user.save()
-            messages.success(request, "Account created successfully")
+            messages.success(request, "Account is now for validation by the admin. Please wait for 24 hours")
             return redirect("my_login")
         else:
             messages.error(request, "Please check the form")
@@ -81,21 +88,25 @@ def my_login(request):
             password = form.cleaned_data.get("password")
             user = authenticate(username=username, password=password)
             if user is not None:
-                if user.active_stat:
-                    if user.is_da_admin:
-                        login(request, user)
-                        messages.success(request, "Account logged in successfully")
-                        return redirect("dashboard")
-                    elif user.is_barangay_officer or user.is_farmer:
-                        login(request, user)
-                        messages.success(request, "Account logged in successfully")
-                        return redirect("bofa_dashboard")
+                if user.is_approved:
+                    if user.active_status:
+                        if user.is_da_admin:
+                            login(request, user)
+                            messages.success(request, "Account logged in successfully")
+                            return redirect("dashboard")
+                        elif user.is_barangay_officer or user.is_farmer:
+                            login(request, user)
+                            messages.success(request, "Account logged in successfully")
+                            return redirect("bofa_dashboard")
+                        else:
+                            messages.error(request, "Invalid credentials")
                     else:
-                        messages.error(request, "Invalid credentials")
+                        messages.error(
+                            request,
+                            "Account is deactivated. Please contact your admin.",
+                        )
                 else:
-                    messages.error(
-                        request, "Account is deactivated. Please contact your admin."
-                    )
+                    messages.error(request, "Account is still in process for approval")
             else:
                 messages.error(request, "Invalid username or password")
         else:

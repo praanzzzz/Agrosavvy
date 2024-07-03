@@ -140,7 +140,7 @@ class LoginForm(forms.Form):
 
 # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
 class SignUpForm(UserCreationForm):
-    username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+    username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control",}))
     password1 = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control"})
     )
