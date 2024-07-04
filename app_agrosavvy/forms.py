@@ -1,8 +1,11 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
-from .models import Field, Address, SoilData, CustomUser
+from .models import Field, Address, SoilData, CustomUser, PendingUser
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 
 class CustomUserUpdateForm(UserChangeForm):
@@ -10,7 +13,13 @@ class CustomUserUpdateForm(UserChangeForm):
 
     class Meta:
         model = CustomUser
-        fields = ["firstname", "lastname","username", "email", "date_of_birth"]  # Adjusted field names
+        fields = [
+            "firstname",
+            "lastname",
+            "username",
+            "email",
+            "date_of_birth",
+        ]  # Adjusted field names
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -29,19 +38,25 @@ class CustomUserUpdateForm(UserChangeForm):
             )  # Add Bootstrap class for styling
 
         # Add a date picker widget for date_of_birth field
-        self.fields["date_of_birth"].widget = forms.DateInput(attrs={
-            "class": "form-control",
-            "type": "date",
-            "placeholder": "Select a date",
-            "autocomplete": "off",  # Disable autocomplete to prevent browser suggestions
-        })
+        self.fields["date_of_birth"].widget = forms.DateInput(
+            attrs={
+                "class": "form-control",
+                "type": "date",
+                "placeholder": "Select a date",
+                "autocomplete": "off",  # Disable autocomplete to prevent browser suggestions
+            }
+        )
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
         label="",
         widget=forms.PasswordInput(
-            attrs={"class": "form-control", "placeholder": "Old Password", "autofocus": True}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Old Password",
+                "autofocus": True,
+            }
         ),
     )
     new_password1 = forms.CharField(
@@ -68,7 +83,11 @@ class FieldForm(forms.ModelForm):
         fields = ["field_name", "field_acres", "crop"]
         widgets = {
             "field_name": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Enter field name", "autofocus": True}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter field name",
+                    "autofocus": True,
+                }
             ),
             "field_acres": forms.NumberInput(
                 attrs={
@@ -132,35 +151,84 @@ class SoilDataForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control", "autofocus": True}))
+    username = forms.CharField(
+        widget=forms.TextInput(attrs={"class": "form-control", "autofocus": True})
+    )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control"})
     )
 
-
-# we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
-class SignUpForm(UserCreationForm):
-    username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control",}))
-    password1 = forms.CharField(
+# pending user form
+class PendingUserForm(forms.ModelForm):
+    username = forms.CharField(
+        validators=[UnicodeUsernameValidator()],
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    password = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control"})
     )
-    password2 = forms.CharField(
-        widget=forms.PasswordInput(attrs={"class": "form-control"})
+    password_confirmation = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+        label="Confirm Password",
     )
 
-    # fields from models
-    firstname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control","autofocus": True}))
-    lastname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-    email = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-
-    # connecting default and custom fields from usercreationforms to abstractuser default and custom fields
     class Meta:
-        model = CustomUser
-        fields = (
+        model = PendingUser
+        fields = [
             "username",
-            "password1",
-            "password2",
             "email",
             "firstname",
             "lastname",
-        )
+            "is_farmer",
+            "is_barangay_officer",
+            "is_da_admin",
+            "password",
+        ]
+        widgets = {
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "firstname": forms.TextInput(attrs={"class": "form-control"}),
+            "lastname": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if CustomUser.objects.filter(username=username).exists():
+            raise forms.ValidationError("This username is already used.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already in use")
+        return email
+    
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if PendingUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email is already in use and is waiting for approval")
+        return email
+
+    def clean_password(self):
+        password = self.cleaned_data.get("password")
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            raise forms.ValidationError(str(e))
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirmation = cleaned_data.get("password_confirmation")
+
+        if password != password_confirmation:
+            self.add_error("password_confirmation", "Passwords do not match.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.password = make_password(self.cleaned_data["password"])
+        if commit:
+            user.save()
+        return user

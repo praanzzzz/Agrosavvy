@@ -1,8 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from pydantic import ValidationError
 import requests
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
@@ -26,6 +26,33 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+
+class PendingUser(models.Model):
+    username = models.CharField(max_length=150, unique=False)
+    password = models.CharField(max_length=128)
+    email = models.EmailField(unique=True)
+    firstname = models.CharField(max_length=30, blank=True)
+    lastname = models.CharField(max_length=30, blank=True)
+    is_farmer = models.BooleanField(default=False)
+    is_barangay_officer = models.BooleanField(default=False)
+    is_da_admin = models.BooleanField(default=False)
+    request_date = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'firstname', 'lastname']
+
+    # hashing password
+    def save(self, *args, **kwargs):
+        if not self.pk and self.password:  # If the object is being created
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return self.username
+
+
 
 class Crop(models.Model):
     CROP_CHOICES = [

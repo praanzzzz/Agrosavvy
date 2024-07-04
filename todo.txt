@@ -72,7 +72,21 @@
     integrated the date_of_birth in settings
     added active_stat for manual deactivation feature
     updated admin content
+
+    july 3
+    user permission registrations approval
+        problem: manual approval and only one table for pending and registered users
+        solution: 1. create a page for the list of all pending and make logic to approve.
+                    (will be handled by DA admin)
+                2. made separate table for pending users
+
     
+    july 4
+    made separate table for pending users (second solution)
+    fixed bug in missing username and password when data transferring to customuser
+    manual form error handling
+changes server time to ph manila instead of 'UTC'
+
     DONE !!!!! 
 
 
@@ -94,6 +108,11 @@
         
         
 
-    to do: user permission registrations approval
-    add profile picture
-   
+    to do: 
+    
+       
+        add profile picture
+        update requirements.txt
+        forgot password in login template feature
+        account activation request for account deactivated
+

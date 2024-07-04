@@ -1,21 +1,20 @@
-from .models import Field, Crop, get_weather_data, CustomUser
+from .models import Field, get_weather_data, CustomUser
 from .forms import (
     FieldForm,
     AddressForm,
     SoilDataForm,
-    SignUpForm,
     LoginForm,
     CustomUserUpdateForm,
     CustomPasswordChangeForm,
+    PendingUserForm
 )
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib import messages
-from django.contrib.auth.models import AbstractUser
 from django.utils.timezone import now
 
 #               PRAgab19-5158-794
@@ -25,15 +24,14 @@ from django.utils.timezone import now
 def landing_page(request):
     return render(request, "app_agrosavvy/landing_page.html", {})
 
-
 def register_da_admin(request):
     if request.method == "POST":
-        form = SignUpForm(request.POST)
+        form = PendingUserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_da_admin = True
-            user.request_date = now()
-            user.save()
+            pending_user = form.save(commit=False)
+            pending_user.is_da_admin = True
+            pending_user.request_date = now()
+            pending_user.save()
             messages.success(
                 request,
                 "Account is now for validation by the admin. Please wait for 24 hours",
@@ -42,41 +40,47 @@ def register_da_admin(request):
         else:
             messages.error(request, "Please check the form.")
     else:
-        form = SignUpForm()
+        form = PendingUserForm()
     return render(request, "auth_pages/register_da_admin.html", {"form": form})
 
 
 def register_barangay_officer(request):
     if request.method == "POST":
-        form = SignUpForm(request.POST)
+        form = PendingUserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_barangay_officer = True
-            user.request_date = now()
-            user.save()
-            messages.success(request, "Account is now for validation by the admin. Please wait for 24 hours")
+            pending_user = form.save(commit=False)
+            pending_user.is_da_admin = True
+            pending_user.request_date = now()
+            pending_user.save()
+            messages.success(
+                request,
+                "Account is now for validation by the admin. Please wait for 24 hours",
+            )
             return redirect("my_login")
         else:
             messages.error(request, "Please check the form")
     else:
-        form = SignUpForm()
+        form = PendingUserForm()
     return render(request, "auth_pages/register_barangay_officer.html", {"form": form})
 
 
 def register_farmer(request):
     if request.method == "POST":
-        form = SignUpForm(request.POST)
+        form = PendingUserForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_farmer = True
-            user.request_date = now()
-            user.save()
-            messages.success(request, "Account is now for validation by the admin. Please wait for 24 hours")
+            pending_user = form.save(commit=False)
+            pending_user.is_da_admin = True
+            pending_user.request_date = now()
+            pending_user.save()
+            messages.success(
+                request,
+                "Account is now for validation by the admin. Please wait for 24 hours",
+            )
             return redirect("my_login")
         else:
             messages.error(request, "Please check the form")
     else:
-        form = SignUpForm()
+        form = PendingUserForm()
     return render(request, "auth_pages/register_farmer.html", {"form": form})
 
 
@@ -88,27 +92,25 @@ def my_login(request):
             password = form.cleaned_data.get("password")
             user = authenticate(username=username, password=password)
             if user is not None:
-                if user.is_approved:
-                    if user.active_status:
-                        if user.is_da_admin:
-                            login(request, user)
-                            messages.success(request, "Account logged in successfully")
-                            return redirect("dashboard")
-                        elif user.is_barangay_officer or user.is_farmer:
-                            login(request, user)
-                            messages.success(request, "Account logged in successfully")
-                            return redirect("bofa_dashboard")
-                        else:
-                            messages.error(request, "Invalid credentials")
+                if user.active_status:
+                    if user.is_da_admin:
+                        login(request, user)
+                        messages.success(request, "Account logged in successfully")
+                        return redirect("dashboard")
+                    elif user.is_barangay_officer or user.is_farmer:
+                        login(request, user)
+                        messages.success(request, "Account logged in successfully")
+                        return redirect("bofa_dashboard")
                     else:
-                        messages.error(
-                            request,
-                            "Account is deactivated. Please contact your admin.",
-                        )
+                        messages.error(request, "Invalid credentials")
                 else:
-                    messages.error(request, "Account is still in process for approval")
+                    messages.error(
+                        request,
+                        "Account is deactivated. Request reactivation of account"
+                    )
+                    # redirect to a page that handles account reactivation request
             else:
-                messages.error(request, "Invalid username or password")
+                messages.error(request, "Invalid username or password or still in process for approval")
         else:
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})

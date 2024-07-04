@@ -1,17 +1,12 @@
-# admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Crop, Field, Address, SoilData
-
+from django.utils import timezone
+from django.conf import settings
+from .models import CustomUser, Crop, Field, Address, SoilData, PendingUser
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
-    # @admin.action(description="Approve selected users")
-    # def approve_users(modeladmin, request, queryset):
-    #     queryset.update(is_approved=True, approved_date=now(), approved_by=request.user)
-
-    # format in viewing user details in django admin
     fieldsets = (
         (None, {"fields": ("username", "password")}),
         (
@@ -27,18 +22,14 @@ class CustomUserAdmin(UserAdmin):
             "Permissions",
             {
                 "fields": (
-                    # "is_active",
                     "is_staff",
                     "is_superuser",
-                    # "groups",
-                    # "user_permissions",
                 )
             },
         ),
         ("Important dates", {"fields": ("last_login",)}),
     )
 
-    # format when adding new user in django admin
     add_fieldsets = (
         (
             None,
@@ -51,8 +42,6 @@ class CustomUserAdmin(UserAdmin):
                     "firstname",
                     "lastname",
                     "email",
-                    # "is_active",
-                    # "active_status",
                     "is_staff",
                     "is_superuser",
                     "is_farmer",
@@ -67,34 +56,81 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
 
-    # format in viewing all users
     list_display = (
         "username",
         "email",
-        # "firstname",
-        # "lastname",
-        # "is_farmer",
-        # "is_barangay_officer",
-        # "is_da_admin",
-        # "is_staff",
         "active_status",
         "is_approved",
     )
 
-    # fields that can be searched
     search_fields = (
         "username",
         "email",
-        "first_name",
-        "last_name",
+        "firstname",
+        "lastname",
     )
-    ordering = "username",
-
-    # Optionally, exclude request_date from readonly_fields if it's automatically set
+    ordering = ("username",)
     readonly_fields = ("request_date",)
 
 
+
+
+
+
+
+
+
+
+
+
+
+@admin.action(description='Approve selected users')
+def approve_users(modeladmin, request, queryset):
+    for pending_user in queryset:
+        CustomUser.objects.create(
+            username=pending_user.username,
+            password=pending_user.password,
+            email=pending_user.email,
+            firstname=pending_user.firstname,
+            lastname=pending_user.lastname,
+            # date_of_birth=pending_user.date_of_birth,
+            is_farmer=pending_user.is_farmer,
+            is_barangay_officer=pending_user.is_barangay_officer,
+            is_da_admin=pending_user.is_da_admin,
+            is_approved=True,
+            approved_date=timezone.now(),
+            approved_by=request.user,
+        )
+        pending_user.delete()
+
+class PendingUserAdmin(admin.ModelAdmin):
+    list_display = ('username','email', 'is_farmer', 'is_barangay_officer', 'is_da_admin', 'request_date')
+    actions = [approve_users]
+
+    readonly_fields = ('request_date', 'username', 'email', 'firstname', 'lastname', 'is_farmer', 'is_barangay_officer', 'is_da_admin')
+    
+    # Prevent deletion of pending users directly from admin
+    def has_delete_permission(self, request, obj=None):
+        return False  
+
+    # Prevent adding new pending users directly from admin
+    def has_add_permission(self, request):
+        return False  
+    
+    # hide password in admin interface
+    def get_exclude(self, request, obj=None):
+        
+        exclude = super().get_exclude(request, obj) or []
+        return exclude + ['password']
+    
+    # pending user order by request_date
+    def get_queryset(self, request):
+        # Override queryset to order by request_date in descending order
+        return super().get_queryset(request).order_by('-request_date')
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Crop)
 admin.site.register(Field)
 admin.site.register(Address)
