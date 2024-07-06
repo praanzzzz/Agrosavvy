@@ -133,41 +133,8 @@
                     {% csrf_token %}
 
                     <div class="form-group mb-3">
-                      <label for="fname">First Name:</label>
-                      {{ form.firstname }}
-                      <span class="text-error">{{ form.firstname.errors }}</span>
+                      {{ form.as_p }}
                     </div>
-
-                    <div class="form-group mb-3">
-                      <label for="fname">Last Name:</label>
-                      {{ form.lastname }}
-                      <span class="text-error">{{ form.lastname.errors }}</span>
-                    </div>
-
-                    <div class="form-group mb-3">
-                      <label for="fname">Username:</label>
-                      {{ form.username }}
-                      <span class="text-error">{{ form.username.errors }}</span>
-                    </div>
-
-                    <div class="form-group mb-3">
-                      <label for="fname">Email:</label>
-                      {{ form.email }}
-                      <span class="text-error">{{ form.email.errors }}</span>
-                    </div>
-
-                    <div class="form-group mb-3">
-                      <label for="fname">Password:</label>
-                      {{ form.password1 }}
-                      <span class="text-error">{{ form.password1.errors }}</span>
-                    </div>
-
-                    <div class="form-group mb-3">
-                      <label for="fname">Confirm Password:</label>
-                      {{ form.password2 }}
-                      <span class="text-error">{{ form.password2.errors }}</span>
-                    </div>
-
                     <button type="submit" class="btn btn-theme" value="Register">Create Account</button><br><br>
                     <p class="text-muted">Already have an account? <a href="{% url 'my_login' %}">Login</a></p>
                   </form>

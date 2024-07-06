@@ -7,6 +7,125 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
+# from django.contrib.auth.forms import UserCreationForm
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(
+        label="",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Username",
+                "autofocus": True,
+            }
+        ),
+    )
+    password = forms.CharField(
+        label="",
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "placeholder": "Password"}
+        ),
+    )
+
+
+# # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
+# class SignUpForm(UserCreationForm):
+#     username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control",}))
+#     password1 = forms.CharField(
+#         widget=forms.PasswordInput(attrs={"class": "form-control"})
+#     )
+#     password2 = forms.CharField(
+#         widget=forms.PasswordInput(attrs={"class": "form-control"})
+#     )
+
+#     # fields from models
+#     firstname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control","autofocus": True}))
+#     lastname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+#     email = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
+
+#     # connecting default and custom fields from usercreationforms to abstractuser default and custom fields
+#     class Meta:
+#         model = CustomUser
+#         fields = (
+#             "username",
+#             "password1",
+#             "password2",
+#             "email",
+#             "firstname",
+#             "lastname",
+#         )
+
+
+# pending user form
+class PendingUserForm(forms.ModelForm):
+    username = forms.CharField(
+        # label="",
+        validators=[UnicodeUsernameValidator()],
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+    password_confirmation = forms.CharField(
+        widget=forms.PasswordInput(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = PendingUser
+        fields = [
+            "firstname",
+            "lastname",
+            "username",
+            "email",
+            "password",
+
+            
+        ]
+        widgets = {
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "firstname": forms.TextInput(attrs={"class": "form-control"}),
+            "lastname": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if CustomUser.objects.filter(username=username).exists():
+            raise forms.ValidationError("This username is already used.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email already in use")
+        return email
+
+    def clean_pending_email(self):
+        email = self.cleaned_data.get("email")
+        if PendingUser.objects.filter(email=email).exists():
+            raise forms.ValidationError(
+                "Email is already in use and is waiting for approval"
+            )
+        return email
+
+    def clean_password(self):
+        password = self.cleaned_data.get("password")
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            raise forms.ValidationError(str(e))
+        return password
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirmation = cleaned_data.get("password_confirmation")
+
+        if password != password_confirmation:
+            self.add_error("password_confirmation", "Passwords do not match.")
+        return cleaned_data
+
 
 class CustomUserUpdateForm(UserChangeForm):
     password = None
@@ -148,87 +267,3 @@ class SoilDataForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Enter pH level"}
             ),
         }
-
-
-class LoginForm(forms.Form):
-    username = forms.CharField(
-        widget=forms.TextInput(attrs={"class": "form-control", "autofocus": True})
-    )
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"class": "form-control"})
-    )
-
-# pending user form
-class PendingUserForm(forms.ModelForm):
-    username = forms.CharField(
-        validators=[UnicodeUsernameValidator()],
-        widget=forms.TextInput(attrs={"class": "form-control"}),
-    )
-    password = forms.CharField(
-        widget=forms.PasswordInput(attrs={"class": "form-control"})
-    )
-    password_confirmation = forms.CharField(
-        widget=forms.PasswordInput(attrs={"class": "form-control"}),
-        label="Confirm Password",
-    )
-
-    class Meta:
-        model = PendingUser
-        fields = [
-            "username",
-            "email",
-            "firstname",
-            "lastname",
-            "is_farmer",
-            "is_barangay_officer",
-            "is_da_admin",
-            "password",
-        ]
-        widgets = {
-            "email": forms.EmailInput(attrs={"class": "form-control"}),
-            "firstname": forms.TextInput(attrs={"class": "form-control"}),
-            "lastname": forms.TextInput(attrs={"class": "form-control"}),
-        }
-
-    def clean_username(self):
-        username = self.cleaned_data.get("username")
-        if CustomUser.objects.filter(username=username).exists():
-            raise forms.ValidationError("This username is already used.")
-        return username
-
-    def clean_email(self):
-        email = self.cleaned_data.get("email")
-        if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already in use")
-        return email
-    
-    def clean_email(self):
-        email = self.cleaned_data.get("email")
-        if PendingUser.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email is already in use and is waiting for approval")
-        return email
-
-    def clean_password(self):
-        password = self.cleaned_data.get("password")
-        try:
-            validate_password(password)
-        except ValidationError as e:
-            raise forms.ValidationError(str(e))
-        return password
-
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        password_confirmation = cleaned_data.get("password_confirmation")
-
-        if password != password_confirmation:
-            self.add_error("password_confirmation", "Passwords do not match.")
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.password = make_password(self.cleaned_data["password"])
-        if commit:
-            user.save()
-        return user

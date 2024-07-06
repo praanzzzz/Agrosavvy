@@ -153,12 +153,7 @@
                   <form action="" method="POST">
                     {% csrf_token %}
                     <div class="form-group">
-                      <label for="fname">Username</label>
-                      {{ form.username }}
-                    </div>
-                    <div class="form-group mb-5">
-                      <label for="fname">Password</label>
-                      {{ form.password }}
+                      {{ form.as_p }}
                     </div>
                     <button type="submit" class="btn btn-theme">Login</button><br><br>
                     <p class="text-muted">Don't have an account? <a href="{% url 'landing_page' %}"

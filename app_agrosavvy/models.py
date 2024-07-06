@@ -44,7 +44,7 @@ class PendingUser(models.Model):
 
     # hashing password
     def save(self, *args, **kwargs):
-        if not self.pk and self.password:  # If the object is being created
+        if not self.pk and self.password:
             self.password = make_password(self.password)
         super().save(*args, **kwargs)
 

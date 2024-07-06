@@ -1,4 +1,4 @@
-from .models import Field, get_weather_data, CustomUser
+from .models import Field, get_weather_data, CustomUser, PendingUser
 from .forms import (
     FieldForm,
     AddressForm,
@@ -6,7 +6,7 @@ from .forms import (
     LoginForm,
     CustomUserUpdateForm,
     CustomPasswordChangeForm,
-    PendingUserForm
+    PendingUserForm,
 )
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
@@ -16,6 +16,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib import messages
 from django.utils.timezone import now
+from django.contrib.auth.hashers import check_password
 
 #               PRAgab19-5158-794
 
@@ -23,6 +24,7 @@ from django.utils.timezone import now
 # authentication logic pages
 def landing_page(request):
     return render(request, "app_agrosavvy/landing_page.html", {})
+
 
 def register_da_admin(request):
     if request.method == "POST":
@@ -42,6 +44,27 @@ def register_da_admin(request):
     else:
         form = PendingUserForm()
     return render(request, "auth_pages/register_da_admin.html", {"form": form})
+
+
+# # logic sign up for users with direct sign up (no approval needed)
+# def register_da_admin(request):
+#     if request.method == "POST":
+#         form = SignUpForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.is_da_admin = True
+#             user.request_date = now()
+#             user.save()
+#             messages.success(
+#                 request,
+#                 "Account is now for validation by the admin. Please wait for 24 hours",
+#             )
+#             return redirect("my_login")
+#         else:
+#             messages.error(request, "Please check the form.")
+#     else:
+#         form = SignUpForm()
+#     return render(request, "auth_pages/register_da_admin.html", {"form": form})
 
 
 def register_barangay_officer(request):
@@ -90,6 +113,19 @@ def my_login(request):
         if form.is_valid():
             username = form.cleaned_data.get("username")
             password = form.cleaned_data.get("password")
+
+             # Check if the user is in the PendingUser table
+            try:
+                pending_user = PendingUser.objects.get(username=username)
+                if check_password(password, pending_user.password):
+                    messages.info(request, "Your registration request is awaiting approval.")
+                    return render(request, "auth_pages/my_login.html", {"form": form})
+                else:
+                    messages.error(request, "Invalid username or password")
+                    return render(request, "auth_pages/my_login.html", {"form": form})
+            except PendingUser.DoesNotExist:
+                pass
+
             user = authenticate(username=username, password=password)
             if user is not None:
                 if user.active_status:
@@ -104,13 +140,13 @@ def my_login(request):
                     else:
                         messages.error(request, "Invalid credentials")
                 else:
-                    messages.error(
-                        request,
-                        "Account is deactivated. Request reactivation of account"
-                    )
+                    messages.error(request,"Account is deactivated")
                     # redirect to a page that handles account reactivation request
             else:
-                messages.error(request, "Invalid username or password or still in process for approval")
+                messages.error(
+                    request,
+                    "Invalid username or password",
+                )
         else:
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})
