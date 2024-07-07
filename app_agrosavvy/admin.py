@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
-from django.conf import settings
 from .models import CustomUser, Crop, Field, Address, SoilData, PendingUser
 
 class CustomUserAdmin(UserAdmin):

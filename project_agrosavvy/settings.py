@@ -134,3 +134,27 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
+
+
+
+
+
+
+
+
+
+
+# email configurations
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'franzgabijan55@gmail.com'
+EMAIL_HOST_PASSWORD = 'alhe ycpj zvae stnp'
+DEFAULT_FROM_EMAIL = 'franzgabijan55@gmail.com'
+
+# Password reset URL configuration
+PASSWORD_RESET_TIMEOUT_DAYS = 1
+
+LOGIN_URL = 'my_login'

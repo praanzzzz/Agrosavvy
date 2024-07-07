@@ -10,7 +10,6 @@ from .forms import (
 )
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
@@ -114,11 +113,13 @@ def my_login(request):
             username = form.cleaned_data.get("username")
             password = form.cleaned_data.get("password")
 
-             # Check if the user is in the PendingUser table
+            # Check if the user is in the PendingUser table
             try:
                 pending_user = PendingUser.objects.get(username=username)
                 if check_password(password, pending_user.password):
-                    messages.info(request, "Your registration request is awaiting approval.")
+                    messages.info(
+                        request, "Your registration request is awaiting approval."
+                    )
                     return render(request, "auth_pages/my_login.html", {"form": form})
                 else:
                     messages.error(request, "Invalid username or password")
@@ -140,7 +141,7 @@ def my_login(request):
                     else:
                         messages.error(request, "Invalid credentials")
                 else:
-                    messages.error(request,"Account is deactivated")
+                    messages.error(request, "Account is deactivated")
                     # redirect to a page that handles account reactivation request
             else:
                 messages.error(

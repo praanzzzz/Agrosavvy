@@ -2,8 +2,6 @@ from django import forms
 from .models import Field, Address, SoilData, CustomUser, PendingUser
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
-from django.core.exceptions import ValidationError
-from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
@@ -57,7 +55,7 @@ class LoginForm(forms.Form):
 #         )
 
 
-# pending user form
+
 class PendingUserForm(forms.ModelForm):
     username = forms.CharField(
         # label="",

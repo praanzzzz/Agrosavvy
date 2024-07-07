@@ -1,7 +1,7 @@
 from django.urls import path, include
 from django.contrib import admin
 from app_agrosavvy import views
-
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.landing_page, name='landing_page'),
@@ -12,6 +12,23 @@ urlpatterns = [
     path('register/barangay_officer/', views.register_barangay_officer, name='register_barangay_officer'),
     path('register/da_admin/', views.register_da_admin, name='register_da_admin'),
     path('my_logout', views.my_logout, name='my_logout'),
+
+
+    # forgot and change password thru email
+    path('password_reset/', auth_views.PasswordResetView.as_view(
+        template_name='auth_pages/password_reset_form.html',
+        email_template_name='auth_pages/password_reset_email.html', 
+        subject_template_name='auth_pages/password_reset_subject.txt'),
+        name='password_reset'),
+    path('password_reset/done/', auth_views.PasswordResetDoneView.as_view(
+          template_name='auth_pages/password_reset_done.html'
+    ), name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+         template_name='auth_pages/password_reset_confirm.html'
+    ), name='password_reset_confirm'),
+    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
+         template_name='auth_pages/password_reset_complete.html'
+    ), name='password_reset_complete'),
 
     #main pages for da admin
     path('dashboard/', views.dashboard, name='dashboard'),

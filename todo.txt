@@ -85,7 +85,17 @@
     made separate table for pending users (second solution)
     fixed bug in missing username and password when data transferring to customuser
     manual form error handling
-changes server time to ph manila instead of 'UTC'
+    changed server time to ph manila instead of 'UTC'
+
+    july 6
+    fixed loggin in error (double hashed - cannot be validated)
+    added checks if the user is in the PendingUser table, then added error handling
+
+    july 7
+    added forgot password thru email feature
+    added base templates and extended login and register pages
+    added basic UI for forgot password
+    updated requirements.txt
 
     DONE !!!!! 
 
@@ -112,7 +122,4 @@ changes server time to ph manila instead of 'UTC'
     
        
         add profile picture
-        update requirements.txt
-        forgot password in login template feature
         account activation request for account deactivated
-
