@@ -12,6 +12,7 @@ class CustomUser(AbstractUser):
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     # user role
     is_farmer = models.BooleanField(default=False)
     is_barangay_officer = models.BooleanField(default=False)
@@ -22,7 +23,6 @@ class CustomUser(AbstractUser):
     request_date = models.DateTimeField(auto_now_add=True)
     approved_date = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
-    # profile picture
 
     def __str__(self):
         return self.username
@@ -34,6 +34,7 @@ class PendingUser(models.Model):
     email = models.EmailField(unique=True)
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
     is_farmer = models.BooleanField(default=False)
     is_barangay_officer = models.BooleanField(default=False)
     is_da_admin = models.BooleanField(default=False)

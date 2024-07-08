@@ -1,9 +1,17 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <h1 class="text-center mt-4">Dashboard</h1>
+            <div>
+                {% if user.profile_picture %}
+                  <img src="{{ user.profile_picture.url }}" alt="Profile Picture" style="width: 150px; height: 150px;"/>
+                {% else %}
+                  <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture" style="width: 150px; height: 150px;"/>
+                {% endif %}
+              </div>
             <h5 class="display-6 mb-3 fw-bolder">Hello, {{ user.username }} - DA Admin - Access All Data</h5>
 
             <!-- Table to display fields -->

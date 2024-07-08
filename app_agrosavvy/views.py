@@ -265,7 +265,7 @@ def settings(request):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
-            updateprofileform = CustomUserUpdateForm(request.POST, instance=user)
+            updateprofileform = CustomUserUpdateForm(request.POST, request.FILES, instance=user)
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
@@ -322,7 +322,6 @@ def delete_field(request, field_id):
         return redirect("forbidden")
 
 
-# uses server side rendering
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
         field = get_object_or_404(Field, field_id=field_id)

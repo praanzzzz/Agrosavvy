@@ -97,6 +97,10 @@
     added basic UI for forgot password
     updated requirements.txt
 
+    july 8
+    date_of_birth in registration
+    added profile picture feature
+
     DONE !!!!! 
 
 
@@ -121,5 +125,5 @@
     to do: 
     
        
-        add profile picture
+
         account activation request for account deactivated

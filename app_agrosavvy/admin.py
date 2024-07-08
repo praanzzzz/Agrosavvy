@@ -7,7 +7,7 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
     fieldsets = (
-        (None, {"fields": ("username", "password")}),
+        (None, {"fields": ("username", "password","profile_picture")}),
         (
             "Personal info",
             {"fields": ("firstname", "lastname", "email", "date_of_birth")},
@@ -92,7 +92,7 @@ def approve_users(modeladmin, request, queryset):
             email=pending_user.email,
             firstname=pending_user.firstname,
             lastname=pending_user.lastname,
-            # date_of_birth=pending_user.date_of_birth,
+            date_of_birth=pending_user.date_of_birth,
             is_farmer=pending_user.is_farmer,
             is_barangay_officer=pending_user.is_barangay_officer,
             is_da_admin=pending_user.is_da_admin,
@@ -106,7 +106,7 @@ class PendingUserAdmin(admin.ModelAdmin):
     list_display = ('username','email', 'is_farmer', 'is_barangay_officer', 'is_da_admin', 'request_date')
     actions = [approve_users]
 
-    readonly_fields = ('request_date', 'username', 'email', 'firstname', 'lastname', 'is_farmer', 'is_barangay_officer', 'is_da_admin')
+    readonly_fields = ('request_date', 'username', 'email', 'firstname', 'lastname', 'date_of_birth', 'is_farmer', 'is_barangay_officer', 'is_da_admin')
     
     # Prevent deletion of pending users directly from admin
     def has_delete_permission(self, request, obj=None):

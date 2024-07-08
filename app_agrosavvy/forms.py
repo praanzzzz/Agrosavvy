@@ -76,6 +76,7 @@ class PendingUserForm(forms.ModelForm):
             "lastname",
             "username",
             "email",
+            "date_of_birth",
             "password",
 
             
@@ -84,6 +85,14 @@ class PendingUserForm(forms.ModelForm):
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "firstname": forms.TextInput(attrs={"class": "form-control"}),
             "lastname": forms.TextInput(attrs={"class": "form-control"}),
+            "date_of_birth": forms.DateInput(
+                attrs={
+                    "class": "form-control",
+                    "type": "date",
+                    "placeholder": "Select a date",
+                    "autocomplete": "off",
+                }
+            ),
         }
 
 
@@ -136,6 +145,7 @@ class CustomUserUpdateForm(UserChangeForm):
             "username",
             "email",
             "date_of_birth",
+            'profile_picture',
         ]  # Adjusted field names
 
     def __init__(self, *args, **kwargs):
