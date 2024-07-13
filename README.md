@@ -3,12 +3,6 @@ Crop Recommendation with OpenAI and Mapbox using Django Python
 
 
 </div>
-
--->Create :Agrosavvy" folder : 
-```bash
-Agrosavvy
-```
-
 ### Cloning the repository
 
 --> Clone the repository using the command below :
@@ -37,6 +31,11 @@ virtualenv env
 ```bash
 env\scripts\activate
 
+```
+
+--> Move into the env folder : 
+```bash
+cd env
 ```
 
 --> Install the requirements :
