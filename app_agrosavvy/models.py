@@ -5,7 +5,6 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
-
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
     user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
@@ -127,7 +126,7 @@ class Field(models.Model):
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):
-    api_key = "ef4d05d95dcd14c6ea7dfeecdd7ca03e" 
+    api_key = settings.WEATHER_API_KEY
     base_url = "https://api.openweathermap.org/data/2.5/weather"
     params = {"q": location, "appid": api_key, "units": "metric"}  # metric or imperial
 

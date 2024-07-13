@@ -1,4 +1,5 @@
-from .models import Field, get_weather_data, CustomUser, PendingUser
+# from django.conf import settings
+from .models import Field, get_weather_data, CustomUser, PendingUser, Crop
 from .forms import (
     FieldForm,
     AddressForm,
@@ -17,7 +18,8 @@ from django.contrib import messages
 from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
-from .forms import AddressyowForm
+from .forms import AskrecoForm
+
 
 #               PRAgab19-5158-794
 
@@ -30,33 +32,18 @@ from .forms import AddressyowForm
 
 
 # in progress (goose ai)
-def get_crop_recommendations():
-    fields = Field.objects.all()\
 
-    ''' 
-    logic should be:
-        access all the fields data
-        provide recommendation based on existing data on the field and the address inputted.
-    '''
+def get_crop_recommendations(barangay, city_municipality, country, nitrogen, phosphorous, potassium, ph):
+    # Fetching crop types from the Crop model restricted to CROP_CHOICES
+    crop_types = Crop.objects.filter(crop_type__in=[choice[0] for choice in Crop.CROP_CHOICES]).values_list('crop_type', flat=True)
 
-     # Debug: Print the fields retrieved from the database
-    print("Fields Retrieved:", fields)
-    
-    # Extract unique crops from these fields
-    recommended_crops = set(field.crop for field in fields if field.crop is not None)
-
-    # Prepare the data to send to GooseAI
-    crops = [crop.crop_type for crop in recommended_crops]
-    prompt = f"Provide crop recommendations and management tips for the following crops: {', '.join(crops)}."
+    # Constructing the prompt for GooseAI
+    prompt = f"Recommend a crop that is suitable in {barangay}, {city_municipality}, {country} based on the following soil data - Nitrogen: {nitrogen}, Phosphorous: {phosphorous}, Potassium: {potassium}, pH: {ph}. Provide management techniques on the recommended crop. Crop choices: {', '.join(crop_types)}."
 
 
-    # Debug: Print the prompt to be sent to GooseAI
-    print("GooseAI Prompt:", prompt)
-
-
-    # Call GooseAI API
+    # Call GooseAI API (replace with your actual API key)
+    api_key = 'sk-W7yOrKk1jByIQP40mWh0lYC1Y21ADRC108itOMGCySlusNY0'
     gooseai_api_url = "https://api.goose.ai/v1/engines/gpt-j-6b/completions"
-    api_key = "sk-W7yOrKk1jByIQP40mWh0lYC1Y21ADRC108itOMGCySlusNY0"
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -70,12 +57,6 @@ def get_crop_recommendations():
 
     response = requests.post(gooseai_api_url, headers=headers, json=data)
 
-      # Debug: Print the response from GooseAI
-    print("GooseAI Response Status Code:", response.status_code)
-    print("GooseAI Response Content:", response.content)
-
-    
-
     if response.status_code == 200:
         recommendations = response.json()
         return recommendations.get("choices", [])
@@ -84,13 +65,20 @@ def get_crop_recommendations():
 
 def address_input(request):
     if request.method == "POST":
-        form = AddressyowForm(request.POST)
+        form = AskrecoForm(request.POST)
         if form.is_valid():
-            address_data = form.cleaned_data
-            recommendations = get_crop_recommendations(address_data)
+            barangay = form.cleaned_data['barangay']
+            city_municipality = form.cleaned_data['city_municipality']
+            country = form.cleaned_data['country']
+            nitrogen = form.cleaned_data['nitrogen']
+            phosphorous = form.cleaned_data['phosphorous']
+            potassium = form.cleaned_data['potassium']
+            ph = form.cleaned_data['ph']
+
+            recommendations = get_crop_recommendations(barangay, city_municipality, country, nitrogen, phosphorous, potassium, ph)
             return render(request, 'goose_ai/result.html', {'recommendations': recommendations})
     else:
-        form = AddressForm()
+        form = AskrecoForm()
     return render(request, 'goose_ai/address_input.html', {'form': form})
 
 
@@ -326,6 +314,7 @@ def add_field(request):
             address_form = AddressForm()
             soil_data_form = SoilDataForm()
         context = {
+            # 'mapbox_api_key': settings.MAPBOX_API_KEY,
             "field_form": field_form,
             "address_form": address_form,
             "soil_data_form": soil_data_form,
@@ -370,6 +359,7 @@ def settings(request):
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
+
 
 
 # MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
