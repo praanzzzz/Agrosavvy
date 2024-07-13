@@ -3,7 +3,7 @@ Crop Recommendation with OpenAI and Mapbox using Django Python
 
 
 
-## Cloning the repository
+### Cloning the repository
 
 --> Clone the repository using the command below :
 ```bash
@@ -17,7 +17,8 @@ cd Agrosavvy
 
 ```
 
---> Create a virtual environment :
+### Virtual environment
+--> Create a virtual environment using the command below :
 ```bash
 # Let's install virtualenv first
 pip install virtualenv
@@ -38,7 +39,8 @@ env\scripts\activate
 cd env
 ```
 
---> Install the requirements :
+### Requirements
+--> Install the requirements using the command below :
 ```bash
 pip install -r requirements.txt
 
