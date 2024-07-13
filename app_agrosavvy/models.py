@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
+from django.utils import timezone
 
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
@@ -115,14 +116,18 @@ class Field(models.Model):
     owner = models.ForeignKey(
         CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
     )
+    created_at = models.DateTimeField(default=timezone.now)  # New field for creation time
 
     def __str__(self):
         return self.field_name
 
+    class Meta:
+        ordering = ['-created_at']
+
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):
-    api_key = "784befbea8b95589ccd6e23d596ec7bb"  # Replace with your actual key
+    api_key = "ef4d05d95dcd14c6ea7dfeecdd7ca03e" 
     base_url = "https://api.openweathermap.org/data/2.5/weather"
     params = {"q": location, "appid": api_key, "units": "metric"}  # metric or imperial
 

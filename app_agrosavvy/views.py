@@ -16,8 +16,98 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib import messages
 from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
+import requests
+from .forms import AddressyowForm
 
 #               PRAgab19-5158-794
+
+
+
+
+
+
+
+
+
+# in progress (goose ai)
+def get_crop_recommendations():
+    fields = Field.objects.all()\
+
+    ''' 
+    logic should be:
+        access all the fields data
+        provide recommendation based on existing data on the field and the address inputted.
+    '''
+
+     # Debug: Print the fields retrieved from the database
+    print("Fields Retrieved:", fields)
+    
+    # Extract unique crops from these fields
+    recommended_crops = set(field.crop for field in fields if field.crop is not None)
+
+    # Prepare the data to send to GooseAI
+    crops = [crop.crop_type for crop in recommended_crops]
+    prompt = f"Provide crop recommendations and management tips for the following crops: {', '.join(crops)}."
+
+
+    # Debug: Print the prompt to be sent to GooseAI
+    print("GooseAI Prompt:", prompt)
+
+
+    # Call GooseAI API
+    gooseai_api_url = "https://api.goose.ai/v1/engines/gpt-j-6b/completions"
+    api_key = "sk-W7yOrKk1jByIQP40mWh0lYC1Y21ADRC108itOMGCySlusNY0"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "prompt": prompt,
+        "max_tokens": 150  # Adjust as necessary
+    }
+
+    response = requests.post(gooseai_api_url, headers=headers, json=data)
+
+      # Debug: Print the response from GooseAI
+    print("GooseAI Response Status Code:", response.status_code)
+    print("GooseAI Response Content:", response.content)
+
+    
+
+    if response.status_code == 200:
+        recommendations = response.json()
+        return recommendations.get("choices", [])
+    else:
+        return []
+
+def address_input(request):
+    if request.method == "POST":
+        form = AddressyowForm(request.POST)
+        if form.is_valid():
+            address_data = form.cleaned_data
+            recommendations = get_crop_recommendations(address_data)
+            return render(request, 'goose_ai/result.html', {'recommendations': recommendations})
+    else:
+        form = AddressForm()
+    return render(request, 'goose_ai/address_input.html', {'form': form})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # authentication logic pages
@@ -71,7 +161,7 @@ def register_barangay_officer(request):
         form = PendingUserForm(request.POST)
         if form.is_valid():
             pending_user = form.save(commit=False)
-            pending_user.is_da_admin = True
+            pending_user.is_barangay_officer = True
             pending_user.request_date = now()
             pending_user.save()
             messages.success(
@@ -91,7 +181,7 @@ def register_farmer(request):
         form = PendingUserForm(request.POST)
         if form.is_valid():
             pending_user = form.save(commit=False)
-            pending_user.is_da_admin = True
+            pending_user.is_farmer = True
             pending_user.request_date = now()
             pending_user.save()
             messages.success(
@@ -328,6 +418,7 @@ def update_field(request, field_id):
 
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
+            field_instance = Field.objects.get(field_id=field.field_id)
             address_instance = field.address
             soil_data_instance = field.soil_data
 
@@ -340,7 +431,8 @@ def update_field(request, field_id):
                 and soil_data_form.is_valid()
             ):
                 updated_field = field_form.save(commit=False)
-                updated_field.owner = field.owner
+                # updated_field.owner = field.owner
+                updated_field.owner = field_instance.owner
                 updated_field.save()
                 updated_address = address_form.save()
                 updated_soil_data = soil_data_form.save()
@@ -549,6 +641,7 @@ def bofa_update_field(request, field_id):
 
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
+            
             address_instance = field.address
             soil_data_instance = field.soil_data
 

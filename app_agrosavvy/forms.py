@@ -7,6 +7,15 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 
 # from django.contrib.auth.forms import UserCreationForm
 
+# in progress (goose ai)
+class AddressyowForm(forms.Form):
+    barangay = forms.CharField(label='Barangay', max_length=100)
+    city_municipality = forms.CharField(label='City/Municipality', max_length=100)
+    country = forms.CharField(label='Country', max_length=100)
+    # latitude = forms.FloatField(label='Latitude')
+    # longitude = forms.FloatField(label='Longitude')
+
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(

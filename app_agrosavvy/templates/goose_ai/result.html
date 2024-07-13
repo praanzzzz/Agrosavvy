@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crop Recommendations</title>
+</head>
+<body>
+    <h1>Crop Recommendations</h1>
+    {% if recommendations %}
+        <ul>
+        {% for recommendation in recommendations %}
+            <li>{{ recommendation.text }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No recommendations found.</p>
+    {% endif %}
+</body>
+</html>

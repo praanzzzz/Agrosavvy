@@ -6,6 +6,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+
+    # in progress (goose ai)
+    path('address_input/', views.address_input, name='address_input'),
+
+
     path('', views.landing_page, name='landing_page'),
 
     #authentication urls

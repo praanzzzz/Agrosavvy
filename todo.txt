@@ -101,6 +101,11 @@
     date_of_birth in registration
     added profile picture feature
 
+    july 13
+    	fixed bug in registering - pending and updating field logic
+	added default weather widgets
+	basic AI reco - gooseai (in progress)
+
     DONE !!!!! 
 
 
@@ -123,7 +128,6 @@
         
 
     to do: 
-    
-       
-
-        account activation request for account deactivated
+        Integrate basic AI
+        account activation request for account deactivated and deactivate button 
+        add rainfall in models  
