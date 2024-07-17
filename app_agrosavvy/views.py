@@ -19,89 +19,19 @@ from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
 from .forms import AskrecoForm
+from django.views.decorators.csrf import csrf_exempt
 
+# for charts in dashboard
+import matplotlib.pyplot as plt
+import io
+import base64
+from django.db.models import Count
 
 #               PRAgab19-5158-794
-
-
-
-
-
-
-
-
-
-# in progress (goose ai)
-
-def get_crop_recommendations(barangay, city_municipality, country, nitrogen, phosphorous, potassium, ph):
-    # Fetching crop types from the Crop model restricted to CROP_CHOICES
-    crop_types = Crop.objects.filter(crop_type__in=[choice[0] for choice in Crop.CROP_CHOICES]).values_list('crop_type', flat=True)
-
-    # Constructing the prompt for GooseAI
-    prompt = f"Recommend a crop that is suitable in {barangay}, {city_municipality}, {country} based on the following soil data - Nitrogen: {nitrogen}, Phosphorous: {phosphorous}, Potassium: {potassium}, pH: {ph}. Provide management techniques on the recommended crop. Crop choices: {', '.join(crop_types)}."
-
-
-    # Call GooseAI API (replace with your actual API key)
-    api_key = 'sk-W7yOrKk1jByIQP40mWh0lYC1Y21ADRC108itOMGCySlusNY0'
-    gooseai_api_url = "https://api.goose.ai/v1/engines/gpt-j-6b/completions"
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    data = {
-        "prompt": prompt,
-        "max_tokens": 150  # Adjust as necessary
-    }
-
-    response = requests.post(gooseai_api_url, headers=headers, json=data)
-
-    if response.status_code == 200:
-        recommendations = response.json()
-        return recommendations.get("choices", [])
-    else:
-        return []
-
-def address_input(request):
-    if request.method == "POST":
-        form = AskrecoForm(request.POST)
-        if form.is_valid():
-            barangay = form.cleaned_data['barangay']
-            city_municipality = form.cleaned_data['city_municipality']
-            country = form.cleaned_data['country']
-            nitrogen = form.cleaned_data['nitrogen']
-            phosphorous = form.cleaned_data['phosphorous']
-            potassium = form.cleaned_data['potassium']
-            ph = form.cleaned_data['ph']
-
-            recommendations = get_crop_recommendations(barangay, city_municipality, country, nitrogen, phosphorous, potassium, ph)
-            return render(request, 'goose_ai/result.html', {'recommendations': recommendations})
-    else:
-        form = AskrecoForm()
-    return render(request, 'goose_ai/address_input.html', {'form': form})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # authentication logic pages
 def landing_page(request):
     return render(request, "app_agrosavvy/landing_page.html", {})
-
 
 def register_da_admin(request):
     if request.method == "POST":
@@ -122,27 +52,27 @@ def register_da_admin(request):
         form = PendingUserForm()
     return render(request, "auth_pages/register_da_admin.html", {"form": form})
 
-
-# # logic sign up for users with direct sign up (no approval needed)
-# def register_da_admin(request):
-#     if request.method == "POST":
-#         form = SignUpForm(request.POST)
-#         if form.is_valid():
-#             user = form.save(commit=False)
-#             user.is_da_admin = True
-#             user.request_date = now()
-#             user.save()
-#             messages.success(
-#                 request,
-#                 "Account is now for validation by the admin. Please wait for 24 hours",
-#             )
-#             return redirect("my_login")
-#         else:
-#             messages.error(request, "Please check the form.")
-#     else:
-#         form = SignUpForm()
-#     return render(request, "auth_pages/register_da_admin.html", {"form": form})
-
+'''
+# logic sign up for users with direct sign up (no approval needed)
+def register_da_admin(request):
+    if request.method == "POST":
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_da_admin = True
+            user.request_date = now()
+            user.save()
+            messages.success(
+                request,
+                "Account is now for validation by the admin. Please wait for 24 hours",
+            )
+            return redirect("my_login")
+        else:
+            messages.error(request, "Please check the form.")
+    else:
+        form = SignUpForm()
+    return render(request, "auth_pages/register_da_admin.html", {"form": form})
+'''
 
 def register_barangay_officer(request):
     if request.method == "POST":
@@ -163,7 +93,6 @@ def register_barangay_officer(request):
         form = PendingUserForm()
     return render(request, "auth_pages/register_barangay_officer.html", {"form": form})
 
-
 def register_farmer(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
@@ -182,7 +111,6 @@ def register_farmer(request):
     else:
         form = PendingUserForm()
     return render(request, "auth_pages/register_farmer.html", {"form": form})
-
 
 def my_login(request):
     form = LoginForm(request.POST or None)
@@ -230,7 +158,6 @@ def my_login(request):
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})
 
-
 def my_logout(request):
     if request.user.is_authenticated:
         logout(request)
@@ -241,20 +168,29 @@ def my_logout(request):
 
 
 # Main pages
+@csrf_exempt
 def dashboard(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         fields = Field.objects.all()
-        return render(request, "app_agrosavvy/dashboard.html", {"fields": fields})
+        crops = Crop.objects.all()
+        crop_filter = request.GET.get('crop', None)
+        line_chart = generate_line_chart(crop_filter)
+        donut_chart = generate_donut_chart()
+        context = {
+            "fields": fields, 
+            "donut_chart": donut_chart,
+            "line_chart": line_chart,
+            "crops": crops
+        }
+        return render(request, "app_agrosavvy/dashboard.html", context)
     else:
         return redirect("forbidden")  # or go to login, change later
-
 
 def ai(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         return render(request, "app_agrosavvy/ai.html", {})
     else:
         return redirect("forbidden")
-
 
 def map(request):
     if request.user.is_authenticated and request.user.is_da_admin:
@@ -276,7 +212,6 @@ def map(request):
         return render(request, "app_agrosavvy/map.html", context)
     else:
         return redirect("forbidden")
-
 
 def add_field(request):
     if request.user.is_authenticated and request.user.is_da_admin:
@@ -323,7 +258,6 @@ def add_field(request):
     else:
         return redirect("forbidden")
 
-
 def weather(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         if request.method == "POST":
@@ -336,7 +270,6 @@ def weather(request):
         return render(request, "app_agrosavvy/weather.html", context)
     else:
         return redirect("forbidden")
-
 
 # update name, email and username and also add picture
 def settings(request):
@@ -359,8 +292,6 @@ def settings(request):
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
-
-
 
 # MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
 def password_change(request):
@@ -391,7 +322,6 @@ def password_change(request):
     else:
         return redirect("forbidden")
 
-
 # MANAGE FIELDS VIEWS
 def delete_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
@@ -400,7 +330,6 @@ def delete_field(request, field_id):
         return redirect("dashboard")
     else:
         return redirect("forbidden")
-
 
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
@@ -468,10 +397,8 @@ def bofa_dashboard(request):
     else:
         return redirect("forbidden")
 
-
 def bofa_ai(request):
     return render(request, "bofa_pages/bofa_ai.html", {})
-
 
 def bofa_map(request):
     fields = Field.objects.all()
@@ -490,7 +417,6 @@ def bofa_map(request):
 
     context = {"fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder)}
     return render(request, "bofa_pages/bofa_map.html", context)
-
 
 def bofa_add_field(request):
     if request.user.is_authenticated and (
@@ -537,7 +463,6 @@ def bofa_add_field(request):
     else:
         return redirect("forbidden")
 
-
 def bofa_weather(request):
     if request.method == "POST":
         location = request.POST.get("location")
@@ -548,7 +473,6 @@ def bofa_weather(request):
 
     context = {"location": location, "weather_data": weather_data}
     return render(request, "bofa_pages/bofa_weather.html", context)
-
 
 def bofa_settings(request):
     if request.user.is_authenticated and (
@@ -572,7 +496,6 @@ def bofa_settings(request):
         return render(request, "bofa_pages/bofa_settings.html", context)
     else:
         return redirect("forbidden")
-
 
 # MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
 def bofa_password_change(request):
@@ -607,7 +530,6 @@ def bofa_password_change(request):
     else:
         return redirect("forbidden")
 
-
 # CRUD FOR BOFA
 def bofa_delete_field(request, field_id):
     if request.user.is_authenticated and (
@@ -618,7 +540,6 @@ def bofa_delete_field(request, field_id):
         return redirect("bofa_dashboard")
     else:
         return redirect("forbidden")
-
 
 def bofa_update_field(request, field_id):
     if request.user.is_authenticated and (
@@ -674,7 +595,113 @@ def bofa_update_field(request, field_id):
     else:
         return redirect("forbidden")
 
-
 # error pages
 def forbidden(request):
     return render(request, "error_pages/forbidden.html", {})
+
+
+
+
+# in progress (visualization in dashboard) -- made for da admin since there no filters yet
+def generate_donut_chart():
+  
+    fields = Field.objects.all()
+    crop_counts = {}
+
+    for field in fields:
+        crop = field.crop.crop_type if field.crop else 'No Crop'
+        if crop in crop_counts:
+            crop_counts[crop] += 1
+        else:
+            crop_counts[crop] = 1
+
+ 
+    labels = crop_counts.keys()
+    sizes = crop_counts.values()
+
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90,  wedgeprops={'width': 0.3})
+    ax.axis('equal')
+
+    # Save chart to a string in memory
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    string = base64.b64encode(buf.read()).decode('utf-8')
+    uri = 'data:image/png;base64,' + string
+
+    return uri
+
+def generate_line_chart(crop_filter=None):
+    # Fetch field data
+    fields = Field.objects.all()
+    if crop_filter:
+        fields = fields.filter(crop__crop_type=crop_filter)
+
+    # Aggregate fields by creation date
+    fields_by_date = fields.values('created_at__date').annotate(count=Count('field_id')).order_by('created_at__date')
+    
+    dates = [field['created_at__date'] for field in fields_by_date]
+    counts = [field['count'] for field in fields_by_date]
+
+    # Generate line chart
+    fig, ax = plt.subplots()
+    ax.plot(dates, counts, marker='o')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Number of Fields')
+    ax.set_title('Fields Created Over Time')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Save chart to a string in memory
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    string = base64.b64encode(buf.read()).decode('utf-8')
+    uri = 'data:image/png;base64,' + string
+
+    return uri
+
+
+# in progress (goose ai)
+def get_crop_recommendations(nitrogen, phosphorous, potassium, ph):
+  
+    crop_types = Crop.objects.filter(crop_type__in=[choice[0] for choice in Crop.CROP_CHOICES]).values_list('crop_type', flat=True)
+    prompt = f"Based on the soil data provided, recommend the most suitable crop type for planting from the following options: {', '.join(crop_types)}.  Soil data: Nitrogen: {nitrogen}, Phosphorous: {phosphorous}, Potassium: {potassium}, pH: {ph}."
+
+    api_key = 'sk-W7yOrKk1jByIQP40mWh0lYC1Y21ADRC108itOMGCySlusNY0'
+    gooseai_api_url = "https://api.goose.ai/v1/engines/gpt-j-6b/completions"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "prompt": prompt,
+        "max_tokens": 150 
+
+    }
+
+    response = requests.post(gooseai_api_url, headers=headers, json=data)
+
+    if response.status_code == 200:
+        recommendations = response.json()
+        return recommendations.get("choices", [])
+    else:
+        return []
+
+def address_input(request):
+    if request.method == "POST":
+        form = AskrecoForm(request.POST)
+        if form.is_valid():
+            nitrogen = form.cleaned_data['nitrogen']
+            phosphorous = form.cleaned_data['phosphorous']
+            potassium = form.cleaned_data['potassium']
+            ph = form.cleaned_data['ph']
+
+            recommendations = get_crop_recommendations(nitrogen, phosphorous, potassium, ph)
+            return render(request, 'goose_ai/result.html', {'recommendations': recommendations})
+    else:
+        form = AskrecoForm()
+    return render(request, 'goose_ai/address_input.html', {'form': form})

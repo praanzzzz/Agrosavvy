@@ -115,7 +115,7 @@ class Field(models.Model):
     owner = models.ForeignKey(
         CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
     )
-    created_at = models.DateTimeField(default=timezone.now)  # New field for creation time
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return self.field_name

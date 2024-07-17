@@ -9,13 +9,13 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 
 # in progress (goose ai)
 class AskrecoForm(forms.Form):
-    barangay = forms.CharField(label='Barangay', max_length=100)
-    city_municipality = forms.CharField(label='City/Municipality', max_length=100)
-    country = forms.CharField(label='Country', max_length=100)
-    nitrogen = forms.IntegerField(label='Nitrogen') 
-    phosphorous = forms.IntegerField(label='Phosphorous') 
-    potassium = forms.IntegerField(label='Potassium') 
-    ph = forms.IntegerField(label='pH')  
+    # barangay = forms.CharField(label='Barangay', max_length=100)
+    # city_municipality = forms.CharField(label='City/Municipality', max_length=100)
+    # country = forms.CharField(label='Country', max_length=100)
+    nitrogen = forms.FloatField(label='Nitrogen') 
+    phosphorous = forms.FloatField(label='Phosphorous') 
+    potassium = forms.FloatField(label='Potassium') 
+    ph = forms.FloatField(label='pH')  
     # latitude = forms.FloatField(label='Latitude')
     # longitude = forms.FloatField(label='Longitude')
 
@@ -41,6 +41,7 @@ class LoginForm(forms.Form):
 
 
 # # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
+# # validate the logic, other variables may not work or it lack variables
 # class SignUpForm(UserCreationForm):
 #     username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control",}))
 #     password1 = forms.CharField(
@@ -91,8 +92,6 @@ class PendingUserForm(forms.ModelForm):
             "email",
             "date_of_birth",
             "password",
-
-            
         ]
         widgets = {
             "email": forms.EmailInput(attrs={"class": "form-control"}),
@@ -107,8 +106,6 @@ class PendingUserForm(forms.ModelForm):
                 }
             ),
         }
-
-
     def clean_username(self):
         username = self.cleaned_data.get("username")
         if CustomUser.objects.filter(username=username).exists():
@@ -149,7 +146,6 @@ class PendingUserForm(forms.ModelForm):
 
 class CustomUserUpdateForm(UserChangeForm):
     password = None
-
     class Meta:
         model = CustomUser
         fields = [
@@ -186,7 +182,6 @@ class CustomUserUpdateForm(UserChangeForm):
                 "autocomplete": "off",  # Disable autocomplete to prevent browser suggestions
             }
         )
-
 
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
