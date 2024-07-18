@@ -22,14 +22,16 @@ from .forms import AskrecoForm
 from django.views.decorators.csrf import csrf_exempt
 
 # for charts in dashboard
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io
 import base64
 from django.db.models import Count
 
-#               PRAgab19-5158-794
+#           PRAgab19-5158-794
 
-# authentication logic pages
+# authentication pages
 def landing_page(request):
     return render(request, "app_agrosavvy/landing_page.html", {})
 
@@ -162,7 +164,7 @@ def my_logout(request):
     if request.user.is_authenticated:
         logout(request)
         messages.success(request, "Account logged out successfully")
-        return redirect("my_login")
+        return redirect("landing_page")
     else:
         return redirect("forbidden")
 
@@ -271,7 +273,7 @@ def weather(request):
     else:
         return redirect("forbidden")
 
-# update name, email and username and also add picture
+# update profile
 def settings(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         user = get_object_or_404(CustomUser, pk=request.user.pk)
@@ -292,8 +294,11 @@ def settings(request):
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
+    
 
-# MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
+
+# sub pages
+# password change
 def password_change(request):
     if request.user.is_authenticated:
         user = get_object_or_404(CustomUser, pk=request.user.pk)
@@ -321,8 +326,21 @@ def password_change(request):
         )
     else:
         return redirect("forbidden")
+    
 
-# MANAGE FIELDS VIEWS
+def deactivate_account(request):
+    if request.user.is_authenticated and request.user.is_da_admin:
+        if request.method == 'POST':
+            user = request.user
+            user.active_status = False
+            user.save()
+            logout(request)
+            messages.success(request, 'Your account has been deactivated.')
+            return redirect('landing_page')
+        return redirect('settings')
+
+
+# manage fields/ farms
 def delete_field(request, field_id):
     if request.user.is_authenticated and request.user.is_da_admin:
         field = get_object_or_404(Field, pk=field_id)
@@ -384,9 +402,20 @@ def update_field(request, field_id):
         return redirect("forbidden")
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 # Brgy officers and farmers pages
 # main pages
-
 
 def bofa_dashboard(request):
     if request.user.is_authenticated and (
@@ -397,9 +426,11 @@ def bofa_dashboard(request):
     else:
         return redirect("forbidden")
 
+# no auth yet
 def bofa_ai(request):
     return render(request, "bofa_pages/bofa_ai.html", {})
 
+# no auth yet
 def bofa_map(request):
     fields = Field.objects.all()
     fields_json = []
@@ -417,6 +448,7 @@ def bofa_map(request):
 
     context = {"fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder)}
     return render(request, "bofa_pages/bofa_map.html", context)
+
 
 def bofa_add_field(request):
     if request.user.is_authenticated and (
@@ -463,6 +495,7 @@ def bofa_add_field(request):
     else:
         return redirect("forbidden")
 
+# no auth yet
 def bofa_weather(request):
     if request.method == "POST":
         location = request.POST.get("location")
@@ -497,7 +530,8 @@ def bofa_settings(request):
     else:
         return redirect("forbidden")
 
-# MANAGE ACCOUNT PROFILE VIEWS -SETTINGS EXTENSION
+
+# sub pages
 def bofa_password_change(request):
     if request.user.is_authenticated and (
         request.user.is_barangay_officer or request.user.is_farmer
@@ -529,8 +563,19 @@ def bofa_password_change(request):
         )
     else:
         return redirect("forbidden")
+    
+def bofa_deactivate_account(request):
+    if request.user.is_authenticated and (request.user.is_barangay_officer or request.user.is_farmer):
+        if request.method == 'POST':
+            user = request.user
+            user.active_status = False
+            user.save()
+            logout(request)
+            messages.success(request, 'Your account has been deactivated.')
+            return redirect('landing_page')
+        return redirect('bofa_settings')
 
-# CRUD FOR BOFA
+# manage fields/ farms
 def bofa_delete_field(request, field_id):
     if request.user.is_authenticated and (
         request.user.is_barangay_officer or request.user.is_farmer
@@ -595,12 +640,14 @@ def bofa_update_field(request, field_id):
     else:
         return redirect("forbidden")
 
+
+
+
+
+
 # error pages
 def forbidden(request):
     return render(request, "error_pages/forbidden.html", {})
-
-
-
 
 # in progress (visualization in dashboard) -- made for da admin since there no filters yet
 def generate_donut_chart():
