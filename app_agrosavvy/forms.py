@@ -7,20 +7,6 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 
 # from django.contrib.auth.forms import UserCreationForm
 
-# in progress (goose ai)
-class AskrecoForm(forms.Form):
-    # barangay = forms.CharField(label='Barangay', max_length=100)
-    # city_municipality = forms.CharField(label='City/Municipality', max_length=100)
-    # country = forms.CharField(label='Country', max_length=100)
-    nitrogen = forms.FloatField(label='Nitrogen') 
-    phosphorous = forms.FloatField(label='Phosphorous') 
-    potassium = forms.FloatField(label='Potassium') 
-    ph = forms.FloatField(label='pH')  
-    # latitude = forms.FloatField(label='Latitude')
-    # longitude = forms.FloatField(label='Longitude')
-
-
-
 class LoginForm(forms.Form):
     username = forms.CharField(
         label="",
@@ -283,3 +269,19 @@ class SoilDataForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Enter pH level"}
             ),
         }
+
+
+
+
+
+# in progress (goose ai)
+class AskrecoForm(forms.Form):
+    # barangay = forms.CharField(label='Barangay', max_length=100)
+    # city_municipality = forms.CharField(label='City/Municipality', max_length=100)
+    # country = forms.CharField(label='Country', max_length=100)
+    nitrogen = forms.FloatField(label='Nitrogen') 
+    phosphorous = forms.FloatField(label='Phosphorous') 
+    potassium = forms.FloatField(label='Potassium') 
+    ph = forms.FloatField(label='pH')  
+    # latitude = forms.FloatField(label='Latitude')
+    # longitude = forms.FloatField(label='Longitude')

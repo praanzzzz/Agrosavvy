@@ -6,14 +6,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-
-    # in progress (goose ai)
-    path('address_input/', views.address_input, name='address_input'),
-
-
     path('', views.landing_page, name='landing_page'),
 
-    #authentication urls
+    #authentication
     path('my_login', views.my_login, name='my_login'),
     path('register/farmer/', views.register_farmer, name='register_farmer'),
     path('register/barangay_officer/', views.register_barangay_officer, name='register_barangay_officer'),
@@ -47,10 +42,18 @@ urlpatterns = [
 
     #settings section urls
     path('settings/password_change', views.password_change, name='password_change'),
+    path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
 
     #field management for da admin
     path('dashboard/update_field/<int:field_id>/', views.update_field, name='update_field'),
     path('dashboard/delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
+
+
+
+
+
+
+
 
     #barangay officers and farmers page
     path('bofa_dashboard/', views.bofa_dashboard, name='bofa_dashboard'),
@@ -62,6 +65,7 @@ urlpatterns = [
     
     #settings section urls
     path('bofa_settings/bofa_password_change', views.bofa_password_change, name='bofa_password_change'),
+    path('bofa_deactivate_account/', views.bofa_deactivate_account, name='bofa_deactivate_account'),
 
     #field management for Brgy officers and farmers
     path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),
@@ -69,6 +73,10 @@ urlpatterns = [
 
     #forbidden, 404 chuchu
     path('forbidden', views.forbidden, name='forbidden'),
+
+
+     # in progress (goose ai)
+    path('address_input/', views.address_input, name='address_input'),
 ]
 
 

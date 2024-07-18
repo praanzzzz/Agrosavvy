@@ -32,7 +32,7 @@
   </nav>
 
   <div class="row">
-    <div class="col-md-12 mt-5">
+    <div class="col-md-6 mt-5 offset-md-3">
       <div id="profile" class="card">
         <div class="card-header">
           Profile
@@ -45,6 +45,32 @@
       </div>
     </div>
   </div>
+
+
+  <script>
+    function confirmDeactivation(event) {
+      if (!confirm("Are you sure you want to deactivate your account?")) {
+        event.preventDefault();
+      }
+    }
+  </script>
+
+  <div class="row">
+    <div class="col-md-6 mt-5 offset-md-3">
+      <div class="d-flex align-items-center mt-3">
+        <form method="post" action="{% url 'bofa_deactivate_account' %}" onsubmit="confirmDeactivation(event)">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary deactivate-button">Deactivate</button>
+        </form>
+        <span class="additional-text mx-4">By deactivating this account, you will temporarily lose access to
+          all of your Agrosavvy data. You will not be able to create a
+          new account with the username <strong>{{ user.username }}</strong>. Are you sure you want to proceed?
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <br><br><br>
 </main>
 
 <style>
@@ -64,6 +90,19 @@
     bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
+  }
+
+  
+  .deactivate-button {
+    border-radius: 30px;
+  }
+
+  .additional-text {
+    margin-left: 10px;
+  }
+
+  .btn {
+    border-radius: 30px;
   }
 </style>
 
