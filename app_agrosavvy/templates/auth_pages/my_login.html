@@ -16,13 +16,13 @@
               <p class="text-muted mt-2 mb-5">Sign in and enjoy cool stuff just for you!</p>
               <form action="" method="POST">
                 {% csrf_token %}
-                <div class="form-group">
-                  {{ form.username.label_tag }}
+                <div class="form-floating mb-3">
                   {{ form.username }}
+                  <label for="floatingInput">Username</label> 
                 </div>
-                <div class="form-group">
-                  {{ form.password.label_tag }}
+                <div class="form-floating">
                   {{ form.password }}
+                  <label for="floatingInput">Password</label> 
                 </div>
                 <br>
                 <button type="submit" class="btn btn-theme btn-block">Login</button><br><br>

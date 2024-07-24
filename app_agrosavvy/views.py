@@ -300,7 +300,7 @@ def settings(request):
 # sub pages
 # password change
 def password_change(request):
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and request.user.is_da_admin:
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -514,7 +514,7 @@ def bofa_settings(request):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
-            updateprofileform = CustomUserUpdateForm(request.POST, instance=user)
+            updateprofileform = CustomUserUpdateForm(request.POST, request.FILES, instance=user)
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
@@ -649,6 +649,8 @@ def bofa_update_field(request, field_id):
 def forbidden(request):
     return render(request, "error_pages/forbidden.html", {})
 
+
+
 # in progress (visualization in dashboard) -- made for da admin since there no filters yet
 def generate_donut_chart():
   
@@ -710,6 +712,9 @@ def generate_line_chart(crop_filter=None):
     return uri
 
 
+
+
+# remove goose ai since so dumb and expensive. 
 # in progress (goose ai)
 def get_crop_recommendations(nitrogen, phosphorous, potassium, ph):
   

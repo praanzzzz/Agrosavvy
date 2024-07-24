@@ -1,4 +1,5 @@
 {% extends 'bofa_base.html' %}
+
 {% block content %}
 <br><br><br><br><br>
 <main class="container">
@@ -37,7 +38,7 @@
         <div class="card-header">
           Profile
         </div>
-        <form method="POST" class="card-body">
+        <form method="POST" enctype="multipart/form-data" class="card-body">
           {% csrf_token %}
           {{ updateprofileform.as_p }}
           <button type="submit" class="btn btn-primary">Save Changes</button>

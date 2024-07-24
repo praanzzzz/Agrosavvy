@@ -2,15 +2,20 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
 
-
+  /* 
   :root {
     --color-default: #00138c;
     --color-second: #0034ac;
     --color-white: #fff;
     --color-body: #e4e9f7;
     --color-light: #e0e0e0;
-  }
+  } */
 
+  :root {
+    --color-default: #ffffff;
+    --color-white: #315efd;
+
+  }
 
   * {
     padding: 0%;
@@ -108,6 +113,7 @@
     left: calc(100% + 15px);
     z-index: 3;
     background-color: var(--color-white);
+    color: var(--color-default);
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
     padding: 6px 14px;
     font-size: 15px;
@@ -128,38 +134,6 @@
 
   .sidebar.open li .tooltip {
     display: none;
-  }
-
-  .sidebar input {
-    font-size: 15px;
-    color: var(--color-white);
-    font-weight: 400;
-    outline: none;
-    height: 35px;
-    width: 35px;
-    border: none;
-    border-radius: 5px;
-    background-color: var(--color-second);
-    transition: all .5s ease;
-  }
-
-  .sidebar input::placeholder {
-    color: var(--color-light)
-  }
-
-  .sidebar.open input {
-    width: 100%;
-    padding: 0 20px 0 50px;
-  }
-
-  .sidebar .bx-search {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    font-size: 22px;
-    background-color: var(--color-second);
-    color: var(--color-white);
   }
 
   .sidebar li a {
@@ -221,103 +195,29 @@
     border-radius: 5px;
   }
 
-  .sidebar li.profile {
-    position: fixed;
-    height: 60px;
-    width: 78px;
-    left: 0;
-    bottom: -8px;
-    padding: 10px 14px;
-    overflow: hidden;
-    transition: all .5s ease;
-  }
-
-  .sidebar.open li.profile {
-    width: 250px;
-  }
-
-  .sidebar .profile .profile_details {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-  }
-
-  .sidebar li img {
-    height: 45px;
-    width: 45px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-right: 10px;
-  }
-
-  .sidebar li.profile .name,
-  .sidebar li.profile .designation {
-    font-size: 15px;
-    font-weight: 400;
-    color: var(--color-white);
-    white-space: nowrap;
-  }
-
-  .sidebar li.profile .designation {
-    font-size: 12px;
-  }
-
-  .sidebar .profile #log_out {
-    position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    background-color: #0438b1;
-    width: 100%;
-    height: 60px;
-    line-height: 60px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.5s ease;
-  }
-
-  .sidebar.open .profile #log_out {
-    width: 50px;
-    background: #00138c;
-  }
-
-  .home-section {
-    position: relative;
-    background-color: var(--color-body);
-    min-height: 100vh;
-    top: 0;
-    left: 78px;
-    width: calc(100% - 78px);
-    transition: all .5s ease;
-    z-index: 2;
-  }
-
-  .home-section .text {
-    display: inline-block;
+  .sidebar li a.active::after {
+    transform: scaleX(1);
     color: var(--color-default);
-    font-size: 25px;
-    font-weight: 500;
-    margin: 18px;
+    /* Or any color that matches your hover effect */
   }
 
-  .sidebar.open~.home-section {
-    left: 250px;
-    width: calc(100% - 250px);
+  .sidebar li a.active .link_name,
+  .sidebar li a.active i {
+    color: var(--color-default);
+    /* Or any color that matches your hover effect */
   }
 </style>
 
+
+
 <div class="sidebar">
+  <br>
   <div class="logo_details">
-    <i class="fas fa-seedling icon"></i>
-    <div class="logo_name">AgroSavvy</div>
+    <!-- <i class="fas fa-seedling icon"></i> -->
+    <div class="logo_name ms-3">AgroSavvy</div>
     <i class="bx bx-menu" id="btn"></i>
   </div>
   <ul class="nav-list">
-    <li>
-      <i class="bx bx-search"></i>
-      <input type="text" placeholder="Search...">
-      <span class="tooltip">Search</span>
-    </li>
     <li>
       <a href="{% url 'dashboard' %}">
         <i class="bx bx-grid-alt"></i>
@@ -354,13 +254,8 @@
       </a>
       <span class="tooltip">Weather</span>
     </li>
-    <li>
-      <a href="{% url 'settings' %}">
-        <i class="bx bx-cog"></i>
-        <span class="link_name">Settings</span>
-      </a>
-      <span class="tooltip">Settings</span>
-    </li>
+
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
     <li>
       <a href="{% url 'my_logout' %}">
         <i class="fas fa-sign-out-alt"></i>
@@ -368,37 +263,41 @@
       </a>
       <span class="tooltip">Logout</span>
     </li>
-
-
-    <!-- name, picture and logout here, check lets talk code -->
-
-
   </ul>
 </div>
 
-<!-- Scripts -->
+
+
+
+
 <script>
   window.onload = function () {
     const sidebar = document.querySelector(".sidebar");
     const closeBtn = document.querySelector("#btn");
-    const searchBtn = document.querySelector(".bx-search")
 
     closeBtn.addEventListener("click", function () {
-      sidebar.classList.toggle("open")
-      menuBtnChange()
-    })
-
-    searchBtn.addEventListener("click", function () {
-      sidebar.classList.toggle("open")
-      menuBtnChange()
-    })
+      sidebar.classList.toggle("open");
+      menuBtnChange();
+    });
 
     function menuBtnChange() {
       if (sidebar.classList.contains("open")) {
-        closeBtn.classList.replace("bx-menu", "bx-menu-alt-right")
+        closeBtn.classList.replace("bx-menu", "bx-menu-alt-right");
       } else {
-        closeBtn.classList.replace("bx-menu-alt-right", "bx-menu")
+        closeBtn.classList.replace("bx-menu-alt-right", "bx-menu");
       }
     }
-  }
+
+    // Highlight the active menu item
+    const currentUrl = window.location.pathname;
+    const menuItems = document.querySelectorAll(".sidebar li a"); // Select all sidebar links
+
+    menuItems.forEach(item => {
+      if (item.getAttribute("href") === currentUrl) {
+        item.classList.add("active"); // Add active class to the current page link
+      } else {
+        item.classList.remove("active"); // Remove active class from other links
+      }
+    });
+  };
 </script>
