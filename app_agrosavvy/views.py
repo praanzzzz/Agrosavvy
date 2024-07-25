@@ -8,7 +8,10 @@ from .forms import (
     CustomUserUpdateForm,
     CustomPasswordChangeForm,
     PendingUserForm,
+    AskrecoForm,
 )
+
+#others
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import json
@@ -18,7 +21,6 @@ from django.contrib import messages
 from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
-from .forms import AskrecoForm
 from django.views.decorators.csrf import csrf_exempt
 
 # for charts in dashboard
@@ -268,7 +270,10 @@ def weather(request):
         else:
             location = ""
             weather_data = None
-        context = {"location": location, "weather_data": weather_data}
+        context = {
+            "location": location, 
+            "weather_data": weather_data,
+            }
         return render(request, "app_agrosavvy/weather.html", context)
     else:
         return redirect("forbidden")
@@ -283,6 +288,7 @@ def settings(request):
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
+                return redirect('settings')
             else:
                 messages.error(
                     request, "Error updating profile. Please check the form."
@@ -518,6 +524,7 @@ def bofa_settings(request):
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
+                return redirect('bofa_settings')
             else:
                 messages.error(
                     request, "Error updating profile. Please check the form."

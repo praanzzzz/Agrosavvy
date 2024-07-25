@@ -104,7 +104,24 @@
     july 13
     	fixed bug in registering - pending and updating field logic
 	added default weather widgets
-	basic AI reco - gooseai (in progress)
+	basic AI reco - gooseai (in progress) open for all roles
+
+    July 17
+	added basic charts for DA Admin (no filters yet)
+
+    July 18 
+    added deactivate button and logic for da admin and bofa
+
+    July 24
+    migrated to CDN bootstrap
+    updated bootstrap latest version 5.3.3
+    used forn_floating in login
+    customized sidebar
+    fixed bug in updating profile picture in bofa page
+
+    July 25
+    map customized
+    centered the map to buut cebu
 
     DONE !!!!! 
 
@@ -112,12 +129,8 @@
 
 
 
-
-    tip: just implement fetch api later on. Implement server side rendering for now ! 
-            (does not apply to maps, recommendations, addresses, anything that needs client rendering).
-
-
     POLISH
+        optimize using server side rendering (fetch api)
         secure API keys
         add validation errors and messages errors (use django messages for alerts)
 
@@ -128,6 +141,17 @@
         
 
     to do: 
-        Integrate basic AI
-        account activation request for account deactivated and deactivate button 
         add rainfall in models  
+        secure api keys
+
+
+
+
+    note: 
+    charts is available in admin only for now
+    bofa-map, weather, ai has no auth yet
+
+    api keys shown in github:
+        views: gooseai API   (no use)
+        mapbox access token:  add_field, pdate_field, bofa_add_field, bofa_update_field html, map, bofa_map
+        weather api: weather.html (widgets)       

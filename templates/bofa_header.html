@@ -1,13 +1,18 @@
 {% load static %}
 <header class="header d-flex justify-content-between align-items-center mt-4">
     <style>
-        /* navbar */
         .header {
             padding: 10px 20px;
         }
 
         .input-group {
             width: 800px;
+        }
+
+        .dropdown,
+        .form-control,
+        .btn {
+            z-index: 1;
         }
     </style>
 
@@ -48,7 +53,7 @@
                 {% else %}
                 Unknown
                 {% endif %}
-                
+
             </div>
 
             <ul class="dropdown-menu">

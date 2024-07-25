@@ -1,25 +1,37 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<div class="container">
-    <h1 class="mt-5 mb-4 text-center">All Fields Map</h1>
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Map container -->
-            <div id="map" class="rounded shadow-lg" style="height: 500px;"></div>
-        </div>
-    </div>
-</div>
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        width: auto;
+        overflow: hidden; 
+    }
+
+    #map {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<div id="map"></div>
+
+
 
 <script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
+    mapboxgl.accessToken =  'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
     // Initialize Mapbox map
     var map = new mapboxgl.Map({
-        container: 'map', // Container element ID
-        style: 'mapbox://styles/mapbox/outdoors-v11',
-        center: [123.876705, 10.308258], // Default center coordinates
-        zoom: 10 // Default zoom level
+        container: 'map', 
+        style: 'mapbox://styles/mapbox/satellite-streets-v11',
+        center: [123.80833, 10.34629], 
+        zoom: 11 
     });
 
     // Parse JSON data passed from server-side
@@ -28,9 +40,9 @@
     // Add markers for each field on the map
     fields.forEach(function(field) {
         var marker = new mapboxgl.Marker()
-            .setLngLat([field.longitude, field.latitude]) // Set marker coordinates
-            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`)) // Set popup with field name
-            .addTo(map); // Add marker to the map
+            .setLngLat([field.longitude, field.latitude])
+            .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`)) 
+            .addTo(map); 
     });
 </script>
 

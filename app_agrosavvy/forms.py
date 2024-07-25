@@ -239,6 +239,8 @@ class AddressForm(forms.ModelForm):
             ),
             "latitude": forms.HiddenInput(),
             "longitude": forms.HiddenInput(),
+            # "latitude": forms.NumberInput(),
+            # "longitude": forms.NumberInput(),
         }
 
     def clean_city_municipality(self):

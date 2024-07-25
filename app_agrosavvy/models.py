@@ -124,6 +124,7 @@ class Field(models.Model):
         ordering = ['-created_at']
 
 
+
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):
     api_key = settings.WEATHER_API_KEY

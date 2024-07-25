@@ -2,20 +2,18 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Poppins&display=swap');
 
-  /* 
+
   :root {
-    --color-default: #00138c;
-    --color-second: #0034ac;
-    --color-white: #fff;
-    --color-body: #e4e9f7;
-    --color-light: #e0e0e0;
+    --color-default: #2155e4;
+    --color-white: #f4f4f4;
+  }
+
+  /* :root {
+    --color-default: #ffffff;
+    --color-white:  #2155e4;
   } */
 
-  :root {
-    --color-default: #ffffff;
-    --color-white: #315efd;
-
-  }
+  
 
   * {
     padding: 0%;
@@ -213,7 +211,7 @@
 <div class="sidebar">
   <br>
   <div class="logo_details">
-    <!-- <i class="fas fa-seedling icon"></i> -->
+    <i class="fas fa-seedling icon"></i>
     <div class="logo_name ms-3">AgroSavvy</div>
     <i class="bx bx-menu" id="btn"></i>
   </div>
@@ -254,8 +252,15 @@
       </a>
       <span class="tooltip">Weather</span>
     </li>
+    <li>
+      <a href="{% url 'settings' %}">
+        <i class="fa-solid fa-gear"></i>
+        <span class="link_name">Settings</span>
+      </a>
+      <span class="tooltip">Settings</span>
+    </li>
 
-    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br>
     <li>
       <a href="{% url 'my_logout' %}">
         <i class="fas fa-sign-out-alt"></i>
