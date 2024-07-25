@@ -122,6 +122,7 @@
     July 25
     map customized
     centered the map to buut cebu
+    fixed rendering load in update profile
 
     DONE !!!!! 
 
