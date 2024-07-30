@@ -8,6 +8,23 @@
     <div class="row justify-content-center">
         <div class="col-md-12">
             <h1 class="mt-4">Dashboard</h1>
+
+
+            <div class="row mb-4">
+                <div class="col-md-4 count text-center">
+                    <h5>Number of Fields</h5>
+                    <span class="display-4">{{ field_count }}</span>
+                </div>
+                <div class="col-md-4 totalacres text-center">
+                    <h5>Total number of acres</h5>
+                    <span class="display-4">{{total_acres}}</span>
+                </div>
+                <div class="col-md-4 numuser text-center">
+                    <h5>Number of Registered Users</h5>
+                    <span class="display-4">{{ user_count }}</span>
+                </div>
+            </div>
+
             <h3 class="mt-4">List of Fields</h3>
             <!-- Row for table and recent activities -->
             <div class="row">
@@ -92,7 +109,7 @@
             </div>
 
             <!-- Row for charts -->
-            <div class="row">
+            <!-- <div class="row">
                 <div class="col-md-12">
                     <div class="charts">
                         <h1>Field Crop Distribution</h1>
@@ -113,7 +130,7 @@
                         <img src="{{ line_chart }}" alt="Line chart">
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>

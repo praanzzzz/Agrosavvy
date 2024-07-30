@@ -28,24 +28,12 @@
     </div>
     <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
-        <button class="btn btn-outline-secondary btn-notification me-3" type="button">
+        <button class="btn btn-notification me-3" type="button">
             <i class="fas fa-bell"></i>
         </button>
-        <!-- <div class="d-flex align-items-center user-info">
-            <a href="{% url 'settings' %}">
-                {% if user.profile_picture %}
-                <img src="{{ user.profile_picture.url }}" alt="Profile Picture" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
-                {% else %}
-                <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
-                {% endif %}
-            </a>
-            <div class="ms-2 d-flex flex-column justify-content-center">
-                <strong>{{ user.username }}</strong>
-                <span class="small text-muted">DA Admin</span>
-            </div>
-        </div> -->
+    
         <div class="dropdown d-flex align-items-center user-info">
-            <a class="btn dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 {% if user.profile_picture %}
                 <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
@@ -53,21 +41,21 @@
                 <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
                 {% endif %}
+    
+                <div class="ms-2 me-3 d-flex flex-column text-start">
+                    <strong>{{ user.username }}</strong>
+                    {% if user.is_farmer %}
+                    <span class="small text-muted">Farmer</span>
+                    {% elif user.is_barangay_officer %}
+                    <span class="small text-muted">Brgy Officer</span>
+                    {% elif user.is_da_admin %}
+                    <span class="small text-muted">DA Admin</span>
+                    {% else %}
+                    <span>Unknown</span>
+                    {% endif %}
+                </div>
             </a>
-
-            <div class="ms-2 d-flex flex-column justify-content-center">
-                <strong>{{ user.username }}</strong>
-                {% if user.is_farmer %}
-                <span class="small text-muted">Farmer</span>
-                {% elif user.is_barangay_officer %}
-                <span class="small text-muted">Brgy Officer</span>
-                {% elif user.is_da_admin %}
-                <span class="small text-muted">DA Admin</span>
-                {% else %}
-                Unknown
-                {% endif %}
-            </div>
-
+    
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="{% url 'settings' %}">Update Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
@@ -75,4 +63,6 @@
             </ul>
         </div>
     </div>
+    
+    
 </header>

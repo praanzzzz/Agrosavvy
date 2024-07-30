@@ -22,6 +22,7 @@ from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Sum
 
 # for charts in dashboard
 import matplotlib
@@ -177,14 +178,21 @@ def dashboard(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         fields = Field.objects.all()
         crops = Crop.objects.all()
+        users = CustomUser.objects.all()
         crop_filter = request.GET.get('crop', None)
-        line_chart = generate_line_chart(crop_filter)
-        donut_chart = generate_donut_chart()
+        # line_chart = generate_line_chart(crop_filter)
+        # donut_chart = generate_donut_chart()
+
+        total_acres = fields.aggregate(Sum('field_acres'))['field_acres__sum'] or 0
+
         context = {
             "fields": fields, 
-            "donut_chart": donut_chart,
-            "line_chart": line_chart,
-            "crops": crops
+            # "donut_chart": donut_chart,
+            # "line_chart": line_chart,
+            "crops": crops,
+            "field_count": fields.count(),
+            "user_count": users.count(),
+            "total_acres": total_acres,
         }
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
@@ -199,20 +207,25 @@ def ai(request):
 def map(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         fields = Field.objects.all()
+        crops = Crop.objects.all()
         fields_json = []
 
         for field in fields:
-            if field.address:
+            if field.address and field.crop:
                 fields_json.append(
                     {
                         "name": field.field_name,
                         "acres": field.field_acres,
                         "latitude": field.address.latitude,
                         "longitude": field.address.longitude,
+                        "crop": field.crop.crop_type,
                     }
                 )
 
-        context = {"fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder)}
+        context = {
+            "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
+            "crops": crops,
+        }
         return render(request, "app_agrosavvy/map.html", context)
     else:
         return redirect("forbidden")
@@ -420,6 +433,28 @@ def update_field(request, field_id):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Brgy officers and farmers pages
 # main pages
 
@@ -438,22 +473,27 @@ def bofa_ai(request):
 
 # no auth yet
 def bofa_map(request):
-    fields = Field.objects.all()
-    fields_json = []
+        fields = Field.objects.all()
+        crops = Crop.objects.all()
+        fields_json = []
 
-    for field in fields:
-        if field.address:
-            fields_json.append(
-                {
-                    "name": field.field_name,
-                    "acres": field.field_acres,
-                    "latitude": field.address.latitude,
-                    "longitude": field.address.longitude,
-                }
-            )
+        for field in fields:
+            if field.address and field.crop:
+                fields_json.append(
+                    {
+                        "name": field.field_name,
+                        "acres": field.field_acres,
+                        "latitude": field.address.latitude,
+                        "longitude": field.address.longitude,
+                        "crop": field.crop.crop_type,
+                    }
+                )
 
-    context = {"fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder)}
-    return render(request, "bofa_pages/bofa_map.html", context)
+        context = {
+            "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
+            "crops": crops,
+        }
+        return render(request, "bofa_pages/bofa_map.html", context)
 
 
 def bofa_add_field(request):
@@ -657,6 +697,14 @@ def forbidden(request):
     return render(request, "error_pages/forbidden.html", {})
 
 
+
+
+
+
+
+
+
+# callable functions
 
 # in progress (visualization in dashboard) -- made for da admin since there no filters yet
 def generate_donut_chart():

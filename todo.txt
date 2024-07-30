@@ -122,7 +122,18 @@
     July 25
     map customized
     centered the map to buut cebu
-    fixed rendering load in update profile
+
+    July 26
+    fixed bug markers not showing in bofa map
+
+
+    July 29
+    added recent activities (recent added fields or farms)
+    fixed header in bofapages dropdown options bug
+    
+    July 30
+    count and sum for dashboard
+    crop filters in map and bofa map
 
     DONE !!!!! 
 
@@ -138,13 +149,14 @@
         
 
     bugs:
-        
+
+
         
 
     to do: 
         add rainfall in models  
         secure api keys
-
+        add sort by crop and or address in map and bofa map
 
 
 
