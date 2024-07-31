@@ -7,7 +7,7 @@ from django.utils import timezone
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
-    user_id = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    user_id = models.CharField(max_length=50, unique=True, blank=True, null=True) # no values since it is not autofill
     email = models.EmailField(unique=True)
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
@@ -54,6 +54,20 @@ class PendingUser(models.Model):
         return self.username
 
 
+# # To Migrate
+# class Review_Rating(models.Model):
+#     reviewrating_id= models.AutoField(primary_key=True)
+#     rating= [
+#         ("1", "1"),
+#         ("2", "2"),
+#         ("3", "3"),
+#         ("4", "4"),
+#         ("5", "5"),
+#     ]
+#     review=models.TextField(max_length=200, blank=True, null=True)
+#     rate_date = models.DateTimeField(auto_now_add=True)
+#     reviewer= models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    
 
 class Crop(models.Model):
     CROP_CHOICES = [
