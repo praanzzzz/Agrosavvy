@@ -21,8 +21,8 @@ from django.contrib import messages
 from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum
+# from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Sum, Count
 
 # for charts in dashboard
 import matplotlib
@@ -30,7 +30,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io
 import base64
-from django.db.models import Count
 
 #           PRAgab19-5158-794
 
@@ -173,16 +172,15 @@ def my_logout(request):
 
 
 # Main pages
-@csrf_exempt
+# @csrf_exempt
 def dashboard(request):
     if request.user.is_authenticated and request.user.is_da_admin:
         fields = Field.objects.all()
         crops = Crop.objects.all()
-        users = CustomUser.objects.all()
+        active_users= CustomUser.objects.filter(active_status=True)
         crop_filter = request.GET.get('crop', None)
         # line_chart = generate_line_chart(crop_filter)
         # donut_chart = generate_donut_chart()
-
         total_acres = fields.aggregate(Sum('field_acres'))['field_acres__sum'] or 0
 
         context = {
@@ -191,7 +189,7 @@ def dashboard(request):
             # "line_chart": line_chart,
             "crops": crops,
             "field_count": fields.count(),
-            "user_count": users.count(),
+            "active_user_count": active_users.count(),
             "total_acres": total_acres,
         }
         return render(request, "app_agrosavvy/dashboard.html", context)
@@ -765,6 +763,9 @@ def generate_line_chart(crop_filter=None):
     uri = 'data:image/png;base64,' + string
 
     return uri
+
+
+
 
 
 
