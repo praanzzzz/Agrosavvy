@@ -9,6 +9,7 @@ from .forms import (
     CustomPasswordChangeForm,
     PendingUserForm,
     AskrecoForm,
+    ReviewratingForm
 )
 
 #others
@@ -182,6 +183,7 @@ def dashboard(request):
         # line_chart = generate_line_chart(crop_filter)
         # donut_chart = generate_donut_chart()
         total_acres = fields.aggregate(Sum('field_acres'))['field_acres__sum'] or 0
+        rform = ReviewratingForm()
 
         context = {
             "fields": fields, 
@@ -191,6 +193,7 @@ def dashboard(request):
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
+            "rform": rform,
         }
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
@@ -703,6 +706,28 @@ def forbidden(request):
 
 
 # callable functions
+
+
+
+def reviewrating(request):
+    if request.method == "POST":
+        rform = ReviewratingForm(request.POST)
+        if rform.is_valid():
+            rrform = rform.save(commit=False)
+            rrform.rate_date = now()
+            rrform.reviewer = request.user
+            rrform.save()
+            return redirect("dashboard")
+        else:
+            print("not valid form")
+    else:
+        rform = ReviewratingForm()
+
+    context = {
+        "rform": rform
+    }
+    return redirect("dashboard")
+
 
 # in progress (visualization in dashboard) -- made for da admin since there no filters yet
 def generate_donut_chart():
