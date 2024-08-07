@@ -221,8 +221,7 @@
                             <div>
                                 {% for fieldactivities in fields %}
                                 <div class="mb-3">
-                                    <span class="d-block">@ {{ fieldactivities.owner }} {{ fieldactivities.created_at
-                                        |timesince }} ago</span>
+                                    <span class="d-block">@ {{ fieldactivities.owner }} {{ fieldactivities.created_at|timesince }} ago</span>
                                     <p class="mb-0">Added field: {{ fieldactivities.field_name }} with
                                         {{fieldactivities.field_acres }} acres</p>
                                 </div>
