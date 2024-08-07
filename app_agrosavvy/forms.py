@@ -1,5 +1,5 @@
 from django import forms
-from .models import Field, Address, SoilData, CustomUser, PendingUser
+from .models import Field, Address, SoilData, CustomUser, PendingUser, ReviewRating
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
@@ -273,7 +273,28 @@ class SoilDataForm(forms.ModelForm):
         }
 
 
-
+class ReviewratingForm(forms.ModelForm):
+    class Meta:
+        model= ReviewRating
+        fields=["rating", "review_header", "review_body"]
+        widgets = {
+            "rating": forms.Select(
+                choices=[
+                    ("1", "Excellent"),
+                    ("2", "Good"),
+                    ("3", "Average"),
+                    ("4", "Bad"),
+                    ("5", "Worse"),
+                ],
+                attrs={"class": "form-control"},
+            ),
+            "review_header": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Enter review header"}
+            ),
+            "review_body": forms.Textarea(
+                attrs={"class": "form-control", "placeholder": "Enter your review"}
+            ),
+        }
 
 
 # in progress (goose ai)

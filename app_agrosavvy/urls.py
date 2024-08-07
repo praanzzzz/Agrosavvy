@@ -39,6 +39,7 @@ urlpatterns = [
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
     path('settings/', views.settings, name='settings'),
+    path('reviewrating/', views.reviewrating, name='reviewrating'),
 
     #settings section urls
     path('settings/password_change', views.password_change, name='password_change'),

@@ -36,10 +36,9 @@
         <button class="btn btn-notification me-3" type="button">
             <i class="fas fa-bell"></i>
         </button>
-
+    
         <div class="dropdown d-flex align-items-center user-info">
-            <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
+            <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 {% if user.profile_picture %}
                 <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
@@ -47,7 +46,7 @@
                 <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
                 {% endif %}
-
+    
                 <div class="ms-2 me-3 d-flex flex-column text-start">
                     <strong>{{ user.username }}</strong>
                     {% if user.is_farmer %}
@@ -61,7 +60,7 @@
                     {% endif %}
                 </div>
             </a>
-
+    
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="{% url 'settings' %}">Update Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
@@ -69,50 +68,14 @@
             </ul>
         </div>
     </div>
-
-
+    
+    
 </header>
-
-
-
-
-<!-- review and rating -->
-<div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-        data-bs-target="#reviewRatingModal">
-        Leave a Review
-    </button>
-
-    <!-- Modal -->
-    <div class="modal fade" id="reviewRatingModal" tabindex="-1" aria-labelledby="reviewRatingModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="reviewRatingModalLabel">Leave a Review</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="post" action="{% url 'reviewrating' %}">
-                        {% csrf_token %}
-                        {{ rform.as_p }}
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-12">
             <h1 class="text-center mb-4">Dashboard</h1>
-
-
 
             <!-- Summary Section -->
             <div class="container">
@@ -221,10 +184,8 @@
                             <div>
                                 {% for fieldactivities in fields %}
                                 <div class="mb-3">
-                                    <span class="d-block">@ {{ fieldactivities.owner }} {{ fieldactivities.created_at
-                                        |timesince }} ago</span>
-                                    <p class="mb-0">Added field: {{ fieldactivities.field_name }} with
-                                        {{fieldactivities.field_acres }} acres</p>
+                                    <span class="d-block">@ {{ fieldactivities.owner }} {{ fieldactivities.created_at |timesince }} ago</span>
+                                    <p class="mb-0">Added field: {{ fieldactivities.field_name }} with {{fieldactivities.field_acres }} acres</p>
                                 </div>
                                 {% endfor %}
                             </div>
@@ -261,5 +222,7 @@
         </div>
     </div>
 </div>
+
+
 
 {% endblock %}

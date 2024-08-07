@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 
 <style>
-    body, html {
+    body,
+    html {
         height: 100%;
         margin: 0;
         width: auto;
@@ -28,7 +30,84 @@
         border-radius: 5px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     }
+
+    #contribute_btn {
+        position: fixed;
+        top: 45px;
+        left: 680px;
+        z-index: 1;
+    }
+
+
+
+    /* header */
+    .header {
+        padding: 10px 20px;
+    }
+
+    .input-group {
+        width: 500px;
+    }
+
+    .dropdown,
+    .form-control,
+    .btn {
+        z-index: 1;
+    }
 </style>
+
+
+<header class="header d-flex justify-content-between align-items-center mt-4">
+    <!-- Search Bar -->
+    <div class="d-flex align-items-center">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Search" aria-label="Search">
+            <button class="btn btn-outline-secondary" type="button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+    </div>
+    <!-- User Profile and Notification -->
+    <div class="d-flex align-items-center">
+        <button class="btn btn-notification me-3" type="button">
+            <i class="fas fa-bell"></i>
+        </button>
+
+        <div class="dropdown d-flex align-items-center user-info">
+            <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                {% if user.profile_picture %}
+                <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
+                    style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                {% else %}
+                <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
+                    style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                {% endif %}
+
+                <div class="ms-2 me-3 d-flex flex-column text-start">
+                    <strong>{{ user.username }}</strong>
+                    {% if user.is_farmer %}
+                    <span class="small text-muted">Farmer</span>
+                    {% elif user.is_barangay_officer %}
+                    <span class="small text-muted">Brgy Officer</span>
+                    {% elif user.is_da_admin %}
+                    <span class="small text-muted">DA Admin</span>
+                    {% else %}
+                    <span>Unknown</span>
+                    {% endif %}
+                </div>
+            </a>
+
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'settings' %}">Update Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
+                <li><a class="dropdown-item" href="{% url 'my_logout' %}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+
+
+</header>
 
 <div id="crop-filter">
     <label for="crop-select">Filter by Crop:</label>
@@ -38,6 +117,10 @@
         <option value="{{ crop.crop_type }}">{{ crop.crop_type }}</option>
         {% endfor %}
     </select>
+</div>
+
+<div id="contribute_btn">
+    <a href="{% url 'add_field' %}"><button class="btn btn-primary">Contribute</button></a>
 </div>
 
 <div id="map"></div>
@@ -59,7 +142,7 @@
 
     // Function to add markers to the map
     function addMarkers(fields) {
-        fields.forEach(function(field) {
+        fields.forEach(function (field) {
             var marker = new mapboxgl.Marker()
                 .setLngLat([field.longitude, field.latitude])
                 .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`))
@@ -72,11 +155,11 @@
     addMarkers(fields);
 
     // Filter markers based on selected crop
-    document.getElementById('crop-select').addEventListener('change', function() {
+    document.getElementById('crop-select').addEventListener('change', function () {
         var selectedCrop = this.value;
-        
+
         // Remove all existing markers
-        markers.forEach(function(marker) {
+        markers.forEach(function (marker) {
             marker.remove();
         });
         markers = [];
@@ -85,7 +168,7 @@
         if (selectedCrop === 'all') {
             addMarkers(fields);
         } else {
-            var filteredFields = fields.filter(function(field) {
+            var filteredFields = fields.filter(function (field) {
                 return field.crop === selectedCrop;
             });
             addMarkers(filteredFields);

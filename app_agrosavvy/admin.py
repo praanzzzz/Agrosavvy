@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
-from .models import CustomUser, Crop, Field, Address, SoilData, PendingUser
+from .models import CustomUser, Crop, Field, Address, SoilData, PendingUser, ReviewRating
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
@@ -128,9 +128,14 @@ class PendingUserAdmin(admin.ModelAdmin):
         return super().get_queryset(request).order_by('-request_date')
 
 
+class ReviewRatingAdmin(admin.ModelAdmin):
+    list_display = ('reviewrating_id', 'reviewer', 'rating', 'review_header', 'rate_date')
+
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Crop)
 admin.site.register(Field)
 admin.site.register(Address)
 admin.site.register(SoilData)
+admin.site.register(ReviewRating, ReviewRatingAdmin)
