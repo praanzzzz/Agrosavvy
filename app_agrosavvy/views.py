@@ -172,6 +172,31 @@ def my_logout(request):
         return redirect("forbidden")
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Main pages
 # @csrf_exempt
 def dashboard(request):
@@ -179,11 +204,11 @@ def dashboard(request):
         fields = Field.objects.all()
         crops = Crop.objects.all()
         active_users= CustomUser.objects.filter(active_status=True)
-        crop_filter = request.GET.get('crop', None)
+        # crop_filter = request.GET.get('crop', None)
         # line_chart = generate_line_chart(crop_filter)
         # donut_chart = generate_donut_chart()
         total_acres = fields.aggregate(Sum('field_acres'))['field_acres__sum'] or 0
-        rform = ReviewratingForm()
+        reviewrating_context = reviewrating(request)
 
         context = {
             "fields": fields, 
@@ -193,8 +218,10 @@ def dashboard(request):
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
-            "rform": rform,
         }
+
+        # Merge the reviewrating context into the main context
+        context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
         return redirect("forbidden")  # or go to login, change later
@@ -705,6 +732,17 @@ def forbidden(request):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 # callable functions
 
 
@@ -717,16 +755,14 @@ def reviewrating(request):
             rrform.rate_date = now()
             rrform.reviewer = request.user
             rrform.save()
+            messages.success(request, "Thank you for submitting feedback.")
             return redirect("dashboard")
         else:
-            print("not valid form")
+            messages.error(request, "Please correct the errors below.")
     else:
         rform = ReviewratingForm()
-
-    context = {
-        "rform": rform
-    }
-    return redirect("dashboard")
+    
+    return {"rform": rform}
 
 
 # in progress (visualization in dashboard) -- made for da admin since there no filters yet
