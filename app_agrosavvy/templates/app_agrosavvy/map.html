@@ -22,7 +22,7 @@
 
     #crop-filter {
         position: fixed;
-        top: 150px;
+        top: 300px;
         left: 1200px;
         z-index: 1;
         background-color: white;
@@ -54,6 +54,10 @@
     .btn {
         z-index: 1;
     }
+
+    .text-white {
+    color: white !important;
+}
 </style>
 
 
@@ -70,12 +74,12 @@
     <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
         <button class="btn btn-notification me-3" type="button">
-            <i class="fas fa-bell"></i>
+            <i class="fas fa-bell" style="color:white;"></i>
         </button>
 
         <div class="dropdown d-flex align-items-center user-info">
             <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
+                aria-expanded="false" style="color:white;">
                 {% if user.profile_picture %}
                 <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
@@ -84,14 +88,14 @@
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
                 {% endif %}
 
-                <div class="ms-2 me-3 d-flex flex-column text-start">
+                <div class=" yow ms-2 me-3 d-flex flex-column text-start text-muted text-white">
                     <strong>{{ user.username }}</strong>
                     {% if user.is_farmer %}
-                    <span class="small text-muted">Farmer</span>
+                    <span class="small text-white">Farmer</span>
                     {% elif user.is_barangay_officer %}
-                    <span class="small text-muted">Brgy Officer</span>
+                    <span class="small text-white">Brgy Officer</span>
                     {% elif user.is_da_admin %}
-                    <span class="small text-muted">DA Admin</span>
+                    <span class="small text-white">DA Admin</span>
                     {% else %}
                     <span>Unknown</span>
                     {% endif %}
