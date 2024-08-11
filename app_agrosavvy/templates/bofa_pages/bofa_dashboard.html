@@ -73,6 +73,38 @@
 
 
 
+
+
+<!-- review and rating -->
+<div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+        data-bs-target="#reviewRatingModal">
+        Leave a Review
+    </button>
+
+    <!-- Modal -->
+    <div class="modal fade" id="reviewRatingModal" tabindex="-1" aria-labelledby="reviewRatingModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewRatingModalLabel">Leave a Review</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'reviewrating' %}">
+                        {% csrf_token %}
+                        {{ rform.as_p }}
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">

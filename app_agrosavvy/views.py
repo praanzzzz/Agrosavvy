@@ -376,7 +376,7 @@ def password_change(request):
     
 
 def deactivate_account(request):
-    if request.user.is_authenticated and request.user.is_da_admin:
+    if request.user.is_authenticated:
         if request.method == 'POST':
             user = request.user
             user.active_status = False
@@ -384,7 +384,11 @@ def deactivate_account(request):
             logout(request)
             messages.success(request, 'Your account has been deactivated.')
             return redirect('landing_page')
-        return redirect('settings')
+        # return redirect('settings.html')
+        return render(request, 'app_agrosavvy/settings.html')
+    else:
+        return redirect("forbidden")
+
 
 
 # manage fields/ farms
@@ -490,8 +494,13 @@ def bofa_dashboard(request):
     if request.user.is_authenticated and (
         request.user.is_barangay_officer or request.user.is_farmer
     ):
+        reviewwrating_context = reviewrating(request)
         fields = Field.objects.filter(owner=request.user)
-        return render(request, "bofa_pages/bofa_dashboard.html", {"fields": fields})
+        context={
+            "fields" : fields
+        }
+        context.update(reviewwrating_context)
+        return render(request, "bofa_pages/bofa_dashboard.html", context)
     else:
         return redirect("forbidden")
 
@@ -756,12 +765,15 @@ def reviewrating(request):
             rrform.reviewer = request.user
             rrform.save()
             messages.success(request, "Thank you for submitting feedback.")
-            return redirect("dashboard")
+            if request.user.is_da_admin:
+                return redirect("dashboard")
+            elif request.user.is_barangay_officer or request.user.is_farmer:
+                return redirect ("bofa_dashboard")
         else:
             messages.error(request, "Please correct the errors below.")
     else:
         rform = ReviewratingForm()
-    
+
     return {"rform": rform}
 
 
