@@ -50,11 +50,11 @@
 
                 <div class="ms-2 me-3 d-flex flex-column text-start">
                     <strong>{{ user.username }}</strong>
-                    {% if user.is_farmer %}
+                    {% if user.roleuser.roleuser == "farmer" %}
                     <span class="small text-muted">Farmer</span>
-                    {% elif user.is_barangay_officer %}
+                    {% elif user.roleuser.roleuser == "brgy_officer" %}
                     <span class="small text-muted">Brgy Officer</span>
-                    {% elif user.is_da_admin %}
+                    {% elif user.roleuser.roleuser == "da_admin" %}
                     <span class="small text-muted">DA Admin</span>
                     {% else %}
                     <span>Unknown</span>
@@ -69,17 +69,15 @@
             </ul>
         </div>
     </div>
-
-
 </header>
+
 
 
 
 
 <!-- review and rating -->
 <div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-        data-bs-target="#reviewRatingModal">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewRatingModal">
         Leave a Review
     </button>
 
@@ -90,11 +88,10 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="reviewRatingModalLabel">Leave a Review</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form method="post" action="{% url 'reviewrating' %}">
+                    <form method="POST" action="{% url 'reviewrating' %}">
                         {% csrf_token %}
                         {{ rform.as_p }}
                         <button type="submit" class="btn btn-primary">Submit</button>
@@ -107,13 +104,11 @@
 
 
 
+
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-12">
             <h1 class="text-center mb-4">Dashboard</h1>
-
-
-
             <!-- Summary Section -->
             <div class="container">
                 <div class="row justify-content-center mb-4">
@@ -145,66 +140,15 @@
                     </div>
                 </div>
 
+
+
+                
                 <!-- List of Fields Section -->
                 <h3 class="text-center mb-4">List of Fields</h3>
                 <div class="row">
-                    
-
+                    <!-- Table for Fields -->
                     <div class="col-md-9">
-                        <!-- Toggle Button -->
-                        <div class="mb-3 text-right">
-                            <button id="toggleView" class="btn btn-secondary">Switch to List View</button>
-                        </div>
-                    
-                        <!-- Grid View (Initially Visible) -->
-                        <div id="gridView" class="row">
-                            {% for field in fields %}
-                            <div class="col-sm-12 col-md-6 col-lg-4 mb-4 field-item">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Field ID: {{ field.field_id }}</h5>
-                                        <p class="card-text"><strong>Usertype:</strong> 
-                                            {% if field.owner.is_farmer %}
-                                            Farmer
-                                            {% elif field.owner.is_barangay_officer %}
-                                            Barangay Officer
-                                            {% elif field.owner.is_da_admin %}
-                                            DA Admin
-                                            {% else %}
-                                            Unknown
-                                            {% endif %}
-                                        </p>
-                                        <p class="card-text"><strong>Owner:</strong> {{ field.owner }}</p>
-                                        <p class="card-text"><strong>Name:</strong> {{ field.field_name }}</p>
-                                        <p class="card-text"><strong>Acres:</strong> {{ field.field_acres }}</p>
-                                        <p class="card-text"><strong>Location:</strong> 
-                                            {{ field.address.barangay }},
-                                            {{ field.address.city_municipality }},
-                                            {{ field.address.country }}
-                                        </p>
-                                        <p class="card-text"><strong>Soil Data:</strong><br>
-                                            Nitrogen: {{ field.soil_data.nitrogen }}<br>
-                                            Phosphorous: {{ field.soil_data.phosphorous }}<br>
-                                            Potassium: {{ field.soil_data.potassium }}<br>
-                                            pH: {{ field.soil_data.ph }}
-                                        </p>
-                                        <p class="card-text"><strong>Crop Planted:</strong> {{ field.crop.crop_type }}</p>
-                                        <div class="d-flex justify-content-between">
-                                            <a href="{% url 'update_field' field.field_id %}" class="btn btn-primary btn-sm">Update</a>
-                                            <form action="{% url 'delete_field' field.field_id %}" method="post">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    
-                        <!-- List View (Initially Hidden) -->
-                        <div id="listView" class="table-responsive" style="display: none;">
+                        <div class="table-responsive">
                             <table class="table table-striped table-bordered table-hover">
                                 <thead class="thead-dark">
                                     <tr>
@@ -214,21 +158,22 @@
                                         <th>Name</th>
                                         <th>Acres</th>
                                         <th>Location</th>
-                                        <th>Soil Data</th>
-                                        <th>Crop Planted</th>
+                                        <!-- <th>Soil Data</th>
+                                        <th>Crop Planted</th> -->
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <!-- loop -->
                                     {% for field in fields %}
                                     <tr>
                                         <td>{{ field.field_id }}</td>
                                         <td>
-                                            {% if field.owner.is_farmer %}
+                                            {% if field.owner.roleuser.roleuser == "farmer" %}
                                             Farmer
-                                            {% elif field.owner.is_barangay_officer %}
+                                            {% elif field.owner.roleuser.roleuser == "brgy_officer" %}
                                             Barangay Officer
-                                            {% elif field.owner.is_da_admin %}
+                                            {% elif field.owner.roleuser.roleuser == "da_admin" %}
                                             DA Admin
                                             {% else %}
                                             Unknown
@@ -242,21 +187,20 @@
                                             {{ field.address.city_municipality }},
                                             {{ field.address.country }}
                                         </td>
-                                        <td>
-                                            Nitrogen: {{ field.soil_data.nitrogen }}<br>
-                                            Phosphorous: {{ field.soil_data.phosphorous }}<br>
-                                            Potassium: {{ field.soil_data.potassium }}<br>
-                                            pH: {{ field.soil_data.ph }}
-                                        </td>
-                                        <td>{{ field.crop.crop_type }}</td>
+
+                                        <!-- <td>{{ field.crop.crop_type }}</td> -->
                                         <td>
                                             <div class="btn-group" role="group">
-                                                <a href="{% url 'update_field' field.field_id %}" class="btn btn-primary btn-sm mx-1">Update</a>
-                                                <form action="{% url 'delete_field' field.field_id %}" method="post" style="display:inline;">
+                                                <a href="{% url 'manage_field' field.field_id %}"
+                                                    class="btn btn-success btn-sm mx-1">Manage</a>
+                                                <!-- <a href="{% url 'update_field' field.field_id %}"
+                                                    class="btn btn-primary btn-sm mx-1">Update</a>
+                                                <form action="{% url 'delete_field' field.field_id %}" method="post"
+                                                    style="display:inline;">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-danger btn-sm mx-1"
                                                         onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
-                                                </form>
+                                                </form> -->
                                             </div>
                                         </td>
                                     </tr>
@@ -265,25 +209,6 @@
                             </table>
                         </div>
                     </div>
-                    
-                    <script>
-                        document.getElementById('toggleView').addEventListener('click', function () {
-                            const gridView = document.getElementById('gridView');
-                            const listView = document.getElementById('listView');
-                            const toggleButton = document.getElementById('toggleView');
-                    
-                            if (gridView.style.display === 'none') {
-                                gridView.style.display = 'flex';
-                                listView.style.display = 'none';
-                                toggleButton.textContent = 'Switch to List View';
-                            } else {
-                                gridView.style.display = 'none';
-                                listView.style.display = 'block';
-                                toggleButton.textContent = 'Switch to Grid View';
-                            }
-                        });
-                    </script>
-                    
 
                     <!-- Recent Activities -->
                     <div class="col-md-3">
@@ -292,9 +217,8 @@
                             <div>
                                 {% for fieldactivities in fields %}
                                 <div class="mb-3">
-                                    <span class="d-block">@ {{ fieldactivities.owner }} {{ fieldactivities.created_at|timesince }} ago</span>
-                                    <p class="mb-0">Added field: {{ fieldactivities.field_name }} with
-                                        {{fieldactivities.field_acres }} acres</p>
+                                    <span class="d-block">@ {{ fieldactivities.owner }} {{fieldactivities.created_at|timesince }} ago</span>
+                                    <p class="mb-0">Added field: {{ fieldactivities.field_name }} with {{fieldactivities.field_acres }} acres</p>
                                 </div>
                                 {% endfor %}
                             </div>

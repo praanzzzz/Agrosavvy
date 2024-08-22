@@ -1,5 +1,5 @@
 from django import forms
-from .models import Field, Address, SoilData, CustomUser, PendingUser, ReviewRating
+from .models import Field,FieldCropData, FieldSoilData, Address, FieldSoilData, CustomUser, PendingUser, ReviewRating
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
@@ -129,7 +129,6 @@ class PendingUserForm(forms.ModelForm):
             self.add_error("password_confirmation", "Passwords do not match.")
         return cleaned_data
 
-
 class CustomUserUpdateForm(UserChangeForm):
     password = None
     class Meta:
@@ -197,11 +196,10 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         model = CustomUser
         fields = ["old_password", "new_password1", "new_password2"]
 
-
 class FieldForm(forms.ModelForm):
     class Meta:
         model = Field
-        fields = ["field_name", "field_acres", "crop"]
+        fields = ["field_name", "field_acres"]
         widgets = {
             "field_name": forms.TextInput(
                 attrs={
@@ -216,9 +214,7 @@ class FieldForm(forms.ModelForm):
                     "placeholder": "Enter field size in acres",
                 }
             ),
-            "crop": forms.Select(attrs={"class": "form-control"}),
         }
-
 
 class AddressForm(forms.ModelForm):
     class Meta:
@@ -250,11 +246,23 @@ class AddressForm(forms.ModelForm):
         return city
 
 
-class SoilDataForm(forms.ModelForm):
+# new
+class FieldCropForm(forms.ModelForm):
     class Meta:
-        model = SoilData
-        fields = ["nitrogen", "phosphorous", "potassium", "ph"]
+        model = FieldCropData
+        fields = ["crop_planted", "planting_date", "harvest_date"]
         widgets = {
+                'crop_planted': forms.Select(attrs={"class": "form-control"}),
+                'planting_date': forms.DateInput(attrs={'type': 'date'}),
+                'harvest_date': forms.DateInput(attrs={'type': 'date'}),
+            }
+        
+class FieldSoilDataForm(forms.ModelForm):
+    class Meta:
+        model = FieldSoilData
+        fields = ['nitrogen','phosphorous','potassium','ph', 'record_date']
+        widgets = {
+            # field = autoselect something
             "nitrogen": forms.NumberInput(
                 attrs={"class": "form-control", "placeholder": "Enter nitrogen level"}
             ),
@@ -270,6 +278,7 @@ class SoilDataForm(forms.ModelForm):
             "ph": forms.NumberInput(
                 attrs={"class": "form-control", "placeholder": "Enter pH level"}
             ),
+            "record_date": forms.DateInput(attrs={'type': 'date'})
         }
 
 
@@ -297,14 +306,3 @@ class ReviewratingForm(forms.ModelForm):
         }
 
 
-# in progress (goose ai)
-class AskrecoForm(forms.Form):
-    # barangay = forms.CharField(label='Barangay', max_length=100)
-    # city_municipality = forms.CharField(label='City/Municipality', max_length=100)
-    # country = forms.CharField(label='Country', max_length=100)
-    nitrogen = forms.FloatField(label='Nitrogen') 
-    phosphorous = forms.FloatField(label='Phosphorous') 
-    potassium = forms.FloatField(label='Potassium') 
-    ph = forms.FloatField(label='pH')  
-    # latitude = forms.FloatField(label='Latitude')
-    # longitude = forms.FloatField(label='Longitude')
