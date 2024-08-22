@@ -1,21 +1,41 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
-from .models import CustomUser, Crop, Field, Address, SoilData, PendingUser, ReviewRating
+from .models import (
+    CustomUser,
+    Field,
+    Address,
+    FieldSoilData,
+    PendingUser,
+    ReviewRating,
+    FieldSoilData,
+    FieldCropData,
+    RoleUser,
+    Crop
+)
+
 
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
     fieldsets = (
-        (None, {"fields": ("username", "password","profile_picture")}),
+        (None, {"fields": ("username", "password", "profile_picture")}),
         (
             "Personal info",
             {"fields": ("firstname", "lastname", "email", "date_of_birth")},
         ),
-        ("Roles", {"fields": ("is_farmer", "is_barangay_officer", "is_da_admin")}),
+        ("Roles", {"fields": ("roleuser",)}),
         (
             "Registration | Approval | Active Status - Info",
-            {"fields": ("request_date", "is_approved", "approved_date", "approved_by", "active_status")},
+            {
+                "fields": (
+                    "request_date",
+                    "is_approved",
+                    "approved_date",
+                    "approved_by",
+                    "active_status",
+                )
+            },
         ),
         (
             "Permissions",
@@ -43,9 +63,10 @@ class CustomUserAdmin(UserAdmin):
                     "email",
                     "is_staff",
                     "is_superuser",
-                    "is_farmer",
-                    "is_barangay_officer",
-                    "is_da_admin",
+                    # "is_farmer",
+                    # "is_barangay_officer",
+                    # "is_da_admin",
+                    "roleuser",
                     "request_date",
                     "is_approved",
                     "approved_date",
@@ -60,6 +81,7 @@ class CustomUserAdmin(UserAdmin):
         "email",
         "active_status",
         "is_approved",
+        "roleuser",
     )
 
     search_fields = (
@@ -72,18 +94,7 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ("request_date",)
 
 
-
-
-
-
-
-
-
-
-
-
-
-@admin.action(description='Approve selected users')
+@admin.action(description="Approve selected users")
 def approve_users(modeladmin, request, queryset):
     for pending_user in queryset:
         CustomUser.objects.create(
@@ -93,49 +104,72 @@ def approve_users(modeladmin, request, queryset):
             firstname=pending_user.firstname,
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
-            is_farmer=pending_user.is_farmer,
-            is_barangay_officer=pending_user.is_barangay_officer,
-            is_da_admin=pending_user.is_da_admin,
+            # is_farmer=pending_user.is_farmer,
+            # is_barangay_officer=pending_user.is_barangay_officer,
+            # is_da_admin=pending_user.is_da_admin,
+            roleuser = pending_user.roleuser,
             is_approved=True,
             approved_date=timezone.now(),
             approved_by=request.user,
         )
         pending_user.delete()
 
+
 class PendingUserAdmin(admin.ModelAdmin):
-    list_display = ('username','email', 'is_farmer', 'is_barangay_officer', 'is_da_admin', 'request_date')
+    list_display = (
+        "username",
+        "email",
+        "roleuser",
+        "request_date",
+    )
     actions = [approve_users]
 
-    readonly_fields = ('request_date', 'username', 'email', 'firstname', 'lastname', 'date_of_birth', 'is_farmer', 'is_barangay_officer', 'is_da_admin')
-    
+    readonly_fields = (
+        "request_date",
+        "username",
+        "email",
+        "firstname",
+        "lastname",
+        "date_of_birth",
+        "roleuser"
+    )
+
     # Prevent deletion of pending users directly from admin
     def has_delete_permission(self, request, obj=None):
-        return False  
+        return False
 
     # Prevent adding new pending users directly from admin
     def has_add_permission(self, request):
-        return False  
-    
+        return False
+
     # hide password in admin interface
     def get_exclude(self, request, obj=None):
-        
+
         exclude = super().get_exclude(request, obj) or []
-        return exclude + ['password']
-    
+        return exclude + ["password"]
+
     # pending user order by request_date
     def get_queryset(self, request):
         # Override queryset to order by request_date in descending order
-        return super().get_queryset(request).order_by('-request_date')
+        return super().get_queryset(request).order_by("-request_date")
 
 
 class ReviewRatingAdmin(admin.ModelAdmin):
-    list_display = ('reviewrating_id', 'reviewer', 'rating', 'review_header', 'rate_date')
+    list_display = (
+        "reviewrating_id",
+        "reviewer",
+        "rating",
+        "review_header",
+        "rate_date",
+    )
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
-admin.site.register(Crop)
 admin.site.register(Field)
 admin.site.register(Address)
-admin.site.register(SoilData)
 admin.site.register(ReviewRating, ReviewRatingAdmin)
+admin.site.register(FieldCropData)
+admin.site.register(FieldSoilData)
+admin.site.register(Crop)
+admin.site.register(RoleUser)

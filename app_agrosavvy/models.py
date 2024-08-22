@@ -5,6 +5,18 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
+
+class RoleUser(models.Model):
+    ROLEUSER_CHOICES = [
+        ("da_admin", "da_admin"),
+        ("brgy_officer", "brgy_officer"),
+        ("farmer", "farmer")
+    ]
+    roleuser = models.CharField(max_length=50, choices=ROLEUSER_CHOICES)
+
+    def __str__(self):
+        return self.roleuser
+
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
@@ -13,9 +25,7 @@ class CustomUser(AbstractUser):
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     # user role
-    is_farmer = models.BooleanField(default=False)
-    is_barangay_officer = models.BooleanField(default=False)
-    is_da_admin = models.BooleanField(default=False)
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     # registration and account status info
     active_status = models.BooleanField(default=True) #used custom instead of default is_active
     is_approved = models.BooleanField(default=False)
@@ -34,9 +44,7 @@ class PendingUser(models.Model):
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    is_farmer = models.BooleanField(default=False)
-    is_barangay_officer = models.BooleanField(default=False)
-    is_da_admin = models.BooleanField(default=False)
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     request_date = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'username'
@@ -53,7 +61,7 @@ class PendingUser(models.Model):
         return self.username
 
 
-# To Migrate
+
 class ReviewRating(models.Model):
     reviewrating_id = models.AutoField(primary_key=True)
     
@@ -75,6 +83,39 @@ class ReviewRating(models.Model):
         return f"{self.get_rating_display()}: {self.review_header or 'No Header'}"
     
 
+
+class Address(models.Model):
+    address_id = models.AutoField(primary_key=True)
+    barangay = models.CharField(max_length=100)
+    city_municipality = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    def __str__(self):
+        return f"{self.barangay}, {self.city_municipality}, {self.country}"
+
+
+
+class Field(models.Model):
+    field_id = models.AutoField(primary_key=True)
+    field_name = models.CharField(max_length=100)
+    field_acres = models.FloatField()
+    address = models.ForeignKey(
+        Address, on_delete=models.SET_NULL, related_name="fields", null=True
+    )
+    owner = models.ForeignKey(
+        CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.field_name
+
+    class Meta:
+        ordering = ['-created_at']
+
+#separate crop for choices and crop data of a field model
 class Crop(models.Model):
     CROP_CHOICES = [
         ("Carrots", "Carrots"),
@@ -91,59 +132,32 @@ class Crop(models.Model):
     crop_type = models.CharField(max_length=50, choices=CROP_CHOICES)
 
     def __str__(self):
-        return self.crop_type
+        return f"{self.crop_type}"
 
-
-class Address(models.Model):
-    address_id = models.AutoField(primary_key=True)
-    barangay = models.CharField(max_length=100)
-    city_municipality = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
+# crop and soil data of a field overtime (tracks field data movement overtime)
+class FieldCropData(models.Model):
+    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    fieldcrop_id = models.AutoField(primary_key=True)
+    crop_planted = models.ForeignKey(Crop, on_delete=models.CASCADE)
+    planting_date = models.DateField()
+    harvest_date = models.DateField()
 
     def __str__(self):
-        return f"{self.barangay}, {self.city_municipality}, {self.country}"
+        return f"{self.crop_planted} planted in {self.field.field_name} on {self.planting_date}"
 
 
-class SoilData(models.Model):
+class FieldSoilData(models.Model):
+    field = models.ForeignKey(Field, on_delete=models.CASCADE)
     soil_id = models.AutoField(primary_key=True)
     nitrogen = models.FloatField(null=True, blank=True)
     phosphorous = models.FloatField(null=True, blank=True)
     potassium = models.FloatField(null=True, blank=True)
     ph = models.FloatField(null=True, blank=True)
+    record_date = models.DateField()
 
     def __str__(self):
-        return f"N: {self.nitrogen}, P: {self.phosphorous}, K: {self.potassium}, pH: {self.ph}"
-
-
-class Field(models.Model):
-    field_id = models.AutoField(primary_key=True)
-    field_name = models.CharField(max_length=100)
-    field_acres = models.FloatField()
-    address = models.ForeignKey(
-        Address, on_delete=models.SET_NULL, related_name="fields", null=True
-    )
-    soil_data = models.ForeignKey(
-        SoilData,
-        on_delete=models.SET_NULL,
-        related_name="fields",
-        blank=True,
-        null=True,
-    )
-    crop = models.ForeignKey(Crop, on_delete=models.SET_NULL, blank=True, null=True)
-    owner = models.ForeignKey(
-        CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
-    )
-    created_at = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return self.field_name
-
-    class Meta:
-        ordering = ['-created_at']
-
-
+        return f"Soil data for {self.field.field_name} recorded at {self.record_date}"
+    
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):

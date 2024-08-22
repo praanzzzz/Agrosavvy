@@ -39,7 +39,7 @@ urlpatterns = [
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
     path('settings/', views.settings, name='settings'),
-    path('reviewrating/', views.reviewrating, name='reviewrating'),
+    
 
     #settings section urls
     path('settings/password_change', views.password_change, name='password_change'),
@@ -48,8 +48,14 @@ urlpatterns = [
     #field management for da admin
     path('dashboard/update_field/<int:field_id>/', views.update_field, name='update_field'),
     path('dashboard/delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
+    path('dashboard/manage_field/<int:field_id>/', views.manage_field, name='manage_field'),
+    path('add_soil_data/<int:field_id>/', views.add_soil_data, name='add_soil_data'),
+    path('delete_soil_data/<int:soil_id>/', views.delete_soil_data, name='delete_soil_data'),
+    path('add_crop_data/<int:field_id>/', views.add_crop_data, name='add_crop_data'),
+    path('delete_crop_data/<int:fieldcrop_id>/', views.delete_crop_data, name='delete_crop_data'),
 
-
+    # callable function urls
+    path('reviewrating/', views.reviewrating, name='reviewrating'),
 
 
 
@@ -71,13 +77,14 @@ urlpatterns = [
     #field management for Brgy officers and farmers
     path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),
     path('bofa_dashboard/bofa_delete_field/<int:field_id>/', views.bofa_delete_field, name='bofa_delete_field'),
+    # path('dashboard/bofa_manage_field/<int:field_id>/', views.bofa_manage_field, name="bofa_manage_field"),
+
+
 
     #forbidden, 404 chuchu
     path('forbidden', views.forbidden, name='forbidden'),
 
 
-     # in progress (goose ai)
-    path('address_input/', views.address_input, name='address_input'),
 ]
 
 

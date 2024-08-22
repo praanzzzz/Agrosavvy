@@ -3,7 +3,7 @@
 {% block content %}
 
 <style>
-    body,
+     body,
     html {
         height: 100%;
         margin: 0;
@@ -90,11 +90,11 @@
 
                 <div class=" yow ms-2 me-3 d-flex flex-column text-start text-muted text-white">
                     <strong>{{ user.username }}</strong>
-                    {% if user.is_farmer %}
+                    {% if user.roleuser.roleuser == "farmer" %}
                     <span class="small text-white">Farmer</span>
-                    {% elif user.is_barangay_officer %}
+                    {% elif user.roleuser.roleuser == "brgy_officer" %}
                     <span class="small text-white">Brgy Officer</span>
-                    {% elif user.is_da_admin %}
+                    {% elif user.roleuser.roleuser == "da_admin" %}
                     <span class="small text-white">DA Admin</span>
                     {% else %}
                     <span>Unknown</span>
@@ -132,7 +132,6 @@
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-    // Initialize Mapbox map
     var map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/satellite-streets-v11',
@@ -140,35 +139,29 @@
         zoom: 11
     });
 
-    // Parse JSON data passed from server-side
     var fields = JSON.parse('{{ fields_json|escapejs }}');
     var markers = [];
 
-    // Function to add markers to the map
     function addMarkers(fields) {
         fields.forEach(function (field) {
             var marker = new mapboxgl.Marker()
                 .setLngLat([field.longitude, field.latitude])
-                .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}`))
+                .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}, Crop: ${field.crop}`))
                 .addTo(map);
             markers.push(marker);
         });
     }
 
-    // Initial load of markers
     addMarkers(fields);
 
-    // Filter markers based on selected crop
     document.getElementById('crop-select').addEventListener('change', function () {
         var selectedCrop = this.value;
 
-        // Remove all existing markers
         markers.forEach(function (marker) {
             marker.remove();
         });
         markers = [];
 
-        // Add markers based on the selected crop
         if (selectedCrop === 'all') {
             addMarkers(fields);
         } else {
