@@ -163,7 +163,6 @@ class ReviewRatingAdmin(admin.ModelAdmin):
         "rate_date",
     )
 
-
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Field)

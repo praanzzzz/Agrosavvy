@@ -53,6 +53,11 @@ urlpatterns = [
     path('delete_soil_data/<int:soil_id>/', views.delete_soil_data, name='delete_soil_data'),
     path('add_crop_data/<int:field_id>/', views.add_crop_data, name='add_crop_data'),
     path('delete_crop_data/<int:fieldcrop_id>/', views.delete_crop_data, name='delete_crop_data'),
+    path('update_soil_data<int:soil_id>/<int:field_id>/', views.update_soil_data, name='update_soil_data'),
+    path('update_crop_data/<int:fieldcrop_id>/<int:field_id>', views.update_crop_data, name='update_crop_data'),
+
+
+
 
     # callable function urls
     path('reviewrating/', views.reviewrating, name='reviewrating'),
