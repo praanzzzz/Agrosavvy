@@ -253,8 +253,8 @@ class FieldCropForm(forms.ModelForm):
         fields = ["crop_planted", "planting_date", "harvest_date"]
         widgets = {
                 'crop_planted': forms.Select(attrs={"class": "form-control"}),
-                'planting_date': forms.DateInput(attrs={'type': 'date'}),
-                'harvest_date': forms.DateInput(attrs={'type': 'date'}),
+                'planting_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
+                'harvest_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
             }
         
 class FieldSoilDataForm(forms.ModelForm):
@@ -278,7 +278,7 @@ class FieldSoilDataForm(forms.ModelForm):
             "ph": forms.NumberInput(
                 attrs={"class": "form-control", "placeholder": "Enter pH level"}
             ),
-            "record_date": forms.DateInput(attrs={'type': 'date'})
+            "record_date": forms.DateInput(attrs={ "class": "form-control",'type': 'date'})
         }
 
 

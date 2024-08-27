@@ -25,7 +25,7 @@ import requests
 from django.urls import reverse
 
 # from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count 
 
 # # for charts in dashboard
 # import matplotlib
@@ -46,22 +46,34 @@ def dashboard(request):
         fields = Field.objects.all()
         crops = Crop.objects.all()
         active_users = CustomUser.objects.filter(active_status=True)
-        # crop_filter = request.GET.get('crop', None)
-        # line_chart = generate_line_chart(crop_filter)
-        # donut_chart = generate_donut_chart()
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         reviewrating_context = reviewrating(request)
-            
+
+
+
+        # charts 
+        labels = []
+        data = []
+        # Aggregate total acres for each crop
+        queryset = FieldCropData.objects.values('crop_planted__crop_type').annotate(
+            total_acres=Sum('field__field_acres')
+        )
+        # Prepare data for the chart
+        labels = [entry['crop_planted__crop_type'] for entry in queryset]
+        data = [entry['total_acres'] for entry in queryset]
+
         context = {
             "fields": fields,
-            # "donut_chart": donut_chart,
-            # "line_chart": line_chart,
             "crops": crops,
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
+            # "donut_chart": donut_chart,
+            # "line_chart": line_chart,
+            "labels": labels,
+            "data": data
+
         }
-        # Merge the reviewrating context into the main context
         context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
@@ -82,6 +94,7 @@ def map(request):
         fields_json = []
 
         # Fetch all field crop data
+        # add filters to show only the current crop planted. (not the history or all data)
         field_crop_data = FieldCropData.objects.select_related('field', 'crop_planted')
 
         for data in field_crop_data:
@@ -110,18 +123,13 @@ def add_field(request):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
-            # soil_data_form = SoilDataForm(request.POST)
-
             if (
                 field_form.is_valid()
-                and address_form.is_valid
-                # and soil_data_form.is_valid
+                and address_form.is_valid                
             ):
-                address = address_form.save()
-                # soil_data = soil_data_form.save()
+                address = address_form.save()             
                 field = field_form.save(commit=False)
-                field.address = address
-                # field.soil_data = soil_data
+                field.address = address               
                 field.owner = request.user
                 field.save()
                 return JsonResponse({"status": "success"})
@@ -132,19 +140,15 @@ def add_field(request):
                         "errors": {
                             "field_form": field_form.errors,
                             "address_form": address_form.errors,
-                            # "soil_data_form": soil_data_form.errors,
                         },
                     }
                 )
         else:
             field_form = FieldForm()
             address_form = AddressForm()
-            # soil_data_form = SoilDataForm()
         context = {
-            # 'mapbox_api_key': settings.MAPBOX_API_KEY,
             "field_form": field_form,
             "address_form": address_form,
-            # "soil_data_form": soil_data_form,
         }
         return render(request, "app_agrosavvy/add_field.html", context)
     else:
@@ -209,21 +213,28 @@ def settings(request):
 # manage fields/ farms
 def manage_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        field = get_object_or_404(Field, field_id=field_id)
+        field = get_object_or_404(Field, field_id=field_id) # used for reference or select a specific field
         fieldsoildata = FieldSoilData.objects.filter(field=field) # displays soil data history of a field
         fieldcropdata = FieldCropData.objects.filter(field=field)# displays crop data history of a field
 
         # Create form instance for adding soil data
-        asdform = FieldSoilDataForm()
+        asdform = FieldSoilDataForm() #form for add soil data
         acdform = FieldCropForm()
 
+        # Create a dictionary of forms for each soil and crop data instance
+        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+        fcdforms  = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
+
+
+        # to make it accessible by the template
         context = {
             "field": field,
             "fieldsoildata": fieldsoildata,
             "fieldcropdata": fieldcropdata,
             "asdform": asdform,
             "acdform": acdform,
-
+            "fsdforms": fsdforms, 
+            "fcdforms": fcdforms,
         }
         return render(request, "app_agrosavvy/manage_field.html", context)
     else:
@@ -244,28 +255,18 @@ def delete_field(request, field_id):
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, field_id=field_id)
-
         if request.method == "POST":
-            field_form = FieldForm(request.POST, instance=field)
-            # field_instance = Field.objects.get(field_id=field.field_id)
+            field_form = FieldForm(request.POST, instance=field) 
             address_instance = field.address
-            # soil_data_instance = field.soil_data
-
             address_form = AddressForm(request.POST, instance=address_instance)
-            # soil_data_form = SoilDataForm(request.POST, instance=soil_data_instance)
-
             if (
                 field_form.is_valid()
-                and address_form.is_valid()
-                # and soil_data_form.is_valid()
+                and address_form.is_valid()             
             ):
                 updated_field = field_form.save(commit=False)
-                updated_field.owner = field.owner
-                # updated_field.owner = field_instance.owner
+                updated_field.owner = field.owner             
                 updated_field.save()
                 updated_address = address_form.save()
-                # updated_soil_data = soil_data_form.save()
-
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -273,22 +274,18 @@ def update_field(request, field_id):
                         "status": "error",
                         "errors": {
                             "field_form": field_form.errors,
-                            "address_form": address_form.errors,
-                            # "soil_data_form": soil_data_form.errors,
+                            "address_form": address_form.errors,                          
                         },
                     }
                 )
+        # if get request (opening the page only)
         else:
             field_form = FieldForm(instance=field)
             address_form = AddressForm(instance=field.address)
-            # soil_data_form = SoilDataForm(instance=field.soil_data)
-
         context = {
             "field_form": field_form,
-            "address_form": address_form,
-            # "soil_data_form": soil_data_form,
+            "address_form": address_form,            
         }
-
         return render(request, "app_agrosavvy/update_field.html", context)
     else:
         return redirect("forbidden")
@@ -338,7 +335,55 @@ def add_crop_data(request, field_id):
             acdform = FieldCropForm()
         return {"acdform": acdform, "field": field}
 
+
 # update_soil_data code 
+def update_soil_data(request, field_id, soil_id):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+        soil = get_object_or_404(FieldSoilData, soil_id=soil_id)
+        field = get_object_or_404(Field, field_id=field_id)
+        if request.method == "POST":
+            fsdform = FieldSoilDataForm(request.POST, instance=soil)
+            if fsdform.is_valid():
+                updated_soil_data = fsdform.save(commit=False)
+                updated_soil_data.field = field
+                updated_soil_data.save()
+                messages.success(request, "Soil data updated successfully.")
+                return redirect('manage_field', field_id=field_id)
+            else:
+                messages.error(request, "Error updating soil data.") 
+        else:
+            # Show the current values in the form
+            fsdform = FieldSoilDataForm(instance=soil)
+        return {"fsdform": fsdform, "soil": soil}
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('forbidden')
+
+
+    
+
+def update_crop_data(request, fieldcrop_id, field_id):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+        crop = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
+        field = get_object_or_404(Field, field_id=field_id)
+        if request.method == "POST":
+            fcdform = FieldCropForm(request.POST, instance=crop)
+            if fcdform.is_valid():
+                updated_crop_data = fcdform.save(commit=False)
+                updated_crop_data.field = field
+                updated_crop_data.save()
+                messages.success(request, "Crop data updated successfully.")
+                return redirect('manage_field', field_id=field_id)
+            else:
+                messages.error(request, "Error updating crop data.")
+        else:
+            # Show the current values in the form
+            fcdform = FieldCropForm(instance=crop)
+        return {"fcdform": fcdform, "crop": crop}
+        
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('forbidden')
 
 
 
@@ -371,6 +416,11 @@ def delete_crop_data(request, fieldcrop_id):
             return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
     else:
         return redirect("forbidden")
+
+
+
+
+
 
 
 
@@ -446,24 +496,17 @@ def bofa_map(request):
 
 
 def bofa_add_field(request):
-    if request.user.is_authenticated and (
-        request.user.roleuser.roleuser == "brgy_officer"
-        or request.user.roleuser.roleuser == "farmer"
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "brgy_officer" or request.user.roleuser.roleuser == "farmer"
     ):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
-            address_form = AddressForm(request.POST)
-            # soil_data_form = SoilDataForm(request.POST)
+            address_form = AddressForm(request.POST)          
             if (
-                field_form.is_valid()
-                and address_form.is_valid
-                # and soil_data_form.is_valid
+                field_form.is_valid() and address_form.is_valid            
             ):
-                address = address_form.save()
-                # soil_data = soil_data_form.save()
+                address = address_form.save()               
                 field = field_form.save(commit=False)
                 field.address = address
-                # field.soil_data = soil_data
                 field.owner = request.user
                 field.save()
                 return JsonResponse({"status": "success"})
@@ -474,18 +517,16 @@ def bofa_add_field(request):
                         "errors": {
                             "field_form": field_form.errors,
                             "address_form": address_form.errors,
-                            # "soil_data_form": soil_data_form.errors,
                         },
                     }
                 )
         else:
             field_form = FieldForm()
             address_form = AddressForm()
-            # soil_data_form = SoilDataForm()
+
         context = {
             "field_form": field_form,
             "address_form": address_form,
-            # "soil_data_form": soil_data_form,
         }
         return render(request, "bofa_pages/bofa_add_field.html", context)
     else:
@@ -561,26 +602,19 @@ def bofa_update_field(request, field_id):
 
         if field.owner != request.user:
             return redirect("forbidden")
-
+        
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
-
-            address_instance = field.address
-            # soil_data_instance = field.soil_data
-
+            address_instance = field.address           
             address_form = AddressForm(request.POST, instance=address_instance)
-            # soil_data_form = SoilDataForm(request.POST, instance=soil_data_instance)
-
             if (
                 field_form.is_valid()
                 and address_form.is_valid()
-                # and soil_data_form.is_valid()
             ):
                 updated_field = field_form.save(commit=False)
                 updated_field.owner = field.owner
                 updated_field.save()
                 updated_address = address_form.save()
-                # updated_soil_data = soil_data_form.save()
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -589,19 +623,16 @@ def bofa_update_field(request, field_id):
                         "errors": {
                             "field_form": field_form.errors,
                             "address_form": address_form.errors,
-                            # "soil_data_form": soil_data_form.errors,
                         },
                     }
                 )
         else:
             field_form = FieldForm(instance=field)
             address_form = AddressForm(instance=field.address)
-            # soil_data_form = SoilDataForm(instance=field.soil_data)
 
         context = {
             "field_form": field_form,
             "address_form": address_form,
-            # "soil_data_form": soil_data_form,
         }
         return render(request, "bofa_pages/bofa_update_field.html", context)
     else:
