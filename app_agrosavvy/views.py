@@ -26,14 +26,8 @@ from django.urls import reverse
 
 # from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Count 
-
-# # for charts in dashboard
-# import matplotlib
-
-# matplotlib.use("Agg")
-# import matplotlib.pyplot as plt
-# import io
-# import base64
+from django.utils import timezone
+from datetime import timedelta
 
 #           PRAgab19-5158-794
 
@@ -49,8 +43,6 @@ def dashboard(request):
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         reviewrating_context = reviewrating(request)
 
-
-
         # charts 
         labels = []
         data = []
@@ -62,16 +54,32 @@ def dashboard(request):
         labels = [entry['crop_planted__crop_type'] for entry in queryset]
         data = [entry['total_acres'] for entry in queryset]
 
+
+        # field registration over time line chart
+        # Set a time range for the last 12 months
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=365)
+        
+        # Aggregate the number of fields registered each month using created_at
+        field_data = Field.objects.filter(
+            created_at__range=[start_date, end_date]
+        ).extra(select={'month': "strftime('%%Y-%%m', created_at)"}).values('month').annotate(count=Count('field_id')).order_by('month')
+
+        # Prepare data for Chart.js
+        labelsfield = [data['month'] for data in field_data]
+        datafield = [data['count'] for data in field_data]
+
         context = {
             "fields": fields,
             "crops": crops,
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
-            # "donut_chart": donut_chart,
-            # "line_chart": line_chart,
+            #charts
             "labels": labels,
-            "data": data
+            "data": data,
+            "labelsfield": labelsfield,
+            "datafield": datafield,
 
         }
         context.update(reviewrating_context)
@@ -93,7 +101,7 @@ def map(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         fields_json = []
 
-        # Fetch all field crop data
+        # Fetches all field crop data (wrong)
         # add filters to show only the current crop planted. (not the history or all data)
         field_crop_data = FieldCropData.objects.select_related('field', 'crop_planted')
 

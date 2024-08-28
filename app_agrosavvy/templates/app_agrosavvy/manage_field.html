@@ -122,13 +122,13 @@
     <!-- Soil Data Display -->
     <div class="card">
         <div class="card-header">
-            <h3>Soil Data</h3>
+          <strong> <p>Soil Data</p></strong>
         </div>
         <div class="card-body">
             {% if fieldsoildata %}
             {% for fsd in fieldsoildata %}
             <div class="mb-4">
-                <h5><strong>{{ fsd.field.field_name }}</strong></h5>
+                <!-- <p>{{ fsd.field.field_name }}</p> -->
                 <ul class="list-group">
                     <li class="list-group-item">Nitrogen: {{ fsd.nitrogen }}</li>
                     <li class="list-group-item">Phosphorous: {{ fsd.phosphorous }}</li>
@@ -179,17 +179,16 @@
 
 
 
-
 <!-- Crop Data Display -->
-<div class="card">
+<div class="card mt-4">
     <div class="card-header">
-        <h3>Crop History Data</h3>
+        <strong><p>Crop History Data</p></strong>
     </div>
     <div class="card-body">
         {% if fieldcropdata %}
         {% for fcd in fieldcropdata %}
         <div class="mb-4">
-            <h5><strong>{{ fcd.field.field_name }}</strong></h5>
+            <!-- <p>{{ fcd.field.field_name }}</p> -->
             <ul class="list-group">
                 <li class="list-group-item">Crop Planted: {{ fcd.crop_planted }}</li>
                 <li class="list-group-item">Planting Date: {{ fcd.planting_date }}</li>
