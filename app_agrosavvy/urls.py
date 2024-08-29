@@ -46,9 +46,10 @@ urlpatterns = [
     path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
 
     #field management for da admin
-    path('dashboard/update_field/<int:field_id>/', views.update_field, name='update_field'),
-    path('dashboard/delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
+    path('dashboard/manage_field/update_field/<int:field_id>/', views.update_field, name='update_field'),
+    path('dashboard/manage_field/delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
     path('dashboard/manage_field/<int:field_id>/', views.manage_field, name='manage_field'),
+
     path('add_soil_data/<int:field_id>/', views.add_soil_data, name='add_soil_data'),
     path('delete_soil_data/<int:soil_id>/', views.delete_soil_data, name='delete_soil_data'),
     path('add_crop_data/<int:field_id>/', views.add_crop_data, name='add_crop_data'),
@@ -82,9 +83,7 @@ urlpatterns = [
     #field management for Brgy officers and farmers
     path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),
     path('bofa_dashboard/bofa_delete_field/<int:field_id>/', views.bofa_delete_field, name='bofa_delete_field'),
-    # path('dashboard/bofa_manage_field/<int:field_id>/', views.bofa_manage_field, name="bofa_manage_field"),
-
-
+    path('bofa_dashboard/bofa_manage_field/<int:field_id>/', views.bofa_manage_field, name="bofa_manage_field"),
 
     #forbidden, 404 chuchu
     path('forbidden', views.forbidden, name='forbidden'),
