@@ -43,7 +43,7 @@ def dashboard(request):
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         reviewrating_context = reviewrating(request)
 
-        # charts 
+        # pie charts 
         labels = []
         data = []
         # Aggregate total acres for each crop
@@ -249,7 +249,6 @@ def manage_field(request, field_id):
         return redirect("forbidden")
     
 
-
 def delete_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, pk=field_id)
@@ -297,134 +296,6 @@ def update_field(request, field_id):
         return render(request, "app_agrosavvy/update_field.html", context)
     else:
         return redirect("forbidden")
-    
-
-
-def add_soil_data(request, field_id):
-    field = get_object_or_404(Field, field_id=field_id)
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        if request.method == "POST":
-            asdform = FieldSoilDataForm(request.POST)
-            if asdform.is_valid():
-                soil_data = asdform.save(commit=False)
-                soil_data.field = field
-                soil_data.save()
-                messages.success(request, "Soil data saved successfully.")
-                if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                    # change this later on
-                    return redirect("bofa_dashboard")
-            else:
-                messages.error(request, "Form invalid")
-        else:
-            asdform = FieldSoilDataForm()
-        return {"asdform": asdform, "field": field}
-    
-    
-def add_crop_data(request, field_id):
-    field = get_object_or_404(Field, field_id=field_id)
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        if request.method=='POST':
-            acdform=FieldCropForm(request.POST)
-            if acdform.is_valid:
-                crop_data = acdform.save(commit=False)
-                crop_data.field = field
-                crop_data.save()
-                messages.success(request, "Crop data successfully saved.")
-                if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                    # change this later on
-                    return redirect("bofa_dashboard")
-            else:
-                messages.error(request, "Form invalid")
-        else:
-            acdform = FieldCropForm()
-        return {"acdform": acdform, "field": field}
-
-
-# update_soil_data code 
-def update_soil_data(request, field_id, soil_id):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        soil = get_object_or_404(FieldSoilData, soil_id=soil_id)
-        field = get_object_or_404(Field, field_id=field_id)
-        if request.method == "POST":
-            fsdform = FieldSoilDataForm(request.POST, instance=soil)
-            if fsdform.is_valid():
-                updated_soil_data = fsdform.save(commit=False)
-                updated_soil_data.field = field
-                updated_soil_data.save()
-                messages.success(request, "Soil data updated successfully.")
-                return redirect('manage_field', field_id=field_id)
-            else:
-                messages.error(request, "Error updating soil data.") 
-        else:
-            # Show the current values in the form
-            fsdform = FieldSoilDataForm(instance=soil)
-        return {"fsdform": fsdform, "soil": soil}
-    else:
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect('forbidden')
-
-
-    
-
-def update_crop_data(request, fieldcrop_id, field_id):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        crop = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
-        field = get_object_or_404(Field, field_id=field_id)
-        if request.method == "POST":
-            fcdform = FieldCropForm(request.POST, instance=crop)
-            if fcdform.is_valid():
-                updated_crop_data = fcdform.save(commit=False)
-                updated_crop_data.field = field
-                updated_crop_data.save()
-                messages.success(request, "Crop data updated successfully.")
-                return redirect('manage_field', field_id=field_id)
-            else:
-                messages.error(request, "Error updating crop data.")
-        else:
-            # Show the current values in the form
-            fcdform = FieldCropForm(instance=crop)
-        return {"fcdform": fcdform, "crop": crop}
-        
-    else:
-        messages.error(request, "You are not authorized to perform this action.")
-        return redirect('forbidden')
-
-
-
-    
-# for da admin deletion of soil data on all fields
-def delete_soil_data(request, soil_id):
-    soil_data = get_object_or_404(FieldSoilData, soil_id=soil_id)
-    field_id = soil_data.field.field_id
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        if request.method == "POST":
-            soil_data.delete()
-            messages.success(request, "Soil data deleted successfully.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-        else:
-            messages.error(request, "Invalid request.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-    else:
-        return redirect("forbidden")
-
-def delete_crop_data(request, fieldcrop_id):
-    crop_data = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
-    field_id = crop_data.field.field_id
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        if request.method == "POST":
-            crop_data.delete()
-            messages.success(request, "Crop data deleted successfully.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-        else:
-            messages.error(request, "Invalid request.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
-    else:
-        return redirect("forbidden")
-
 
 
 
@@ -453,15 +324,31 @@ def bofa_dashboard(request):
         request.user.roleuser.roleuser == "brgy_officer"
         or request.user.roleuser.roleuser == "farmer"
     ):
-
-        reviewwrating_context = reviewrating(request)
+        
         fields = Field.objects.filter(owner=request.user)
         total_acres = Field.objects.filter(owner=request.user).aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+        reviewwrating_context = reviewrating(request)
+
+        owner = request.user 
+
+        # Aggregate total acres for each crop, filtered by the owner's fields
+        queryset = FieldCropData.objects.filter(field__owner=owner).values('crop_planted__crop_type').annotate(
+            total_acres=Sum('field__field_acres')
+        )
+
+        # Prepare data for the chart
+        labels = [entry['crop_planted__crop_type'] for entry in queryset]
+        data = [entry['total_acres'] for entry in queryset]
+
+
+
 
         context = {
             "fields": fields,
             "field_count": fields.count(),
             "total_acres": total_acres,
+            "labels": labels,
+            "data": data,
             }
         context.update(reviewwrating_context)
         return render(request, "bofa_pages/bofa_dashboard.html", context)
@@ -469,7 +356,7 @@ def bofa_dashboard(request):
         return redirect("forbidden")
 
 
-# no auth yet
+
 def bofa_ai(request):
     if request.user.is_authenticated and (
     request.user.roleuser.roleuser == "brgy_officer"
@@ -588,13 +475,50 @@ def bofa_settings(request):
 
 
 
+
+
 # manage fields/ farms
+def bofa_manage_field(request, field_id):
+    if request.user.is_authenticated and (
+        request.user.roleuser.roleuser == "brgy_officer"
+        or request.user.roleuser.roleuser == "farmer"
+    ):
+         
+        field = get_object_or_404(Field, field_id=field_id)
+        fieldsoildata = FieldSoilData.objects.filter(field=field)
+        fieldcropdata = FieldCropData.objects.filter(field=field)
+        
+        asdform = FieldSoilDataForm()
+        acdform = FieldCropForm()
+
+        # Create a dictionary of forms for each soil and crop data instance
+        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+        fcdforms  = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
+        
+        context ={
+            "field":field,
+            "fieldsoildata": fieldsoildata,
+            "fieldcropdata": fieldcropdata,
+            "asdform": asdform,
+            "acdform": acdform,
+            "fsdforms": fsdforms, 
+            "fcdforms": fcdforms,
+        }
+        return render(request, "bofa_pages/bofa_manage_field.html", context)
+    else:
+        return redirect("forbidden")
+
+
 def bofa_delete_field(request, field_id):
     if request.user.is_authenticated and (
         request.user.roleuser.roleuser == "brgy_officer"
         or request.user.roleuser.roleuser == "farmer"
     ):
         field = get_object_or_404(Field, pk=field_id)
+
+        if field.owner != request.user:
+            return redirect("forbidden")
+        
         field.delete()
         return redirect("bofa_dashboard")
     else:
@@ -664,9 +588,6 @@ def bofa_update_field(request, field_id):
 
 
 
-
-
-
 # callable functions
 
 
@@ -698,77 +619,146 @@ def reviewrating(request):
 
 
 
+    
+
+# to be used for admin and bofa users
+def add_soil_data(request, field_id):
+    field = get_object_or_404(Field, field_id=field_id)
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            asdform = FieldSoilDataForm(request.POST)
+            if asdform.is_valid():
+                soil_data = asdform.save(commit=False)
+                soil_data.field = field
+                soil_data.save()
+                messages.success(request, "Soil data saved successfully.")
+                if request.user.roleuser.roleuser == "da_admin":
+                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                   return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+            else:
+                messages.error(request, "Form invalid")
+        else:
+            asdform = FieldSoilDataForm()
+        return {"asdform": asdform, "field": field}
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("forbidden")
+    
+    
+def add_crop_data(request, field_id):
+    field = get_object_or_404(Field, field_id=field_id)
+    if request.user.is_authenticated:
+        if request.method=='POST':
+            acdform=FieldCropForm(request.POST)
+            if acdform.is_valid:
+                crop_data = acdform.save(commit=False)
+                crop_data.field = field
+                crop_data.save()
+                messages.success(request, "Crop data successfully saved.")
+                if request.user.roleuser.roleuser == "da_admin":
+                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+            else:
+                messages.error(request, "Form invalid")
+        else:
+            acdform = FieldCropForm()
+        return {"acdform": acdform, "field": field}
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect("forbidden")
 
 
-# in progress (visualization in dashboard) -- made for da admin since there no filters yet
-# def generate_donut_chart():
+def update_soil_data(request, field_id, soil_id):
+    if request.user.is_authenticated:
+        soil = get_object_or_404(FieldSoilData, soil_id=soil_id)
+        field = get_object_or_404(Field, field_id=field_id)
+        if request.method == "POST":
+            fsdform = FieldSoilDataForm(request.POST, instance=soil)
+            if fsdform.is_valid():
+                updated_soil_data = fsdform.save(commit=False)
+                updated_soil_data.field = field
+                updated_soil_data.save()
+                messages.success(request, "Soil data updated successfully.")
+                if request.user.roleuser.roleuser == "da_admin":
+                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+                
 
-#     fields = Field.objects.all()
-#     crop_counts = {}
-
-#     for field in fields:
-#         crop = field.crop.crop_type if field.crop else "No Crop"
-#         if crop in crop_counts:
-#             crop_counts[crop] += 1
-#         else:
-#             crop_counts[crop] = 1
-
-#     labels = crop_counts.keys()
-#     sizes = crop_counts.values()
-
-#     fig, ax = plt.subplots()
-#     ax.pie(
-#         sizes,
-#         labels=labels,
-#         autopct="%1.1f%%",
-#         startangle=90,
-#         wedgeprops={"width": 0.3},
-#     )
-#     ax.axis("equal")
-
-#     # Save chart to a string in memory
-#     buf = io.BytesIO()
-#     plt.savefig(buf, format="png")
-#     buf.seek(0)
-#     string = base64.b64encode(buf.read()).decode("utf-8")
-#     uri = "data:image/png;base64," + string
-
-#     return uri
+                # return redirect('manage_field', field_id=field_id)
+            else:
+                messages.error(request, "Error updating soil data.") 
+        else:
+            # Show the current values in the form
+            fsdform = FieldSoilDataForm(instance=soil)
+        return {"fsdform": fsdform, "soil": soil}
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('forbidden')
 
 
-# def generate_line_chart(crop_filter=None):
-#     # Fetch field data
-#     fields = Field.objects.all()
-#     if crop_filter:
-#         fields = fields.filter(crop__crop_type=crop_filter)
+    
 
-#     # Aggregate fields by creation date
-#     fields_by_date = (
-#         fields.values("created_at__date")
-#         .annotate(count=Count("field_id"))
-#         .order_by("created_at__date")
-#     )
+def update_crop_data(request, fieldcrop_id, field_id):
+    if request.user.is_authenticated:
+        crop = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
+        field = get_object_or_404(Field, field_id=field_id)
+        if request.method == "POST":
+            fcdform = FieldCropForm(request.POST, instance=crop)
+            if fcdform.is_valid():
+                updated_crop_data = fcdform.save(commit=False)
+                updated_crop_data.field = field
+                updated_crop_data.save()
+                messages.success(request, "Crop data updated successfully.")
+                # return redirect('manage_field', field_id=field_id)
+                if request.user.roleuser.roleuser == "da_admin":
+                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+            else:
+                messages.error(request, "Error updating crop data.")
+        else:
+            # Show the current values in the form
+            fcdform = FieldCropForm(instance=crop)
+        return {"fcdform": fcdform, "crop": crop}
+        
+    else:
+        messages.error(request, "You are not authorized to perform this action.")
+        return redirect('forbidden')
 
-#     dates = [field["created_at__date"] for field in fields_by_date]
-#     counts = [field["count"] for field in fields_by_date]
 
-#     # Generate line chart
-#     fig, ax = plt.subplots()
-#     ax.plot(dates, counts, marker="o")
-#     ax.set_xlabel("Date")
-#     ax.set_ylabel("Number of Fields")
-#     ax.set_title("Fields Created Over Time")
-#     plt.xticks(rotation=45)
-#     plt.tight_layout()
 
-#     # Save chart to a string in memory
-#     buf = io.BytesIO()
-#     plt.savefig(buf, format="png")
-#     buf.seek(0)
-#     string = base64.b64encode(buf.read()).decode("utf-8")
-#     uri = "data:image/png;base64," + string
+    
 
-#     return uri
+def delete_soil_data(request, soil_id):
+    soil_data = get_object_or_404(FieldSoilData, soil_id=soil_id)
+    field_id = soil_data.field.field_id
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            soil_data.delete()
+            messages.success(request, "Soil data deleted successfully.")
+            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+        else:
+            messages.error(request, "Invalid request.")
+            return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+    else:
+        return redirect("forbidden")
+
+def delete_crop_data(request, fieldcrop_id):
+    crop_data = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
+    field_id = crop_data.field.field_id
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            crop_data.delete()
+            messages.success(request, "Crop data deleted successfully.")
+            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+        else:
+            messages.error(request, "Invalid request.")
+            return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+    else:
+        return redirect("forbidden")
 
 
 

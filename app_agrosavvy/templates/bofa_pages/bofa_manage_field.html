@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bofa_base.html' %}
 {% load custom_filters %}
 
 {% block content %}
@@ -7,7 +7,7 @@
     <div class="card mb-4">
 
         <div class="card-header">
-            <a href="{% url 'dashboard' %}">Go back</a>
+            <a href="{% url 'bofa_dashboard' %}">Go back</a>
             <h3>Field Details</h3>
         </div>
         <div class="card-body">
@@ -47,9 +47,9 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{% url 'update_field' field.field_id %}"
+                                <a href="{% url 'bofa_update_field' field.field_id %}"
                                     class="btn btn-sm btn-outline-primary">Update</a>
-                                <form action="{% url 'delete_field' field.field_id %}" method="post"
+                                <form action="{% url 'bofa_delete_field' field.field_id %}" method="post"
                                     class="d-inline-block">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger"
