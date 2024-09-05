@@ -16,6 +16,17 @@ class RoleUser(models.Model):
 
     def __str__(self):
         return self.roleuser
+    
+# class UserAddress(models.Model):
+#     address_id = models.AutoField(primary_key=True)
+#     barangay = models.CharField(max_length=100)
+#     city_municipality = models.CharField(max_length=100)
+#     country = models.CharField(max_length=100)
+
+#     def __str__(self):
+#         return f"{self.barangay}, {self.city_municipality}, {self.country}"
+
+
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
@@ -24,6 +35,8 @@ class CustomUser(AbstractUser):
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    # new
+    # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
     # user role
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     # registration and account status info
@@ -32,9 +45,12 @@ class CustomUser(AbstractUser):
     request_date = models.DateTimeField(auto_now_add=True)
     approved_date = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
-
+    
     def __str__(self):
         return self.username
+    
+    class Meta:
+        ordering = ['-approved_date']
     
 
 class PendingUser(models.Model):
@@ -44,6 +60,8 @@ class PendingUser(models.Model):
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+     # new
+    # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     request_date = models.DateTimeField(auto_now_add=True)
 
@@ -78,6 +96,12 @@ class ReviewRating(models.Model):
     review_body = models.CharField(max_length=200, blank=True, null=True)
     rate_date = models.DateTimeField(auto_now_add=True)
     reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    # new
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return f"{self.get_rating_display()}: {self.review_header or 'No Header'}"
@@ -101,19 +125,23 @@ class Field(models.Model):
     field_id = models.AutoField(primary_key=True)
     field_name = models.CharField(max_length=100)
     field_acres = models.FloatField()
-    address = models.ForeignKey(
-        Address, on_delete=models.SET_NULL, related_name="fields", null=True
-    )
-    owner = models.ForeignKey(
-        CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True
-    )
+    address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name="fields", null=True)
+    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True)
     created_at = models.DateTimeField(default=timezone.now)
+        # new
+    is_deleted = models.BooleanField(default = False)
+
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return self.field_name
 
     class Meta:
         ordering = ['-created_at']
+
 
 #separate crop for choices and crop data of a field model
 class Crop(models.Model):
@@ -134,16 +162,25 @@ class Crop(models.Model):
     def __str__(self):
         return f"{self.crop_type}"
 
-# crop and soil data of a field overtime (tracks field data movement overtime)
+# tracks field data (soil and crop data of a field) movement overtime
 class FieldCropData(models.Model):
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     fieldcrop_id = models.AutoField(primary_key=True)
     crop_planted = models.ForeignKey(Crop, on_delete=models.CASCADE)
     planting_date = models.DateField()
     harvest_date = models.DateField()
+    # new
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return f"{self.crop_planted} planted in {self.field.field_name} on {self.planting_date}"
+    
+    class Meta:
+        ordering = ['-planting_date']
 
 
 class FieldSoilData(models.Model):
@@ -154,9 +191,18 @@ class FieldSoilData(models.Model):
     potassium = models.FloatField(null=True, blank=True)
     ph = models.FloatField(null=True, blank=True)
     record_date = models.DateField()
+    # new
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return f"Soil data for {self.field.field_name} recorded at {self.record_date}"
+    
+    class Meta:
+        ordering = ['-record_date']
     
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now

@@ -4,7 +4,7 @@
 
 
   :root {
-    --color-default: #2155e4;
+    --color-default: #228b34;
     --color-white: #f4f4f4;
   }
 
@@ -258,6 +258,13 @@
         <span class="link_name">Settings</span>
       </a>
       <span class="tooltip">Settings</span>
+    </li>
+    <li>
+      <a href="{% url 'user_management' %}">
+        <i class="fa-solid fa-user"></i>
+        <span class="link_name">User Management</span>
+      </a>
+      <span class="tooltip">User Management</span>
     </li>
     <li>
       <a href="{% url 'my_logout' %}">

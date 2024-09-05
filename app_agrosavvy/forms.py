@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.utils import timezone
 
 # from django.contrib.auth.forms import UserCreationForm
 
@@ -24,6 +25,8 @@ class LoginForm(forms.Form):
             attrs={"class": "form-control", "placeholder": "Password"}
         ),
     )
+
+
 
 
 # # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
@@ -53,6 +56,8 @@ class LoginForm(forms.Form):
 #             "firstname",
 #             "lastname",
 #         )
+
+
 
 
 
@@ -129,6 +134,10 @@ class PendingUserForm(forms.ModelForm):
             self.add_error("password_confirmation", "Passwords do not match.")
         return cleaned_data
 
+
+
+
+
 class CustomUserUpdateForm(UserChangeForm):
     password = None
     class Meta:
@@ -168,6 +177,8 @@ class CustomUserUpdateForm(UserChangeForm):
             }
         )
 
+
+
 class CustomPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(
         label="",
@@ -196,6 +207,8 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         model = CustomUser
         fields = ["old_password", "new_password1", "new_password2"]
 
+
+
 class FieldForm(forms.ModelForm):
     class Meta:
         model = Field
@@ -215,6 +228,9 @@ class FieldForm(forms.ModelForm):
                 }
             ),
         }
+
+
+
 
 class AddressForm(forms.ModelForm):
     class Meta:
@@ -244,9 +260,36 @@ class AddressForm(forms.ModelForm):
         if city.strip().lower() != "cebu city":
             raise ValidationError("The address must be in Cebu City.")
         return city
+    
 
 
-# new
+# class UserAddressForm(forms.ModelForm):
+#     class Meta:
+#         model = UserAddress
+#         fields = ["barangay", "city_municipality", "country"]
+#         widgets = {
+#             "barangay": forms.TextInput(
+#                 attrs={"class": "form-control", "placeholder": "Enter barangay"}
+#             ),
+#             "city_municipality": forms.TextInput(
+#                 attrs={
+#                     "class": "form-control",
+#                     "placeholder": "Enter city or municipality",
+#                 }
+#             ),
+#             "country": forms.TextInput(
+#                 attrs={"class": "form-control", "placeholder": "Enter country"}
+#             ),
+#         }
+
+#     def clean_city_municipality(self):
+#         city = self.cleaned_data.get("city_municipality")
+#         if city.strip().lower() != "cebu city":
+#             raise ValidationError("The address must be in Cebu City.")
+#         return city
+
+
+
 class FieldCropForm(forms.ModelForm):
     class Meta:
         model = FieldCropData
@@ -256,6 +299,24 @@ class FieldCropForm(forms.ModelForm):
                 'planting_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
                 'harvest_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
             }
+        
+    # # new validate no date backwards
+    # def clean(self):
+    #     cleaned_data = super().clean()
+    #     planting_date = cleaned_data.get("planting_date")
+    #     harvest_date = cleaned_data.get("harvest_date")
+    #     today = timezone.now().date()
+
+    #     if planting_date and planting_date < today:
+    #         raise ValidationError("The planting date cannot be in the past.")
+        
+    #     if harvest_date and harvest_date < today:
+    #         raise ValidationError("The harvest date cannot be in the past.")
+        
+    #     if planting_date and harvest_date and planting_date > harvest_date:
+    #         raise ValidationError("The planting date cannot be after the harvest date.")
+        
+    #     return cleaned_data
         
 class FieldSoilDataForm(forms.ModelForm):
     class Meta:

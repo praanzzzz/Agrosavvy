@@ -22,7 +22,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("username", "password", "profile_picture")}),
         (
             "Personal info",
-            {"fields": ("firstname", "lastname", "email", "date_of_birth")},
+            {"fields": ("firstname", "lastname", "email", "date_of_birth", "useraddress")},
         ),
         ("Roles", {"fields": ("roleuser",)}),
         (
@@ -96,7 +96,7 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.action(description="Approve selected users")
 def approve_users(modeladmin, request, queryset):
-    for pending_user in queryset:
+    for pending_user in queryset: # add filter to da admin only
         CustomUser.objects.create(
             username=pending_user.username,
             password=pending_user.password,
@@ -104,6 +104,7 @@ def approve_users(modeladmin, request, queryset):
             firstname=pending_user.firstname,
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
+            useraddress=pending_user.useraddress,
             # is_farmer=pending_user.is_farmer,
             # is_barangay_officer=pending_user.is_barangay_officer,
             # is_da_admin=pending_user.is_da_admin,
