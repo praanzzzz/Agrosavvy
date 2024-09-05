@@ -105,6 +105,52 @@
 
 
 
+<!-- container -->
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <!-- <h1 class="text-center mb-4">Dashboard</h1> -->
+
+
+
+
+
+            <!-- Summary Section -->
+            <div class="container">
+                <div class="row justify-content-center mb-4">
+                    <!-- Number of Fields -->
+                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
+                        <h5>
+                            <i class="fas fa-tractor fa-2x text-primary"></i>
+                            <span class="d-block mt-2">Number of Fields</span>
+                        </h5>
+                        <span class="display-4 font-weight-bold">{{ field_count }}</span>
+                    </div>
+
+                    <!-- Total Number of Acres -->
+                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
+                        <h5>
+                            <i class="fas fa-map-marker-alt fa-2x text-success"></i>
+                            <span class="d-block mt-2">Total Acres</span>
+                        </h5>
+                        <span class="display-4 font-weight-bold">{{ total_acres }}</span>
+                    </div>
+
+                    <!-- Number of Users -->
+                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
+                        <h5>
+                            <i class="fas fa-users fa-2x text-warning"></i>
+                            <span class="d-block mt-2">Active Users</span>
+                        </h5>
+                        <span class="display-4 font-weight-bold">{{ active_user_count }}</span>
+                    </div>
+                </div>
+
+
+
+                
+
 <style>
     /* Set the height for both charts */
     .chart-container {
@@ -240,53 +286,6 @@
 
 
 
-
-
-
-<!-- container -->
-
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-12">
-            <h1 class="text-center mb-4">Dashboard</h1>
-
-
-
-
-
-            <!-- Summary Section -->
-            <div class="container">
-                <div class="row justify-content-center mb-4">
-                    <!-- Number of Fields -->
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-tractor fa-2x text-primary"></i>
-                            <span class="d-block mt-2">Number of Fields</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ field_count }}</span>
-                    </div>
-
-                    <!-- Total Number of Acres -->
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-map-marker-alt fa-2x text-success"></i>
-                            <span class="d-block mt-2">Total Acres</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ total_acres }}</span>
-                    </div>
-
-                    <!-- Number of Users -->
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-users fa-2x text-warning"></i>
-                            <span class="d-block mt-2">Active Users</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ active_user_count }}</span>
-                    </div>
-                </div>
-
-
-
                 
                 <!-- List of Fields Section -->
                 <h3 class="text-center mb-4">List of Fields</h3>
@@ -303,14 +302,12 @@
                                         <th>Name</th>
                                         <th>Acres</th>
                                         <th>Location</th>
-                                        <!-- <th>Soil Data</th>
-                                        <th>Crop Planted</th> -->
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <!-- loop -->
-                                    {% for field in fields %}
+                                    {% for field in page_obj %}
                                     <tr>
                                         <td>{{ field.field_id }}</td>
                                         <td>
@@ -343,18 +340,41 @@
                                 </tbody>
                             </table>
                         </div>
+                    
+                        <!-- Pagination -->
+                        <nav aria-label="Page navigation" class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                {% for num in page_obj.paginator.page_range %}
+                                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                                {% endfor %}
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                     </div>
+                    
 
-
-
-
-
+                    
                     <!-- Recent Activities -->
-                    <div class="col-md-3">
+                    <div class="col-md-3 mb-4">
                         <div class="border rounded p-3 bg-light shadow-sm">
                             <h4 class="mb-3"><strong>Recent Activity</strong></h4>
                             <div>
-                                {% for fieldactivities in fields %}
+                                {% for fieldactivities in fields|slice:":3" %}
                                 <div class="mb-3">
                                     <span class="d-block">@ {{ fieldactivities.owner }} {{fieldactivities.created_at|timesince }} ago</span>
                                     <p class="mb-0">Added field: {{ fieldactivities.field_name }} with {{fieldactivities.field_acres }} acres</p>

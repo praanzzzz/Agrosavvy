@@ -39,11 +39,17 @@ urlpatterns = [
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
     path('settings/', views.settings, name='settings'),
-    
+    path('user_management', views.user_management, name='user_management'),
+
+    # user management
+    path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
+    path('admin_activate_account/<int:user_id>', views.admin_activate_account, name='admin_activate_account'),
+    path('admin_approve_user/<int:user_id>', views.admin_approve_user, name='admin_approve_user'),
 
     #settings section urls
     path('settings/password_change', views.password_change, name='password_change'),
     path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
+  
 
     #field management for da admin
     path('dashboard/manage_field/update_field/<int:field_id>/', views.update_field, name='update_field'),

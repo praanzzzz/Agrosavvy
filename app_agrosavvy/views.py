@@ -1,5 +1,13 @@
-# from django.conf import settings
-from .models import Field, get_weather_data, CustomUser, PendingUser, Crop, RoleUser, FieldSoilData, FieldCropData
+from .models import (
+    Field,
+    get_weather_data,
+    CustomUser,
+    PendingUser,
+    Crop,
+    RoleUser,
+    FieldSoilData,
+    FieldCropData,
+)
 from .forms import (
     FieldForm,
     AddressForm,
@@ -10,9 +18,11 @@ from .forms import (
     CustomPasswordChangeForm,
     PendingUserForm,
     ReviewratingForm,
+    # UserAddressForm,
 )
 
 # others
+# from django.conf import settings  # to hide api
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import json
@@ -23,51 +33,95 @@ from django.utils.timezone import now
 from django.contrib.auth.hashers import check_password
 import requests
 from django.urls import reverse
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 # from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Count 
+from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
 
-#           PRAgab19-5158-794
+#  Password:                PRAgab19-5158-794  
 
 
 
-# Main pages
+
+
+
+
+
+
+
+
+
+
+
+# Main pages for da_admin
 # @csrf_exempt
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        fields = Field.objects.all()
+        fields = Field.objects.filter(is_deleted=False)
         crops = Crop.objects.all()
         active_users = CustomUser.objects.filter(active_status=True)
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         reviewrating_context = reviewrating(request)
 
-        # pie charts 
+        # pie charts
         labels = []
         data = []
-        # Aggregate total acres for each crop
-        queryset = FieldCropData.objects.values('crop_planted__crop_type').annotate(
-            total_acres=Sum('field__field_acres')
-        )
-        # Prepare data for the chart
-        labels = [entry['crop_planted__crop_type'] for entry in queryset]
-        data = [entry['total_acres'] for entry in queryset]
 
+        # Aggregate total acres for each crop
+        # queryset = FieldCropData.objects.values("crop_planted__crop_type").annotate(
+        #     total_acres=Sum("field__field_acres")
+        # )
+
+        queryset = FieldCropData.objects.filter(field__is_deleted=False
+            ).values("crop_planted__crop_type").annotate(
+            total_acres=Sum("field__field_acres")
+        )
+
+
+        # Prepare data for the chart
+        labels = [entry["crop_planted__crop_type"] for entry in queryset]
+        data = [entry["total_acres"] for entry in queryset]
 
         # field registration over time line chart
         # Set a time range for the last 12 months
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
-        
+
         # Aggregate the number of fields registered each month using created_at
-        field_data = Field.objects.filter(
-            created_at__range=[start_date, end_date]
-        ).extra(select={'month': "strftime('%%Y-%%m', created_at)"}).values('month').annotate(count=Count('field_id')).order_by('month')
+        # field_data = (
+        #     Field.objects.filter(created_at__range=[start_date, end_date])
+        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
+        #     .values("month")
+        #     .annotate(count=Count("field_id"))
+        #     .order_by("month")
+        # )
+
+        field_data = (
+            Field.objects.filter(
+                created_at__range=[start_date, end_date], 
+                is_deleted=False
+            )
+            .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
+            .values("month")
+            .annotate(count=Count("field_id"))  # use "id" instead of "field_id" as it's the default primary key field name
+            .order_by("month")
+        )
 
         # Prepare data for Chart.js
-        labelsfield = [data['month'] for data in field_data]
-        datafield = [data['count'] for data in field_data]
+        labelsfield = [data["month"] for data in field_data]
+        datafield = [data["count"] for data in field_data]
+
+        # Set up the paginator
+        paginator = Paginator(fields, 4)  # 4 fields per page
+        page_number = request.GET.get(
+            "page"
+        )  # Get the current page number from the request
+        page_obj = paginator.get_page(
+            page_number
+        )  # Get the page object for the current page
 
         context = {
             "fields": fields,
@@ -75,18 +129,17 @@ def dashboard(request):
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
-            #charts
+            # charts
             "labels": labels,
             "data": data,
             "labelsfield": labelsfield,
             "datafield": datafield,
-
+            "page_obj": page_obj,
         }
         context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
         return redirect("forbidden")
-    
 
 
 def ai(request):
@@ -96,14 +149,20 @@ def ai(request):
         return redirect("forbidden")
 
 
-
 def map(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         fields_json = []
 
         # Fetches all field crop data (wrong)
         # add filters to show only the current crop planted. (not the history or all data)
-        field_crop_data = FieldCropData.objects.select_related('field', 'crop_planted')
+        # field_crop_data = FieldCropData.objects.select_related("field", "crop_planted")
+
+        field_crop_data = (
+            FieldCropData.objects
+            .select_related("field", "crop_planted")
+            .filter(field__is_deleted=False)
+        )
+
 
         for data in field_crop_data:
             if data.field.address:
@@ -131,13 +190,10 @@ def add_field(request):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
-            if (
-                field_form.is_valid()
-                and address_form.is_valid                
-            ):
-                address = address_form.save()             
+            if field_form.is_valid() and address_form.is_valid:
+                address = address_form.save()
                 field = field_form.save(commit=False)
-                field.address = address               
+                field.address = address
                 field.owner = request.user
                 field.save()
                 return JsonResponse({"status": "success"})
@@ -206,6 +262,29 @@ def settings(request):
         return redirect("forbidden")
 
 
+def user_management(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+        registered_users = CustomUser.objects.exclude(roleuser__roleuser="da_admin")
+        pending_users = PendingUser.objects.exclude(roleuser__roleuser="da_admin")
+
+        # Set up the paginator
+        paginator = Paginator(registered_users, 4)  
+        page_number = request.GET.get("page") 
+        registered_users_page_obj = paginator.get_page(page_number)  
+
+
+        paginator = Paginator(pending_users, 4)
+        page_number = request.GET.get("page")
+        pending_users_page_obj = paginator.get_page(page_number)
+
+        context = {
+            "registered_users": registered_users,
+            "registered_users_page_obj": registered_users_page_obj,
+            "pending_users": pending_users,
+            "pending_users_page_obj": pending_users_page_obj,
+        }
+
+    return render(request, "app_agrosavvy/user_management.html", context)
 
 
 
@@ -218,21 +297,127 @@ def settings(request):
 
 
 
-# manage fields/ farms
+
+
+
+# user management for da admin
+def admin_deactivate_account(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id)
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            # Deactivate the chosen account
+            user.active_status = False
+            user.save()
+            messages.success(request, "The account is successfully deactivated.")
+            return redirect("user_management")
+        return render(request, "app_agrosavvy/user_management.html")
+    else:
+        return redirect("forbidden")
+
+
+def admin_activate_account(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id)
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            # activate the chosen account
+            user.active_status = True
+            user.save()
+            messages.success(request, "The account is successfully activated.")
+            return redirect("user_management")
+        return render(request, "app_agrosavvy/user_management.html")
+    else:
+        return redirect("forbidden")
+
+
+def admin_approve_user(request, user_id):
+    pending_user = get_object_or_404(PendingUser, id=user_id)
+
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            CustomUser.objects.create(
+                username=pending_user.username,
+                password=pending_user.password,
+                email=pending_user.email,
+                firstname=pending_user.firstname,
+                lastname=pending_user.lastname,
+                date_of_birth=pending_user.date_of_birth,
+                # useraddress=pending_user.useraddress,
+                roleuser=pending_user.roleuser,
+                is_approved=True,
+                approved_date=timezone.now(),
+                approved_by=request.user,
+            )
+            pending_user.delete()
+            messages.success(
+                request, f"User {pending_user.username} has been approved successfully."
+            )
+            return redirect("user_management")
+        return render(
+            request,
+            "app_agrosavvy/confirm_approve.html",
+            {"pending_user": pending_user},
+        )
+    else:
+        return redirect("forbidden")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# field management
 def manage_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        field = get_object_or_404(Field, field_id=field_id) # used for reference or select a specific field
-        fieldsoildata = FieldSoilData.objects.filter(field=field) # displays soil data history of a field
-        fieldcropdata = FieldCropData.objects.filter(field=field)# displays crop data history of a field
+        field = get_object_or_404(
+            Field, field_id=field_id
+        )  # used for reference or select a specific field
+        fieldsoildata = FieldSoilData.objects.filter(
+            field=field, is_deleted=False
+        )  # displays soil data history of a field
+        fieldcropdata = FieldCropData.objects.filter(
+            field=field, is_deleted=False
+        )  # displays crop data history of a field
 
         # Create form instance for adding soil data
-        asdform = FieldSoilDataForm() #form for add soil data
+        asdform = FieldSoilDataForm()  # form for add soil data
         acdform = FieldCropForm()
 
         # Create a dictionary of forms for each soil and crop data instance
-        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
-        fcdforms  = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
+        fsdforms = {
+            fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata
+        }
+        fcdforms = {
+            fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata
+        }
 
+        # paginator for fieldsoildata
+        paginator = Paginator(fieldsoildata, 3)  # 3 fields per page
+        page_number = request.GET.get(
+            "page"
+        )  # Get the current page number from the request
+        fsdpage_obj = paginator.get_page(
+            page_number
+        )  # Get the page object for the current page
+
+        # paginator for fieldcropdata
+        paginator = Paginator(fieldcropdata, 3)
+        page_number = request.GET.get("page")
+        fcdpage_obj = paginator.get_page(page_number)
 
         # to make it accessible by the template
         context = {
@@ -241,20 +426,12 @@ def manage_field(request, field_id):
             "fieldcropdata": fieldcropdata,
             "asdform": asdform,
             "acdform": acdform,
-            "fsdforms": fsdforms, 
+            "fsdforms": fsdforms,
             "fcdforms": fcdforms,
+            "fsdpage_obj": fsdpage_obj,
+            "fcdpage_obj": fcdpage_obj,
         }
         return render(request, "app_agrosavvy/manage_field.html", context)
-    else:
-        return redirect("forbidden")
-    
-
-def delete_field(request, field_id):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        field = get_object_or_404(Field, pk=field_id)
-        field.delete()
-        messages.success(request, "Field is successfuly deleted")
-        return redirect("dashboard")
     else:
         return redirect("forbidden")
 
@@ -263,15 +440,12 @@ def update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, field_id=field_id)
         if request.method == "POST":
-            field_form = FieldForm(request.POST, instance=field) 
+            field_form = FieldForm(request.POST, instance=field)
             address_instance = field.address
             address_form = AddressForm(request.POST, instance=address_instance)
-            if (
-                field_form.is_valid()
-                and address_form.is_valid()             
-            ):
+            if field_form.is_valid() and address_form.is_valid():
                 updated_field = field_form.save(commit=False)
-                updated_field.owner = field.owner             
+                updated_field.owner = field.owner
                 updated_field.save()
                 updated_address = address_form.save()
                 return JsonResponse({"status": "success"})
@@ -281,19 +455,29 @@ def update_field(request, field_id):
                         "status": "error",
                         "errors": {
                             "field_form": field_form.errors,
-                            "address_form": address_form.errors,                          
+                            "address_form": address_form.errors,
                         },
                     }
                 )
-        # if get request (opening the page only)
+        # GET request (opening the page only)
         else:
             field_form = FieldForm(instance=field)
             address_form = AddressForm(instance=field.address)
         context = {
             "field_form": field_form,
-            "address_form": address_form,            
+            "address_form": address_form,
         }
         return render(request, "app_agrosavvy/update_field.html", context)
+    else:
+        return redirect("forbidden")
+
+
+def delete_field(request, field_id):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+        field = get_object_or_404(Field, pk=field_id)
+        field.delete()
+        messages.success(request, "Field is successfuly deleted")
+        return redirect("dashboard")
     else:
         return redirect("forbidden")
 
@@ -324,24 +508,47 @@ def bofa_dashboard(request):
         request.user.roleuser.roleuser == "brgy_officer"
         or request.user.roleuser.roleuser == "farmer"
     ):
-        
-        fields = Field.objects.filter(owner=request.user)
-        total_acres = Field.objects.filter(owner=request.user).aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+
+        fields = Field.objects.filter(owner=request.user, is_deleted=False)
+        total_acres = (
+            Field.objects.filter(owner=request.user).aggregate(Sum("field_acres"))[
+                "field_acres__sum"
+            ]
+            or 0
+        )
         reviewwrating_context = reviewrating(request)
 
-        owner = request.user 
+        owner = request.user
 
         # Aggregate total acres for each crop, filtered by the owner's fields
-        queryset = FieldCropData.objects.filter(field__owner=owner).values('crop_planted__crop_type').annotate(
-            total_acres=Sum('field__field_acres')
+        # queryset = (
+        #     FieldCropData.objects.filter(field__owner=owner)
+        #     .values("crop_planted__crop_type")
+        #     .annotate(total_acres=Sum("field__field_acres"))
+        # )
+
+
+        queryset = (
+            FieldCropData.objects.filter(
+                field__owner=owner,
+                field__is_deleted=False  # Ensure the field is not marked as deleted
+            )
+            .values("crop_planted__crop_type")
+            .annotate(total_acres=Sum("field__field_acres"))
         )
 
         # Prepare data for the chart
-        labels = [entry['crop_planted__crop_type'] for entry in queryset]
-        data = [entry['total_acres'] for entry in queryset]
+        labels = [entry["crop_planted__crop_type"] for entry in queryset]
+        data = [entry["total_acres"] for entry in queryset]
 
-
-
+        # paginator for fieldcropdata
+        paginator = Paginator(fields, 3)  # 3 fields per page
+        page_number = request.GET.get(
+            "page"
+        )  # Get the current page number from the request
+        bofa_page_obj = paginator.get_page(
+            page_number
+        )  # Get the page object for the current page
 
         context = {
             "fields": fields,
@@ -349,26 +556,34 @@ def bofa_dashboard(request):
             "total_acres": total_acres,
             "labels": labels,
             "data": data,
-            }
+            "bofa_page_obj": bofa_page_obj,
+        }
         context.update(reviewwrating_context)
         return render(request, "bofa_pages/bofa_dashboard.html", context)
     else:
         return redirect("forbidden")
 
 
-
 def bofa_ai(request):
     if request.user.is_authenticated and (
-    request.user.roleuser.roleuser == "brgy_officer"
-    or request.user.roleuser.roleuser == "farmer"):
+        request.user.roleuser.roleuser == "brgy_officer"
+        or request.user.roleuser.roleuser == "farmer"
+    ):
         return render(request, "bofa_pages/bofa_ai.html", {})
+
 
 # no auth yet and filters
 def bofa_map(request):
     fields_json = []
 
     # Fetch all field crop data
-    field_crop_data = FieldCropData.objects.select_related('field', 'crop_planted')
+    # field_crop_data = FieldCropData.objects.select_related("field", "crop_planted")
+    field_crop_data = (
+        FieldCropData.objects
+        .select_related("field", "crop_planted")
+        .filter(field__is_deleted=False)
+    )
+
 
     for data in field_crop_data:
         if data.field.address:
@@ -389,17 +604,16 @@ def bofa_map(request):
     return render(request, "bofa_pages/bofa_map.html", context)
 
 
-
 def bofa_add_field(request):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "brgy_officer" or request.user.roleuser.roleuser == "farmer"
+    if request.user.is_authenticated and (
+        request.user.roleuser.roleuser == "brgy_officer"
+        or request.user.roleuser.roleuser == "farmer"
     ):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
-            address_form = AddressForm(request.POST)          
-            if (
-                field_form.is_valid() and address_form.is_valid            
-            ):
-                address = address_form.save()               
+            address_form = AddressForm(request.POST)
+            if field_form.is_valid() and address_form.is_valid:
+                address = address_form.save()
                 field = field_form.save(commit=False)
                 field.address = address
                 field.owner = request.user
@@ -477,50 +691,56 @@ def bofa_settings(request):
 
 
 
-# manage fields/ farms
+
+
+# bofa manage fields/ farms
 def bofa_manage_field(request, field_id):
     if request.user.is_authenticated and (
         request.user.roleuser.roleuser == "brgy_officer"
         or request.user.roleuser.roleuser == "farmer"
     ):
-         
+
         field = get_object_or_404(Field, field_id=field_id)
-        fieldsoildata = FieldSoilData.objects.filter(field=field)
-        fieldcropdata = FieldCropData.objects.filter(field=field)
-        
+        fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
+        fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
+
         asdform = FieldSoilDataForm()
         acdform = FieldCropForm()
 
         # Create a dictionary of forms for each soil and crop data instance
-        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
-        fcdforms  = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
-        
-        context ={
-            "field":field,
+        fsdforms = {
+            fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata
+        }
+        fcdforms = {
+            fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata
+        }
+
+        # paginator for fieldsoildata
+        paginator = Paginator(fieldsoildata, 2)  # 3 fields per page
+        page_number = request.GET.get(
+            "page"
+        )  # Get the current page number from the request
+        fsdpage_obj = paginator.get_page(
+            page_number
+        )  # Get the page object for the current page
+
+        # paginator for fieldcropdata
+        paginator = Paginator(fieldcropdata, 2)
+        page_number = request.GET.get("page")
+        fcdpage_obj = paginator.get_page(page_number)
+
+        context = {
+            "field": field,
             "fieldsoildata": fieldsoildata,
             "fieldcropdata": fieldcropdata,
             "asdform": asdform,
             "acdform": acdform,
-            "fsdforms": fsdforms, 
+            "fsdforms": fsdforms,
             "fcdforms": fcdforms,
+            "fsdpage_obj": fsdpage_obj,
+            "fcdpage_obj": fcdpage_obj,
         }
         return render(request, "bofa_pages/bofa_manage_field.html", context)
-    else:
-        return redirect("forbidden")
-
-
-def bofa_delete_field(request, field_id):
-    if request.user.is_authenticated and (
-        request.user.roleuser.roleuser == "brgy_officer"
-        or request.user.roleuser.roleuser == "farmer"
-    ):
-        field = get_object_or_404(Field, pk=field_id)
-
-        if field.owner != request.user:
-            return redirect("forbidden")
-        
-        field.delete()
-        return redirect("bofa_dashboard")
     else:
         return redirect("forbidden")
 
@@ -534,15 +754,12 @@ def bofa_update_field(request, field_id):
 
         if field.owner != request.user:
             return redirect("forbidden")
-        
+
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
-            address_instance = field.address           
+            address_instance = field.address
             address_form = AddressForm(request.POST, instance=address_instance)
-            if (
-                field_form.is_valid()
-                and address_form.is_valid()
-            ):
+            if field_form.is_valid() and address_form.is_valid():
                 updated_field = field_form.save(commit=False)
                 updated_field.owner = field.owner
                 updated_field.save()
@@ -571,6 +788,20 @@ def bofa_update_field(request, field_id):
         return redirect("forbidden")
 
 
+def bofa_delete_field(request, field_id):
+    if request.user.is_authenticated and (
+        request.user.roleuser.roleuser == "brgy_officer"
+        or request.user.roleuser.roleuser == "farmer"
+    ):
+        field = get_object_or_404(Field, pk=field_id)
+
+        if field.owner != request.user:
+            return redirect("forbidden")
+
+        field.delete()
+        return redirect("bofa_dashboard")
+    else:
+        return redirect("forbidden")
 
 
 
@@ -588,9 +819,11 @@ def bofa_update_field(request, field_id):
 
 
 
-# callable functions
 
 
+
+
+# callable functions (used in da admin and bofa)
 def reviewrating(request):
     if request.method == "POST":
         rform = ReviewratingForm(request.POST)
@@ -615,13 +848,6 @@ def reviewrating(request):
     return {"rform": rform}
 
 
-
-
-
-
-    
-
-# to be used for admin and bofa users
 def add_soil_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
@@ -633,9 +859,13 @@ def add_soil_data(request, field_id):
                 soil_data.save()
                 messages.success(request, "Soil data saved successfully.")
                 if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
                 elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                   return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
             else:
                 messages.error(request, "Form invalid")
         else:
@@ -644,22 +874,26 @@ def add_soil_data(request, field_id):
     else:
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("forbidden")
-    
-    
+
+
 def add_crop_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
-        if request.method=='POST':
-            acdform=FieldCropForm(request.POST)
+        if request.method == "POST":
+            acdform = FieldCropForm(request.POST)
             if acdform.is_valid:
                 crop_data = acdform.save(commit=False)
                 crop_data.field = field
                 crop_data.save()
                 messages.success(request, "Crop data successfully saved.")
                 if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
                 elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
             else:
                 messages.error(request, "Form invalid")
         else:
@@ -682,24 +916,24 @@ def update_soil_data(request, field_id, soil_id):
                 updated_soil_data.save()
                 messages.success(request, "Soil data updated successfully.")
                 if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
                 elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
-                
-
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
                 # return redirect('manage_field', field_id=field_id)
             else:
-                messages.error(request, "Error updating soil data.") 
+                messages.error(request, "Error updating soil data.")
         else:
             # Show the current values in the form
             fsdform = FieldSoilDataForm(instance=soil)
         return {"fsdform": fsdform, "soil": soil}
     else:
         messages.error(request, "You are not authorized to perform this action.")
-        return redirect('forbidden')
+        return redirect("forbidden")
 
-
-    
 
 def update_crop_data(request, fieldcrop_id, field_id):
     if request.user.is_authenticated:
@@ -714,23 +948,24 @@ def update_crop_data(request, fieldcrop_id, field_id):
                 messages.success(request, "Crop data updated successfully.")
                 # return redirect('manage_field', field_id=field_id)
                 if request.user.roleuser.roleuser == "da_admin":
-                    return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
                 elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
-                    return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
             else:
                 messages.error(request, "Error updating crop data.")
         else:
             # Show the current values in the form
             fcdform = FieldCropForm(instance=crop)
         return {"fcdform": fcdform, "crop": crop}
-        
+
     else:
         messages.error(request, "You are not authorized to perform this action.")
-        return redirect('forbidden')
+        return redirect("forbidden")
 
-
-
-    
 
 def delete_soil_data(request, soil_id):
     soil_data = get_object_or_404(FieldSoilData, soil_id=soil_id)
@@ -739,12 +974,18 @@ def delete_soil_data(request, soil_id):
         if request.method == "POST":
             soil_data.delete()
             messages.success(request, "Soil data deleted successfully.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+            if request.user.roleuser.roleuser == "da_admin":
+                return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+            elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                return redirect(
+                    reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                )
         else:
             messages.error(request, "Invalid request.")
-            return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+
     else:
         return redirect("forbidden")
+
 
 def delete_crop_data(request, fieldcrop_id):
     crop_data = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
@@ -753,10 +994,15 @@ def delete_crop_data(request, fieldcrop_id):
         if request.method == "POST":
             crop_data.delete()
             messages.success(request, "Crop data deleted successfully.")
-            return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+            if request.user.roleuser.roleuser == "da_admin":
+                return redirect(reverse("manage_field", kwargs={"field_id": field_id}))
+            elif request.user.roleuser.roleuser in ["brgy_officer", "farmer"]:
+                return redirect(
+                    reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                )
         else:
             messages.error(request, "Invalid request.")
-            return redirect(reverse("bofa_manage_field", kwargs={"field_id": field_id}))
+
     else:
         return redirect("forbidden")
 
@@ -807,32 +1053,37 @@ def register_da_admin(request):
     return render(request, "auth_pages/register_da_admin.html", {"form": form})
 
 
-# # logic sign up for users with direct sign up (no approval needed)
-# def register_da_admin(request):
+# # if farmer - maybe use this (direct sign up - no approval needed) but no. (since farmers must be in cebu city only)(needs approval jud)
+# def register_farmer(request):
 #     if request.method == "POST":
 #         form = SignUpForm(request.POST)
 #         if form.is_valid():
 #             user = form.save(commit=False)
-#             user.is_da_admin = True
+#             farmer = RoleUser.objects.get(roleuser="farmer")
+#             user.roleuser = farmer
 #             user.request_date = now()
 #             user.save()
 #             messages.success(
 #                 request,
-#                 "Account is now for validation by the admin. Please wait for 24 hours",
+#                 "Account is now registered. Log in now.",
 #             )
 #             return redirect("my_login")
 #         else:
 #             messages.error(request, "Please check the form.")
 #     else:
 #         form = SignUpForm()
-#     return render(request, "auth_pages/register_da_admin.html", {"form": form})
+#     return render(request, "auth_pages/register_farmer.html", {"form": form})
 
 
+# address forms and saving here
 def register_barangay_officer(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
-        if form.is_valid():
+        # useraddressform = UserAddressForm(request.POST)
+        if form.is_valid():# and useraddressform.is_valid:
+            # useraddress = useraddressform.save()
             pending_user = form.save(commit=False)
+            # pending_user.useraddress = useraddress
             brgy_officer = RoleUser.objects.get(roleuser="brgy_officer")
             pending_user.roleuser = brgy_officer
             pending_user.request_date = now()
@@ -846,14 +1097,26 @@ def register_barangay_officer(request):
             messages.error(request, "Please check the form")
     else:
         form = PendingUserForm()
-    return render(request, "auth_pages/register_barangay_officer.html", {"form": form})
+        # useraddressform = UserAddressForm()
+    return render(
+        request,
+        "auth_pages/register_barangay_officer.html",
+        {
+            "form": form,
+            # "useraddressformn": useraddressform,
+        },
+    )
 
 
+# address forms and saving here
 def register_farmer(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
-        if form.is_valid():
+        # useraddressform = UserAddressForm(request.POST)
+        if form.is_valid(): #and useraddressform.is_valid:
+            # useraddress = useraddressform.save()
             pending_user = form.save(commit=False)
+            # pending_user.useraddress = useraddress
             farmer = RoleUser.objects.get(roleuser="farmer")
             pending_user.roleuser = farmer
             pending_user.request_date = now()
@@ -867,7 +1130,12 @@ def register_farmer(request):
             messages.error(request, "Please check the form")
     else:
         form = PendingUserForm()
-    return render(request, "auth_pages/register_farmer.html", {"form": form})
+        # useraddressform = UserAddressForm()
+    return render(
+        request,
+        "auth_pages/register_farmer.html",
+        {"form": form},
+    )
 
 
 def my_login(request):
@@ -929,7 +1197,6 @@ def my_logout(request):
         return redirect("forbidden")
 
 
-
 def password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         user = get_object_or_404(CustomUser, pk=request.user.pk)
@@ -974,15 +1241,13 @@ def deactivate_account(request):
         return redirect("forbidden")
 
 
-
-
 def bofa_password_change(request):
     if request.user.is_authenticated and (
         request.user.roleuser.roleuser == "brgy_officer"
         or request.user.roleuser.roleuser == "farmer"
     ):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
-        
+
         if request.method == "POST":
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
             if passwordchangeform.is_valid():
@@ -1027,4 +1292,4 @@ def bofa_deactivate_account(request):
 
 # error pages
 def forbidden(request):
-    return render(request, "error_pages/forbidden.html", {})
+    return render(request, "error_pages/forbidden.html")
