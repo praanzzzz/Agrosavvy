@@ -11,7 +11,9 @@ from .models import (
     FieldSoilData,
     FieldCropData,
     RoleUser,
-    Crop
+    Crop,
+    Barangay,
+    Gender,
 )
 
 
@@ -22,7 +24,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("username", "password", "profile_picture")}),
         (
             "Personal info",
-            {"fields": ("firstname", "lastname", "email", "date_of_birth", "useraddress")},
+            {"fields": ("firstname", "lastname", "email", "date_of_birth", "gender")}, # added gender here
         ),
         ("Roles", {"fields": ("roleuser",)}),
         (
@@ -61,11 +63,9 @@ class CustomUserAdmin(UserAdmin):
                     "firstname",
                     "lastname",
                     "email",
+                    "gender", # added gender
                     "is_staff",
                     "is_superuser",
-                    # "is_farmer",
-                    # "is_barangay_officer",
-                    # "is_da_admin",
                     "roleuser",
                     "request_date",
                     "is_approved",
@@ -104,10 +104,8 @@ def approve_users(modeladmin, request, queryset):
             firstname=pending_user.firstname,
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
-            useraddress=pending_user.useraddress,
-            # is_farmer=pending_user.is_farmer,
-            # is_barangay_officer=pending_user.is_barangay_officer,
-            # is_da_admin=pending_user.is_da_admin,
+            gender=pending_user.gender,  # added gender here
+            # useraddress=pending_user.useraddress,
             roleuser = pending_user.roleuser,
             is_approved=True,
             approved_date=timezone.now(),
@@ -131,6 +129,7 @@ class PendingUserAdmin(admin.ModelAdmin):
         "email",
         "firstname",
         "lastname",
+        "gender", # added gender here
         "date_of_birth",
         "roleuser"
     )
@@ -173,3 +172,5 @@ admin.site.register(FieldCropData)
 admin.site.register(FieldSoilData)
 admin.site.register(Crop)
 admin.site.register(RoleUser)
+admin.site.register(Barangay)
+admin.site.register(Gender)

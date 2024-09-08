@@ -139,6 +139,9 @@
         zoom: 11
     });
 
+    // Add zoom and rotation controls to the map.
+    map.addControl(new mapboxgl.NavigationControl());
+
     var fields = JSON.parse('{{ fields_json|escapejs }}');
     var markers = [];
 

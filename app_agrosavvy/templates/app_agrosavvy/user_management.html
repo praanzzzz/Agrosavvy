@@ -142,7 +142,7 @@
                                 {{ pending_user.useraddress.country }}
                             </td>
                             <td>{{ pending_user.request_date }}</td>
-                            <td><span class="badge badge-warning">Waiting</span></td>
+                            <td>Waiting</td>
                             <td>
                                 <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" onsubmit="confirmApproval(event)">
                                     {% csrf_token %}

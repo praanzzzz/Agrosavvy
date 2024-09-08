@@ -17,6 +17,8 @@ class RoleUser(models.Model):
     def __str__(self):
         return self.roleuser
     
+
+
 # class UserAddress(models.Model):
 #     address_id = models.AutoField(primary_key=True)
 #     barangay = models.CharField(max_length=100)
@@ -27,6 +29,16 @@ class RoleUser(models.Model):
 #         return f"{self.barangay}, {self.city_municipality}, {self.country}"
 
 
+class Gender(models.Model):
+    GENDER_CHOICES=[
+        ("Male", "Male"),
+        ("Female","Female"),
+        ("Other", "Other"),
+    ]
+    gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
+
+    def __str__(self):
+        return self.gender
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
@@ -35,11 +47,9 @@ class CustomUser(AbstractUser):
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    # new
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True)
     # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
-    # user role
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
-    # registration and account status info
     active_status = models.BooleanField(default=True) #used custom instead of default is_active
     is_approved = models.BooleanField(default=False)
     request_date = models.DateTimeField(auto_now_add=True)
@@ -60,7 +70,7 @@ class PendingUser(models.Model):
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
-     # new
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
     # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     request_date = models.DateTimeField(auto_now_add=True)
@@ -96,7 +106,6 @@ class ReviewRating(models.Model):
     review_body = models.CharField(max_length=200, blank=True, null=True)
     rate_date = models.DateTimeField(auto_now_add=True)
     reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
-    # new
     is_deleted = models.BooleanField(default = False)
 
     def delete(self, *args, **kwargs):
@@ -107,10 +116,97 @@ class ReviewRating(models.Model):
         return f"{self.get_rating_display()}: {self.review_header or 'No Header'}"
     
 
+# brgy choices
+class Barangay(models.Model):
+    BRGY_CHOICES = [
+        ("Adlaon", "Adlaon"),
+        ("Agsungot", "Agsungot"),
+        ("Apas", "Apas"),
+        ("Babag", "Babag"),
+        ("Bacayan", "Bacayan"),
+        ("Banilad", "Banilad"),
+        ("Basak Pardo", "Basak Pardo"),
+        ("Busay", "Busay"),
+        ("Calamba", "Calamba"),
+        ("Cambinocot", "Cambinocot"),
+        ("Camputhaw", "Camputhaw"),
+        ("Capitol Site", "Capitol Site"),
+        ("Carreta", "Carreta"),
+        ("Central", "Central"),
+        ("Cogon Pardo", "Cogon Pardo"),
+        ("Cogon Ramos", "Cogon Ramos"),
+        ("Day-as", "Day-as"),
+        ("Duljo", "Duljo"),
+        ("Ermita", "Ermita"),
+        ("Guadalupe", "Guadalupe"),
+        ("Guba", "Guba"),
+        ("Hippodromo", "Hippodromo"),
+        ("Inayawan", "Inayawan"),
+        ("Kalubihan", "Kalubihan"),
+        ("Kalunasan", "Kalunasan"),
+        ("Kamagayan", "Kamagayan"),
+        ("Kasambagan", "Kasambagan"),
+        ("Kinasang-an Pardo", "Kinasang-an Pardo"),
+        ("Labangon", "Labangon"),
+        ("Lahug", "Lahug"),
+        ("Lorega (Lorega San Miguel)", "Lorega (Lorega San Miguel)"),
+        ("Lusaran", "Lusaran"),
+        ("Luz", "Luz"),
+        ("Mabini", "Mabini"),
+        ("Mabolo", "Mabolo"),
+        ("Malubog", "Malubog"),
+        ("Mambaling", "Mambaling"),
+        ("Pahina Central", "Pahina Central"),
+        ("Pahina San Nicolas", "Pahina San Nicolas"),
+        ("Pamutan", "Pamutan"),
+        ("Pardo", "Pardo"),
+        ("Pari-an", "Pari-an"),
+        ("Paril", "Paril"),
+        ("Pasil", "Pasil"),
+        ("Pit-os", "Pit-os"),
+        ("Pulangbato", "Pulangbato"),
+        ("Pung-ol-Sibugay", "Pung-ol-Sibugay"),
+        ("Punta Princesa", "Punta Princesa"),
+        ("Quiot Pardo", "Quiot Pardo"),
+        ("Sambag I", "Sambag I"),
+        ("Sambag II", "Sambag II"),
+        ("San Antonio", "San Antonio"),
+        ("San Jose", "San Jose"),
+        ("San Nicolas Central", "San Nicolas Central"),
+        ("San Roque (Ciudad)", "San Roque (Ciudad)"),
+        ("Santa Cruz", "Santa Cruz"),
+        ("Sapangdaku", "Sapangdaku"),
+        ("Sawang Calero", "Sawang Calero"),
+        ("Sinsin", "Sinsin"),
+        ("Sirao", "Sirao"),
+        ("Suba Poblacion (Suba San Nicolas)", "Suba Poblacion (Suba San Nicolas)"),
+        ("Sudlon I", "Sudlon I"),
+        ("Sudlon II", "Sudlon II"),
+        ("Tabunan", "Tabunan"),
+        ("Tagbao", "Tagbao"),
+        ("Talamban", "Talamban"),
+        ("Taptap", "Taptap"),
+        ("Tejero (Villa Gonzalo)", "Tejero (Villa Gonzalo)"),
+        ("Tinago", "Tinago"),
+        ("Tisa", "Tisa"),
+        ("To-ong Pardo", "To-ong Pardo"),
+        ("T. Padilla", "T. Padilla"),
+        ("Zapatera", "Zapatera")
+    ]
+    brgy_id = models.AutoField(primary_key=True)
+    brgy_name = models.CharField(max_length=50, choices=BRGY_CHOICES)
 
+    def __str__(self):
+        return f"{self.brgy_name}"
+    
+    class Meta:
+        ordering = ['brgy_name']
+    
+
+# used in field address
 class Address(models.Model):
     address_id = models.AutoField(primary_key=True)
-    barangay = models.CharField(max_length=100)
+    barangay = models.ForeignKey(Barangay, on_delete=models.SET_NULL, blank=True, null=True)
     city_municipality = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
     latitude = models.FloatField()
@@ -128,7 +224,6 @@ class Field(models.Model):
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name="fields", null=True)
     owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True)
     created_at = models.DateTimeField(default=timezone.now)
-        # new
     is_deleted = models.BooleanField(default = False)
 
 
@@ -143,7 +238,7 @@ class Field(models.Model):
         ordering = ['-created_at']
 
 
-#separate crop for choices and crop data of a field model
+# crop choices
 class Crop(models.Model):
     CROP_CHOICES = [
         ("Carrots", "Carrots"),
@@ -161,6 +256,9 @@ class Crop(models.Model):
 
     def __str__(self):
         return f"{self.crop_type}"
+    
+
+
 
 # tracks field data (soil and crop data of a field) movement overtime
 class FieldCropData(models.Model):
