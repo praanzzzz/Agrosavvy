@@ -7,6 +7,7 @@ from .models import (
     RoleUser,
     FieldSoilData,
     FieldCropData,
+    Barangay,
 )
 from .forms import (
     FieldForm,
@@ -40,6 +41,7 @@ from django.db.models import Q
 from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
+
 
 #  Password:                PRAgab19-5158-794  
 
@@ -190,7 +192,7 @@ def add_field(request):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
-            if field_form.is_valid() and address_form.is_valid:
+            if field_form.is_valid() and address_form.is_valid():
                 address = address_form.save()
                 field = field_form.save(commit=False)
                 field.address = address
@@ -217,9 +219,12 @@ def add_field(request):
         return render(request, "app_agrosavvy/add_field.html", context)
     else:
         return redirect("forbidden")
+    
+
 
 
 def weather(request):
+
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
             location = request.POST.get("location")
@@ -341,6 +346,7 @@ def admin_approve_user(request, user_id):
                 firstname=pending_user.firstname,
                 lastname=pending_user.lastname,
                 date_of_birth=pending_user.date_of_birth,
+                gender=pending_user.gender,
                 # useraddress=pending_user.useraddress,
                 roleuser=pending_user.roleuser,
                 is_approved=True,
@@ -612,7 +618,7 @@ def bofa_add_field(request):
         if request.method == "POST":
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
-            if field_form.is_valid() and address_form.is_valid:
+            if field_form.is_valid() and address_form.is_valid(): #check here
                 address = address_form.save()
                 field = field_form.save(commit=False)
                 field.address = address
@@ -881,7 +887,7 @@ def add_crop_data(request, field_id):
     if request.user.is_authenticated:
         if request.method == "POST":
             acdform = FieldCropForm(request.POST)
-            if acdform.is_valid:
+            if acdform.is_valid():
                 crop_data = acdform.save(commit=False)
                 crop_data.field = field
                 crop_data.save()
@@ -898,7 +904,9 @@ def add_crop_data(request, field_id):
                 messages.error(request, "Form invalid")
         else:
             acdform = FieldCropForm()
-        return {"acdform": acdform, "field": field}
+        
+        context={"acdform": acdform, "field": field}
+        return context
     else:
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("forbidden")
@@ -923,7 +931,6 @@ def update_soil_data(request, field_id, soil_id):
                     return redirect(
                         reverse("bofa_manage_field", kwargs={"field_id": field_id})
                     )
-                # return redirect('manage_field', field_id=field_id)
             else:
                 messages.error(request, "Error updating soil data.")
         else:

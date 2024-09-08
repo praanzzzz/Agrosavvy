@@ -1,12 +1,23 @@
 from django import forms
-from .models import Field,FieldCropData, FieldSoilData, Address, FieldSoilData, CustomUser, PendingUser, ReviewRating
+from .models import (
+    Field,
+    FieldCropData,
+    FieldSoilData,
+    Address,
+    FieldSoilData,
+    CustomUser,
+    PendingUser,
+    ReviewRating,
+    Gender,
+    Barangay,
+)
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.utils import timezone
 
 # from django.contrib.auth.forms import UserCreationForm
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(
@@ -25,8 +36,6 @@ class LoginForm(forms.Form):
             attrs={"class": "form-control", "placeholder": "Password"}
         ),
     )
-
-
 
 
 # # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
@@ -58,9 +67,6 @@ class LoginForm(forms.Form):
 #         )
 
 
-
-
-
 class PendingUserForm(forms.ModelForm):
     username = forms.CharField(
         # label="",
@@ -82,7 +88,9 @@ class PendingUserForm(forms.ModelForm):
             "username",
             "email",
             "date_of_birth",
+            "gender",
             "password",
+            "gender",
         ]
         widgets = {
             "email": forms.EmailInput(attrs={"class": "form-control"}),
@@ -96,7 +104,9 @@ class PendingUserForm(forms.ModelForm):
                     "autocomplete": "off",
                 }
             ),
+            "gender": forms.Select(attrs={"class": "form-control"}),
         }
+
     def clean_username(self):
         username = self.cleaned_data.get("username")
         if CustomUser.objects.filter(username=username).exists():
@@ -135,20 +145,19 @@ class PendingUserForm(forms.ModelForm):
         return cleaned_data
 
 
-
-
-
 class CustomUserUpdateForm(UserChangeForm):
     password = None
+
     class Meta:
         model = CustomUser
         fields = [
             "firstname",
             "lastname",
             "username",
+            "gender",
             "email",
             "date_of_birth",
-            'profile_picture',
+            "profile_picture",
         ]  # Adjusted field names
 
     def __init__(self, *args, **kwargs):
@@ -161,6 +170,7 @@ class CustomUserUpdateForm(UserChangeForm):
         # self.fields["email"].label = "Email Address"
         self.fields["firstname"].label = "First Name"
         self.fields["lastname"].label = "Last Name"
+        self.fields["gender"].disabled = True
 
         for field_name, field in self.fields.items():
             field.widget.attrs.update(
@@ -176,7 +186,6 @@ class CustomUserUpdateForm(UserChangeForm):
                 "autocomplete": "off",  # Disable autocomplete to prevent browser suggestions
             }
         )
-
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):
@@ -208,7 +217,7 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         fields = ["old_password", "new_password1", "new_password2"]
 
 
-
+# code to add field
 class FieldForm(forms.ModelForm):
     class Meta:
         model = Field
@@ -230,37 +239,62 @@ class FieldForm(forms.ModelForm):
         }
 
 
-
-
 class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = ["barangay", "city_municipality", "country", "latitude", "longitude"]
         widgets = {
-            "barangay": forms.TextInput(
+            # "barangay": forms.TextInput(
+            #     attrs={"class": "form-control", "placeholder": "Enter barangay"}
+            # ),
+
+            # selection barangay code
+            "barangay": forms.Select(
                 attrs={"class": "form-control", "placeholder": "Enter barangay"}
             ),
+
+        
             "city_municipality": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter city or municipality",
+                    "readonly": "readonly",
+                    "value": "Cebu City",
                 }
             ),
             "country": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Enter country"}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Enter country",
+                    "readonly": "readonly",
+                    "value": "Philippines",
+                }
             ),
-            "latitude": forms.HiddenInput(),
-            "longitude": forms.HiddenInput(),
-            # "latitude": forms.NumberInput(),
-            # "longitude": forms.NumberInput(),
+            # latlong is not working when selecting brgy.
+            # "latitude": forms.HiddenInput(),
+            # "longitude": forms.HiddenInput(),
+            "latitude": forms.NumberInput(),
+            "longitude": forms.NumberInput(),
         }
 
-    def clean_city_municipality(self):
-        city = self.cleaned_data.get("city_municipality")
-        if city.strip().lower() != "cebu city":
-            raise ValidationError("The address must be in Cebu City.")
-        return city
-    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['barangay'].queryset = Barangay.objects.all().order_by('brgy_name')
+
+
+
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.fields["city_municipality"].initial = "Cebu City"
+    #     self.fields["country"].initial = "Philippines"
+
+    # # validates the address to cebu city
+    # def clean_city_municipality(self):
+    #     city = self.cleaned_data.get("city_municipality")
+    #     if city.strip().lower() != "cebu city":
+    #         raise ValidationError("The address must be in Cebu City.")
+    #     return city
 
 
 # class UserAddressForm(forms.ModelForm):
@@ -289,39 +323,25 @@ class AddressForm(forms.ModelForm):
 #         return city
 
 
-
 class FieldCropForm(forms.ModelForm):
     class Meta:
         model = FieldCropData
         fields = ["crop_planted", "planting_date", "harvest_date"]
         widgets = {
-                'crop_planted': forms.Select(attrs={"class": "form-control"}),
-                'planting_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
-                'harvest_date': forms.DateInput(attrs={ "class": "form-control",'type': 'date'}),
-            }
-        
-    # # new validate no date backwards
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     planting_date = cleaned_data.get("planting_date")
-    #     harvest_date = cleaned_data.get("harvest_date")
-    #     today = timezone.now().date()
+            "crop_planted": forms.Select(attrs={"class": "form-control"}),
+            "planting_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+            "harvest_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
+        }
 
-    #     if planting_date and planting_date < today:
-    #         raise ValidationError("The planting date cannot be in the past.")
-        
-    #     if harvest_date and harvest_date < today:
-    #         raise ValidationError("The harvest date cannot be in the past.")
-        
-    #     if planting_date and harvest_date and planting_date > harvest_date:
-    #         raise ValidationError("The planting date cannot be after the harvest date.")
-        
-    #     return cleaned_data
-        
+
 class FieldSoilDataForm(forms.ModelForm):
     class Meta:
         model = FieldSoilData
-        fields = ['nitrogen','phosphorous','potassium','ph', 'record_date']
+        fields = ["nitrogen", "phosphorous", "potassium", "ph", "record_date"]
         widgets = {
             # field = autoselect something
             "nitrogen": forms.NumberInput(
@@ -339,14 +359,16 @@ class FieldSoilDataForm(forms.ModelForm):
             "ph": forms.NumberInput(
                 attrs={"class": "form-control", "placeholder": "Enter pH level"}
             ),
-            "record_date": forms.DateInput(attrs={ "class": "form-control",'type': 'date'})
+            "record_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"}
+            ),
         }
 
 
 class ReviewratingForm(forms.ModelForm):
     class Meta:
-        model= ReviewRating
-        fields=["rating", "review_header", "review_body"]
+        model = ReviewRating
+        fields = ["rating", "review_header", "review_body"]
         widgets = {
             "rating": forms.Select(
                 choices=[
@@ -365,5 +387,3 @@ class ReviewratingForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Enter your review"}
             ),
         }
-
-

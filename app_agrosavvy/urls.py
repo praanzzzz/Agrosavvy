@@ -41,6 +41,7 @@ urlpatterns = [
     path('settings/', views.settings, name='settings'),
     path('user_management', views.user_management, name='user_management'),
 
+
     # user management
     path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
     path('admin_activate_account/<int:user_id>', views.admin_activate_account, name='admin_activate_account'),
