@@ -57,6 +57,8 @@ urlpatterns = [
     path('dashboard/manage_field/delete_field/<int:field_id>/', views.delete_field, name='delete_field'),
     path('dashboard/manage_field/<int:field_id>/', views.manage_field, name='manage_field'),
 
+
+    # crop and soil data management for da and bofa
     path('add_soil_data/<int:field_id>/', views.add_soil_data, name='add_soil_data'),
     path('delete_soil_data/<int:soil_id>/', views.delete_soil_data, name='delete_soil_data'),
     path('add_crop_data/<int:field_id>/', views.add_crop_data, name='add_crop_data'),

@@ -13,8 +13,8 @@ import os
 from pathlib import Path
 from decouple import config
 
+
 # MAPBOX_API_KEY = config('MAPBOX_API_KEY')
-# GOOSEAI_API_KEY=config('GOOSEAI_API_KEY')
 WEATHER_API_KEY=config('WEATHER_API_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.

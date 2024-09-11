@@ -13,8 +13,6 @@
                     {{ address_form.as_p }}
                     <div class="form-group">
                         <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
-                    </div><br>
-                    <div class="form-group">
                         <button type="submit" class="btn btn-success">Submit</button>
                     </div>
                 </form>
@@ -36,6 +34,9 @@ confirm if validation is correct
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+
+
+
         function submitForm() {
             document.getElementById('fieldForm').addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -71,16 +72,6 @@ confirm if validation is correct
                     });
             });
         }
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -163,6 +154,7 @@ confirm if validation is correct
                 var barangayName = document.getElementById('id_barangay').selectedOptions[0].text; // Get the selected barangay name
                 var address = `${barangayName}, ${document.getElementById('id_city_municipality').value}, ${document.getElementById('id_country').value}`;
 
+                // for debugging (what data is fetched)
                 // console.log('Constructed address:', address);
                 // console.log('Selected Barangay Value:', document.getElementById('id_barangay').value);
 
