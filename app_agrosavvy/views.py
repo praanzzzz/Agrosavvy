@@ -132,57 +132,111 @@ def dashboard(request):
 
 
 
+# def ai(request, field_id):
+#     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+#         field = get_object_or_404(Field, id=field_id)
+#         fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False).order_by('-record_date').first()
+
+#         if request.method == 'POST':
+#             form = AIRecommendationsForm(request.POST)
+
+#             if form.is_valid():
+#                 reco = form.save(commit=False)
+
+#                 # Collect form data to use in the OpenAI prompt
+#                 field= form.cleaned_data.get('field')
+#                 fieldsoildata = form.cleaned_data.get('fieldosoildata')
+
+#                 # Create the prompt using form data
+#                 prompt = (f"Generate crop recommendations for the field: {field}\n"
+#                           f"based on the soil data inputted. "
+#                           f"Provide tips on how to have higher yield. "
+#                           f"Explain adjustments needed:\n\n"
+#                           f"fieldsoildata: {fieldsoildata}\n"
+#                 )
+
+                
+#                 response = client.completions.create(
+#                     model = 'gpt-3.5-turbo-instruct',
+#                     prompt=prompt,
+#                     max_tokens=150,
+#                     n=1, # number of completions
+#                     stop=None,  # you can add stop words if needed
+#                     temperature=0.5, #adjust temp. for creativity vs accuracy
+#                 )
+
+#                 response = response.choices[0].text
+
+#                 # Extract AI output and save it in the model instance
+#                 reco.recommendations = response
+#                 reco.save()
+
+#                 # # Debugging
+#                 # print("Crop Recommendation:", reco.basic_output)
+#                 # print('done with 150 tokens')
+
+#             else:
+#                 print("Form is invalid")  # Debugging
+
+#         else:
+#             form = AIRecommendationsForm()
+
+#         context = {
+#             "form": form, 
+#             "recommendations": reco.recommendations if form.is_valid() else None
+#         }
+#         return render(request, "app_agrosavvy/ai.html", context)
+
+#     else:
+#         return redirect("forbidden")
+
+
+
 def ai(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == 'POST':
             form = AIRecommendationsForm(request.POST)
-
             if form.is_valid():
                 reco = form.save(commit=False)
-
                 # Collect form data to use in the OpenAI prompt
-                nitrogen = form.cleaned_data.get('nitrogen')
-                phosphorus = form.cleaned_data.get('phosphorous')
-                potassium = form.cleaned_data.get('potassium')
-                ph = form.cleaned_data.get('ph')
+                field = form.cleaned_data.get('field')
+                fieldsoildata = form.cleaned_data.get('fieldsoildata')
 
                 # Create the prompt using form data
-                prompt = (f"Generate crop recommendations based on the soil data inputted. "
-                          f"Provide tips on how to have higher yield. "
-                          f"Explain adjustments needed:\n\n"
-                          f"Nitrogen: {nitrogen}\n"
-                          f"Phosphorus: {phosphorus}\n"
-                          f"Potassium: {potassium}\n"
-                          f"pH: {ph}\n")
-                
+                prompt = (f"Generate crop recommendations for the field: {field.field_name}\n"
+                          f"based on the soil data provided. "
+                          f"Provide tips on how to achieve a higher yield and explain adjustments needed:\n\n"
+                          f"Soil Data:\n"
+                          f"  Nitrogen: {fieldsoildata.nitrogen}\n"
+                          f"  Phosphorous: {fieldsoildata.phosphorous}\n"
+                          f"  Potassium: {fieldsoildata.potassium}\n"
+                          f"  pH: {fieldsoildata.ph}\n"
+                )
                 response = client.completions.create(
-                    model = 'gpt-3.5-turbo-instruct',
+                    model='gpt-3.5-turbo-instruct',
                     prompt=prompt,
                     max_tokens=150,
-                    n=1, # number of completions
+                    n=1,  # number of completions
                     stop=None,  # you can add stop words if needed
-                    temperature=0.5, #adjust temp. for creativity vs accuracy
+                    temperature=0.5,  # adjust temp. for creativity vs accuracy
                 )
-
                 response = response.choices[0].text
-
                 # Extract AI output and save it in the model instance
-                reco.basic_output = response
+                reco.recommendations = response
                 reco.save()
-
                 # Debugging purposes
-                print("Crop Recommendation:", reco.basic_output)
+                print("Crop Recommendation:", reco.recommendations)
                 print('done with 150 tokens')
-
             else:
-                print("Form is invalid")  # Debugging
-
+                print("Form is invalid")  
         else:
             form = AIRecommendationsForm()
-
-        # Pass both form and recommendation result to the template
-        return render(request, "app_agrosavvy/ai.html", {"form": form, "crop_reco": reco.basic_output if form.is_valid() else None})
-
+        context = {
+            "form": form,
+            "recommendations": reco.recommendations if form.is_valid() else None,
+        }
+        return render(request, "app_agrosavvy/ai.html", context)
+    
     else:
         return redirect("forbidden")
 

@@ -366,16 +366,13 @@ class ReviewratingForm(forms.ModelForm):
 class AIRecommendationsForm(forms.ModelForm):
     class Meta:
         model = AI_Recommendations
-        fields = ['nitrogen', 'phosphorous', 'potassium', 'ph']
+        fields = ['field', 'fieldsoildata']
         widgets = {
-            'nitrogen': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter nitrogen level'}),
-            'phosphorous': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter phosphorous level'}),
-            'potassium': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter potassium level'}),
-            'ph': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter pH level'}),
+            'field': forms.Select(attrs={'class': 'form-control'}),
+            'fieldsoildata': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
-        'nitrogen': '',
-        'phosphorous': '',
-        'potassium': '',
-        'ph': '',
+        'field': '',
+        'fieldsoildata': '',
+
     }

@@ -297,17 +297,19 @@ class FieldSoilData(models.Model):
 
 class AI_Recommendations(models.Model):
     reco_id = models.AutoField(primary_key=True)
-    nitrogen = models.FloatField(null=True, blank=True)
-    phosphorous = models.FloatField(null=True, blank=True)
-    potassium = models.FloatField(null=True, blank=True)
-    ph = models.FloatField(null=True, blank=True)
-    basic_output = models.TextField(blank=True, null=True)
+    field = models.ForeignKey(Field, on_delete=models.CASCADE, null=True, blank=True)
+    fieldsoildata = models.ForeignKey(FieldSoilData, on_delete=models.CASCADE, null=True, blank=True)
+    # AI-generated recommendation fields
+    recommendations = models.TextField(blank=True, null=True)  # Store general recommendations (e.g., planting, soil treatment)
+    # created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Recommendation for {self.reco_id}"
-    
+        return f"Recommendation for {self.field}"
+
     class Meta:
         ordering = ['-reco_id']
+
+
 
     
 
