@@ -8,6 +8,7 @@ from .models import (
     FieldSoilData,
     FieldCropData,
     Barangay,
+    AI_Recommendations,
 )
 from .forms import (
     FieldForm,
@@ -19,7 +20,7 @@ from .forms import (
     CustomPasswordChangeForm,
     PendingUserForm,
     ReviewratingForm,
-    # UserAddressForm,
+    AIRecommendationsForm,
 )
 
 # others
@@ -43,17 +44,15 @@ from django.utils import timezone
 from datetime import timedelta
 
 
-#  Password:                PRAgab19-5158-794  
+
+import os
+from openai import OpenAI
+
+client = OpenAI()
+OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
-
-
-
-
-
-
-
-
+#  Password:                PRAgab19-5158-794 
 
 
 
@@ -72,11 +71,6 @@ def dashboard(request):
         labels = []
         data = []
 
-        # Aggregate total acres for each crop
-        # queryset = FieldCropData.objects.values("crop_planted__crop_type").annotate(
-        #     total_acres=Sum("field__field_acres")
-        # )
-
         queryset = FieldCropData.objects.filter(field__is_deleted=False
             ).values("crop_planted__crop_type").annotate(
             total_acres=Sum("field__field_acres")
@@ -91,15 +85,6 @@ def dashboard(request):
         # Set a time range for the last 12 months
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
-
-        # Aggregate the number of fields registered each month using created_at
-        # field_data = (
-        #     Field.objects.filter(created_at__range=[start_date, end_date])
-        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
-        #     .values("month")
-        #     .annotate(count=Count("field_id"))
-        #     .order_by("month")
-        # )
 
         field_data = (
             Field.objects.filter(
@@ -144,11 +129,64 @@ def dashboard(request):
         return redirect("forbidden")
 
 
+
+
+
 def ai(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        return render(request, "app_agrosavvy/ai.html", {})
+        if request.method == 'POST':
+            form = AIRecommendationsForm(request.POST)
+
+            if form.is_valid():
+                reco = form.save(commit=False)
+
+                # Collect form data to use in the OpenAI prompt
+                nitrogen = form.cleaned_data.get('nitrogen')
+                phosphorus = form.cleaned_data.get('phosphorous')
+                potassium = form.cleaned_data.get('potassium')
+                ph = form.cleaned_data.get('ph')
+
+                # Create the prompt using form data
+                prompt = (f"Generate crop recommendations based on the soil data inputted. "
+                          f"Provide tips on how to have higher yield. "
+                          f"Explain adjustments needed:\n\n"
+                          f"Nitrogen: {nitrogen}\n"
+                          f"Phosphorus: {phosphorus}\n"
+                          f"Potassium: {potassium}\n"
+                          f"pH: {ph}\n")
+                
+                response = client.completions.create(
+                    model = 'gpt-3.5-turbo-instruct',
+                    prompt=prompt,
+                    max_tokens=150,
+                    n=1, # number of completions
+                    stop=None,  # you can add stop words if needed
+                    temperature=0.5, #adjust temp. for creativity vs accuracy
+                )
+
+                response = response.choices[0].text
+
+                # Extract AI output and save it in the model instance
+                reco.basic_output = response
+                reco.save()
+
+                # Debugging purposes
+                print("Crop Recommendation:", reco.basic_output)
+                print('done with 150 tokens')
+
+            else:
+                print("Form is invalid")  # Debugging
+
+        else:
+            form = AIRecommendationsForm()
+
+        # Pass both form and recommendation result to the template
+        return render(request, "app_agrosavvy/ai.html", {"form": form, "crop_reco": reco.basic_output if form.is_valid() else None})
+
     else:
         return redirect("forbidden")
+
+
 
 
 def map(request):
@@ -269,7 +307,7 @@ def settings(request):
 
 def user_management(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        registered_users = CustomUser.objects.exclude(roleuser__roleuser="da_admin")
+        registered_users = CustomUser.objects.exclude(roleuser__roleuser="da_admin").exclude(is_superuser=True)
         pending_users = PendingUser.objects.exclude(roleuser__roleuser="da_admin")
 
         # Set up the paginator

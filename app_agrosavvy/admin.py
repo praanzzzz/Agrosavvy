@@ -14,6 +14,7 @@ from .models import (
     Crop,
     Barangay,
     Gender,
+    AI_Recommendations,
 )
 
 
@@ -63,7 +64,7 @@ class CustomUserAdmin(UserAdmin):
                     "firstname",
                     "lastname",
                     "email",
-                    "gender", # added gender
+                    "gender", 
                     "is_staff",
                     "is_superuser",
                     "roleuser",
@@ -96,7 +97,7 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.action(description="Approve selected users")
 def approve_users(modeladmin, request, queryset):
-    for pending_user in queryset: # add filter to da admin only
+    for pending_user in queryset: # to add filter to da admin only
         CustomUser.objects.create(
             username=pending_user.username,
             password=pending_user.password,
@@ -104,8 +105,8 @@ def approve_users(modeladmin, request, queryset):
             firstname=pending_user.firstname,
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
-            gender=pending_user.gender,  # added gender here
-            # useraddress=pending_user.useraddress,
+            gender=pending_user.gender, 
+            # useraddress=pending_user.address,
             roleuser = pending_user.roleuser,
             is_approved=True,
             approved_date=timezone.now(),
@@ -174,3 +175,4 @@ admin.site.register(Crop)
 admin.site.register(RoleUser)
 admin.site.register(Barangay)
 admin.site.register(Gender)
+admin.site.register(AI_Recommendations)

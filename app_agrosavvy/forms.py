@@ -10,6 +10,7 @@ from .models import (
     ReviewRating,
     Gender,
     Barangay,
+    AI_Recommendations,
 )
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
@@ -217,7 +218,6 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         fields = ["old_password", "new_password1", "new_password2"]
 
 
-# code to add field
 class FieldForm(forms.ModelForm):
     class Meta:
         model = Field
@@ -270,11 +270,22 @@ class AddressForm(forms.ModelForm):
                     "value": "Philippines",
                 }
             ),
-            # latlong is not working when selecting brgy.
             # "latitude": forms.HiddenInput(),
             # "longitude": forms.HiddenInput(),
-            "latitude": forms.NumberInput(),
-            "longitude": forms.NumberInput(),
+            "latitude": forms.NumberInput(
+                  attrs={
+                    "class": "form-control",
+                    "placeholder": "Click show on map to get coordinates",
+                    "readonly": "readonly",
+                }
+            ),
+            "longitude": forms.NumberInput(
+                  attrs={
+                    "class": "form-control",
+                    "placeholder": "Click show on map to get coordinates",
+                    "readonly": "readonly",
+                }
+            ),
         }
 
 
@@ -282,45 +293,6 @@ class AddressForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['barangay'].queryset = Barangay.objects.all().order_by('brgy_name')
 
-
-
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.fields["city_municipality"].initial = "Cebu City"
-    #     self.fields["country"].initial = "Philippines"
-
-    # # validates the address to cebu city
-    # def clean_city_municipality(self):
-    #     city = self.cleaned_data.get("city_municipality")
-    #     if city.strip().lower() != "cebu city":
-    #         raise ValidationError("The address must be in Cebu City.")
-    #     return city
-
-
-# class UserAddressForm(forms.ModelForm):
-#     class Meta:
-#         model = UserAddress
-#         fields = ["barangay", "city_municipality", "country"]
-#         widgets = {
-#             "barangay": forms.TextInput(
-#                 attrs={"class": "form-control", "placeholder": "Enter barangay"}
-#             ),
-#             "city_municipality": forms.TextInput(
-#                 attrs={
-#                     "class": "form-control",
-#                     "placeholder": "Enter city or municipality",
-#                 }
-#             ),
-#             "country": forms.TextInput(
-#                 attrs={"class": "form-control", "placeholder": "Enter country"}
-#             ),
-#         }
-
-#     def clean_city_municipality(self):
-#         city = self.cleaned_data.get("city_municipality")
-#         if city.strip().lower() != "cebu city":
-#             raise ValidationError("The address must be in Cebu City.")
-#         return city
 
 
 class FieldCropForm(forms.ModelForm):
@@ -387,3 +359,23 @@ class ReviewratingForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Enter your review"}
             ),
         }
+
+
+
+
+class AIRecommendationsForm(forms.ModelForm):
+    class Meta:
+        model = AI_Recommendations
+        fields = ['nitrogen', 'phosphorous', 'potassium', 'ph']
+        widgets = {
+            'nitrogen': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter nitrogen level'}),
+            'phosphorous': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter phosphorous level'}),
+            'potassium': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter potassium level'}),
+            'ph': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter pH level'}),
+        }
+        labels = {
+        'nitrogen': '',
+        'phosphorous': '',
+        'potassium': '',
+        'ph': '',
+    }

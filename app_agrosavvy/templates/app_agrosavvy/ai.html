@@ -1,25 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
 <div class="container">
   <div class="row justify-content-center align-items-center" style="height: 50vh;">
     <div class="col-md-6 text-center">
       <h1>AI Page</h1>
-      
-      <h4>Input Address</h4>
-      <ul class="list-group">
-        <li class="list-group-item">
-          <a href="#" class="btn btn-secondary">Manual AI Recommendation</a>
-        </li>
-        
-        <li class="list-group-item">
-          <a href="#" class="btn btn-secondary">Someting</a>
-        </li>
-      </ul>
-      
+
+      <!-- Form for submitting recommendation generation -->
+      <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Generate recommendation</button>
+      </form>
+
+      <!-- Display generated recommendations -->
+      {% if crop_reco %}
+      <div class="recommendations mt-4">
+        <h3>Recommendations:</h3>
+        <div class="recommendation-content">
+          <p>{{ crop_reco }}</p>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>
-
 {% endblock %}

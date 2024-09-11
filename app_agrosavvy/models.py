@@ -12,22 +12,11 @@ class RoleUser(models.Model):
         ("brgy_officer", "brgy_officer"),
         ("farmer", "farmer")
     ]
-    roleuser = models.CharField(max_length=50, choices=ROLEUSER_CHOICES)
+    roleuser = models.CharField(max_length=20, choices=ROLEUSER_CHOICES)
 
     def __str__(self):
         return self.roleuser
     
-
-
-# class UserAddress(models.Model):
-#     address_id = models.AutoField(primary_key=True)
-#     barangay = models.CharField(max_length=100)
-#     city_municipality = models.CharField(max_length=100)
-#     country = models.CharField(max_length=100)
-
-#     def __str__(self):
-#         return f"{self.barangay}, {self.city_municipality}, {self.country}"
-
 
 class Gender(models.Model):
     GENDER_CHOICES=[
@@ -39,81 +28,6 @@ class Gender(models.Model):
 
     def __str__(self):
         return self.gender
-
-# abstract user is a helper class with default fields: username, password1 and password2, status
-class CustomUser(AbstractUser):
-    email = models.EmailField(unique=True)
-    firstname = models.CharField(max_length=30, blank=True)
-    lastname = models.CharField(max_length=30, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True)
-    # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
-    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
-    active_status = models.BooleanField(default=True) #used custom instead of default is_active
-    is_approved = models.BooleanField(default=False)
-    request_date = models.DateTimeField(auto_now_add=True)
-    approved_date = models.DateTimeField(null=True, blank=True)
-    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
-    
-    def __str__(self):
-        return self.username
-    
-    class Meta:
-        ordering = ['-approved_date']
-    
-
-class PendingUser(models.Model):
-    username = models.CharField(max_length=150, unique=False)
-    password = models.CharField(max_length=128)
-    email = models.EmailField(unique=True)
-    firstname = models.CharField(max_length=30, blank=True)
-    lastname = models.CharField(max_length=30, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
-    # useraddress = models.ForeignKey(UserAddress, on_delete=models.CASCADE, null=True, blank=True)  
-    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
-    request_date = models.DateTimeField(auto_now_add=True)
-
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email', 'firstname', 'lastname']
-
-    # hashing password
-    def save(self, *args, **kwargs):
-        if not self.pk and self.password:
-            self.password = make_password(self.password)
-        super().save(*args, **kwargs)
-
-
-    def __str__(self):
-        return self.username
-
-
-
-class ReviewRating(models.Model):
-    reviewrating_id = models.AutoField(primary_key=True)
-    
-    RATING_CHOICES = [
-        ("1", "Excellent"),
-        ("2", "Good"),
-        ("3", "Average"),
-        ("4", "Bad"),
-        ("5", "Worse"),
-    ]
-    
-    rating = models.CharField(max_length=1, choices=RATING_CHOICES)
-    review_header = models.CharField(max_length=30, blank=True, null=True)
-    review_body = models.CharField(max_length=200, blank=True, null=True)
-    rate_date = models.DateTimeField(auto_now_add=True)
-    reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
-    is_deleted = models.BooleanField(default = False)
-
-    def delete(self, *args, **kwargs):
-        self.is_deleted = True
-        self.save()
-
-    def __str__(self):
-        return f"{self.get_rating_display()}: {self.review_header or 'No Header'}"
     
 
 # brgy choices
@@ -203,17 +117,94 @@ class Barangay(models.Model):
         ordering = ['brgy_name']
     
 
-# used in field address
 class Address(models.Model):
     address_id = models.AutoField(primary_key=True)
     barangay = models.ForeignKey(Barangay, on_delete=models.SET_NULL, blank=True, null=True)
     city_municipality = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
+    latitude = models.FloatField(blank=True, null=True)
+    longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.barangay}, {self.city_municipality}, {self.country}"
+    
+
+
+# abstract user is a helper class with default fields: username, password1 and password2, status
+class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True)
+    firstname = models.CharField(max_length=30, blank=True)
+    lastname = models.CharField(max_length=30, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True)
+    # address = models.ForeignKey(Address, on_delete=models.CASCADE, null=True, blank=True)  
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
+    active_status = models.BooleanField(default=True) #used custom instead of default is_active
+    is_approved = models.BooleanField(default=False)
+    request_date = models.DateTimeField(auto_now_add=True)
+    approved_date = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
+    
+    def __str__(self):
+        return self.username
+    
+    class Meta:
+        ordering = ['-approved_date']
+    
+
+class PendingUser(models.Model):
+    username = models.CharField(max_length=150, unique=False)
+    password = models.CharField(max_length=128)
+    email = models.EmailField(unique=True)
+    firstname = models.CharField(max_length=30, blank=True)
+    lastname = models.CharField(max_length=30, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
+    # address = models.ForeignKey(Address, on_delete=models.CASCADE, null=True, blank=True)  
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
+    request_date = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'firstname', 'lastname']
+
+    # hashing password
+    def save(self, *args, **kwargs):
+        if not self.pk and self.password:
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return self.username
+
+
+
+class ReviewRating(models.Model):
+    reviewrating_id = models.AutoField(primary_key=True)
+    
+    RATING_CHOICES = [
+        ("1", "Excellent"),
+        ("2", "Good"),
+        ("3", "Average"),
+        ("4", "Bad"),
+        ("5", "Worse"),
+    ]
+    
+    rating = models.CharField(max_length=1, choices=RATING_CHOICES)
+    review_header = models.CharField(max_length=30, blank=True, null=True)
+    review_body = models.CharField(max_length=200, blank=True, null=True)
+    rate_date = models.DateTimeField(auto_now_add=True)
+    reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
+
+    def __str__(self):
+        return f"{self.get_rating_display()}: {self.review_header or 'No Header'}"
+    
 
 
 
@@ -301,6 +292,23 @@ class FieldSoilData(models.Model):
     
     class Meta:
         ordering = ['-record_date']
+
+
+
+class AI_Recommendations(models.Model):
+    reco_id = models.AutoField(primary_key=True)
+    nitrogen = models.FloatField(null=True, blank=True)
+    phosphorous = models.FloatField(null=True, blank=True)
+    potassium = models.FloatField(null=True, blank=True)
+    ph = models.FloatField(null=True, blank=True)
+    basic_output = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Recommendation for {self.reco_id}"
+    
+    class Meta:
+        ordering = ['-reco_id']
+
     
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
@@ -316,3 +324,6 @@ def get_weather_data(location):
     except requests.exceptions.RequestException as e:
         print(f"Error getting weather data: {e}")
         return None
+
+
+
