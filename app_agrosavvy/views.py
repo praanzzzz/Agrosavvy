@@ -66,26 +66,20 @@ def dashboard(request):
         active_users = CustomUser.objects.filter(active_status=True)
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         reviewrating_context = reviewrating(request)
-
         # pie charts
         labels = []
         data = []
-
         queryset = FieldCropData.objects.filter(field__is_deleted=False
             ).values("crop_planted__crop_type").annotate(
             total_acres=Sum("field__field_acres")
         )
-
-
         # Prepare data for the chart
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
-
         # field registration over time line chart
         # Set a time range for the last 12 months
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
-
         field_data = (
             Field.objects.filter(
                 created_at__range=[start_date, end_date], 
@@ -96,11 +90,9 @@ def dashboard(request):
             .annotate(count=Count("field_id"))  # use "id" instead of "field_id" as it's the default primary key field name
             .order_by("month")
         )
-
         # Prepare data for Chart.js
         labelsfield = [data["month"] for data in field_data]
         datafield = [data["count"] for data in field_data]
-
         # Set up the paginator
         paginator = Paginator(fields, 4)  # 4 fields per page
         page_number = request.GET.get(
@@ -127,69 +119,6 @@ def dashboard(request):
         return render(request, "app_agrosavvy/dashboard.html", context)
     else:
         return redirect("forbidden")
-
-
-
-
-
-# def ai(request, field_id):
-#     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-#         field = get_object_or_404(Field, id=field_id)
-#         fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False).order_by('-record_date').first()
-
-#         if request.method == 'POST':
-#             form = AIRecommendationsForm(request.POST)
-
-#             if form.is_valid():
-#                 reco = form.save(commit=False)
-
-#                 # Collect form data to use in the OpenAI prompt
-#                 field= form.cleaned_data.get('field')
-#                 fieldsoildata = form.cleaned_data.get('fieldosoildata')
-
-#                 # Create the prompt using form data
-#                 prompt = (f"Generate crop recommendations for the field: {field}\n"
-#                           f"based on the soil data inputted. "
-#                           f"Provide tips on how to have higher yield. "
-#                           f"Explain adjustments needed:\n\n"
-#                           f"fieldsoildata: {fieldsoildata}\n"
-#                 )
-
-                
-#                 response = client.completions.create(
-#                     model = 'gpt-3.5-turbo-instruct',
-#                     prompt=prompt,
-#                     max_tokens=150,
-#                     n=1, # number of completions
-#                     stop=None,  # you can add stop words if needed
-#                     temperature=0.5, #adjust temp. for creativity vs accuracy
-#                 )
-
-#                 response = response.choices[0].text
-
-#                 # Extract AI output and save it in the model instance
-#                 reco.recommendations = response
-#                 reco.save()
-
-#                 # # Debugging
-#                 # print("Crop Recommendation:", reco.basic_output)
-#                 # print('done with 150 tokens')
-
-#             else:
-#                 print("Form is invalid")  # Debugging
-
-#         else:
-#             form = AIRecommendationsForm()
-
-#         context = {
-#             "form": form, 
-#             "recommendations": reco.recommendations if form.is_valid() else None
-#         }
-#         return render(request, "app_agrosavvy/ai.html", context)
-
-#     else:
-#         return redirect("forbidden")
-
 
 
 def ai(request):
@@ -239,6 +168,7 @@ def ai(request):
     
     else:
         return redirect("forbidden")
+
 
 
 
