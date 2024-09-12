@@ -30,7 +30,7 @@ py -m venv venv
 
 --> Activate the virtual environment :
 ```bash
-env\scripts\activate
+venv\scripts\activate
 
 ```
 
