@@ -16,9 +16,7 @@
                     <div class="form-group">
                         <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
                     </div><br>
-
-                    <!-- <h5><strong>Soil Data</strong> (if available)</h5>
-                    {{ soil_data_form.as_p }} -->
+                    
                     <div class="form-group">
                         <button type="submit" class="btn btn-success">Submit</button>
                     </div> 
@@ -51,6 +49,7 @@
             }
 
             var formData = new FormData(this);
+
             var url = this.action; // Use the form's action attribute for the URL
 
             var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
@@ -77,85 +76,122 @@
         });
     }
 
-    // Function to initialize the map
-    function initializeMap() {
-        mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-        var map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/satellite-streets-v11',
-            center: [123.876705, 10.308258],
-            zoom: 10
-        });
 
-        var marker = new mapboxgl.Marker({ draggable: true })
-            .setLngLat([120.9842, 14.5995])
-            .addTo(map);
+// Initialize the map with coordinates from the database
+function initializeMap() {
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-        function onDragEnd() {
-            var lngLat = marker.getLngLat();
-            document.getElementById('id_latitude').value = lngLat.lat;
-            document.getElementById('id_longitude').value = lngLat.lng;
-            getAddress(lngLat.lng, lngLat.lat);
-        }
+    // Get the initial coordinates from the form (populated with database values)
+    var initialLat = parseFloat(document.getElementById('id_latitude').value);
+    var initialLng = parseFloat(document.getElementById('id_longitude').value);
 
-        marker.on('dragend', onDragEnd);
+    // Set default coordinates to Cebu City if none are provided
+    if (!initialLat || !initialLng) {
+        initialLat = 10.308258;  // Default latitude (Cebu City)
+        initialLng = 123.876705;  // Default longitude (Cebu City)
+    }
 
-        // Function to fetch address details and update form fields
-        function getAddress(lng, lat) {
-            var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`;
-            fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.features.length > 0) {
-                    var place = data.features[0];
-                    var barangay = '';
-                    var city_municipality = '';
-                    var country = '';
+    // Create the map and set it to either the database coordinates or default
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/satellite-streets-v11',
+        center: [initialLng, initialLat],
+        zoom: 12  // Adjust zoom level based on your preference
+    });
 
-                    place.context.forEach(function (item) {
-                        if (item.id.includes('neighborhood') || item.id.includes('locality')) {
-                            barangay = item.text;
-                        } else if (item.id.includes('place')) {
-                            city_municipality = item.text;
-                        } else if (item.id.includes('country')) {
-                            country = item.text;
-                        }
-                    });
+    // Initialize the marker at the provided coordinates (either from database or default)
+    var marker = new mapboxgl.Marker({ draggable: true })
+        .setLngLat([initialLng, initialLat])
+        .addTo(map);
 
-                    document.getElementById('id_barangay').value = barangay;
-                    document.getElementById('id_city_municipality').value = city_municipality;
-                    document.getElementById('id_country').value = country;
+    // When the marker is dragged, update the latitude and longitude fields
+    function onDragEnd() {
+        var lngLat = marker.getLngLat();
+        document.getElementById('id_latitude').value = lngLat.lat;
+        document.getElementById('id_longitude').value = lngLat.lng;
+        getAddress(lngLat.lng, lngLat.lat);  // Optionally update the address based on marker position
+    }
+
+    marker.on('dragend', onDragEnd);
+
+    // Fetch address details based on latitude and longitude
+    function getAddress(lng, lat) {
+        var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}`;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.features.length > 0) {
+                var place = data.features[0];
+                var barangay = '';
+                var city_municipality = '';
+                var country = '';
+
+                place.context.forEach(function (item) {
+                    if (item.id.includes('neighborhood') || item.id.includes('locality')) {
+                        barangay = item.text;
+                    } else if (item.id.includes('place')) {
+                        city_municipality = item.text;
+                    } else if (item.id.includes('country')) {
+                        country = item.text;
+                    }
+                });
+
+                // Update form fields based on fetched address
+                var barangaySelect = document.getElementById('id_barangay');
+                for (var i = 0; i < barangaySelect.options.length; i++) {
+                    if (barangaySelect.options[i].text === barangay) {
+                        barangaySelect.selectedIndex = i;
+                        break;
+                    }
                 }
-            })
-            .catch(error => {
-                console.error('Error fetching address:', error);
-            });
-        }
 
-        // Click handler for 'Show on Map' button
-        document.getElementById('geocodeButton').addEventListener('click', function () {
-            var address = document.getElementById('id_barangay').value + ', ' + document.getElementById('id_city_municipality').value + ', ' + document.getElementById('id_country').value;
-            var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
-            fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.features.length > 0) {
-                    var lngLat = data.features[0].center;
-                    marker.setLngLat(lngLat);
-                    map.flyTo({ center: lngLat });
-                    document.getElementById('id_latitude').value = lngLat[1];
-                    document.getElementById('id_longitude').value = lngLat[0];
-                    getAddress(lngLat[0], lngLat[1]);
-                } else {
-                    alert('Address not found');
-                }
-            })
-            .catch(error => {
-                console.error('Error geocoding address:', error);
-            });
+                document.getElementById('id_city_municipality').value = city_municipality;
+                document.getElementById('id_country').value = country;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching address:', error);
         });
     }
+
+    // 'Show on Map' button click handler for updating map based on selected barangay
+    document.getElementById('geocodeButton').addEventListener('click', function () {
+        var barangayName = document.getElementById('id_barangay').selectedOptions[0].text;
+        var address = `${barangayName}, ${document.getElementById('id_city_municipality').value}, ${document.getElementById('id_country').value}`;
+        
+        var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}`;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.features.length > 0) {
+                var lngLat = data.features[0].center;
+                marker.setLngLat(lngLat);  // Update marker position
+                map.flyTo({ center: lngLat });  // Center map on new coordinates
+                document.getElementById('id_latitude').value = lngLat[1];
+                document.getElementById('id_longitude').value = lngLat[0];
+                getAddress(lngLat[0], lngLat[1]);
+            } else {
+                alert('Address not found');
+            }
+        })
+        .catch(error => {
+            console.error('Error geocoding address:', error);
+        });
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Initialize form submission and map on document ready
     submitForm();

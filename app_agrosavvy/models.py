@@ -115,6 +115,7 @@ class Barangay(models.Model):
     
     class Meta:
         ordering = ['brgy_name']
+
     
 
 class Address(models.Model):
@@ -126,8 +127,95 @@ class Address(models.Model):
     longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.barangay}, {self.city_municipality}, {self.country}"
+        return f"address {self.barangay}, {self.city_municipality}, {self.country}"
+
+
+class UserAddress(models.Model):
+    USERADDRESS_CHOICES = [
+        ("Adlaon, Cebu City", "Adlaon, Cebu City"),
+        ("Agsungot, Cebu City", "Agsungot, Cebu City"),
+        ("Apas, Cebu City", "Apas, Cebu City"),
+        ("Babag, Cebu City", "Babag, Cebu City"),
+        ("Bacayan, Cebu City", "Bacayan, Cebu City"),
+        ("Banilad, Cebu City", "Banilad, Cebu City"),
+        ("Basak Pardo, Cebu City", "Basak Pardo, Cebu City"),
+        ("Busay, Cebu City", "Busay, Cebu City"),
+        ("Calamba, Cebu City", "Calamba, Cebu City"),
+        ("Cambinocot, Cebu City", "Cambinocot, Cebu City"),
+        ("Camputhaw, Cebu City", "Camputhaw, Cebu City"),
+        ("Capitol Site, Cebu City", "Capitol Site, Cebu City"),
+        ("Carreta, Cebu City", "Carreta, Cebu City"),
+        ("Central, Cebu City", "Central, Cebu City"),
+        ("Cogon Pardo, Cebu City", "Cogon Pardo, Cebu City"),
+        ("Cogon Ramos, Cebu City", "Cogon Ramos, Cebu City"),
+        ("Day-as, Cebu City", "Day-as, Cebu City"),
+        ("Duljo, Cebu City", "Duljo, Cebu City"),
+        ("Ermita, Cebu City", "Ermita, Cebu City"),
+        ("Guadalupe, Cebu City", "Guadalupe, Cebu City"),
+        ("Guba, Cebu City", "Guba, Cebu City"),
+        ("Hippodromo, Cebu City", "Hippodromo, Cebu City"),
+        ("Inayawan, Cebu City", "Inayawan, Cebu City"),
+        ("Kalubihan, Cebu City", "Kalubihan, Cebu City"),
+        ("Kalunasan, Cebu City", "Kalunasan, Cebu City"),
+        ("Kamagayan, Cebu City", "Kamagayan, Cebu City"),
+        ("Kasambagan, Cebu City", "Kasambagan, Cebu City"),
+        ("Kinasang-an Pardo, Cebu City", "Kinasang-an Pardo, Cebu City"),
+        ("Labangon, Cebu City", "Labangon, Cebu City"),
+        ("Lahug, Cebu City", "Lahug, Cebu City"),
+        ("Lorega (Lorega San Miguel), Cebu City", "Lorega (Lorega San Miguel), Cebu City"),
+        ("Lusaran, Cebu City", "Lusaran, Cebu City"),
+        ("Luz, Cebu City", "Luz, Cebu City"),
+        ("Mabini, Cebu City", "Mabini, Cebu City"),
+        ("Mabolo, Cebu City", "Mabolo, Cebu City"),
+        ("Malubog, Cebu City", "Malubog, Cebu City"),
+        ("Mambaling, Cebu City", "Mambaling, Cebu City"),
+        ("Pahina Central, Cebu City", "Pahina Central, Cebu City"),
+        ("Pahina San Nicolas, Cebu City", "Pahina San Nicolas, Cebu City"),
+        ("Pamutan, Cebu City", "Pamutan, Cebu City"),
+        ("Pardo, Cebu City", "Pardo, Cebu City"),
+        ("Pari-an, Cebu City", "Pari-an, Cebu City"),
+        ("Paril, Cebu City", "Paril, Cebu City"),
+        ("Pasil, Cebu City", "Pasil, Cebu City"),
+        ("Pit-os, Cebu City", "Pit-os, Cebu City"),
+        ("Pulangbato, Cebu City", "Pulangbato, Cebu City"),
+        ("Pung-ol-Sibugay, Cebu City", "Pung-ol-Sibugay, Cebu City"),
+        ("Punta Princesa, Cebu City", "Punta Princesa, Cebu City"),
+        ("Quiot Pardo, Cebu City", "Quiot Pardo, Cebu City"),
+        ("Sambag I, Cebu City", "Sambag I, Cebu City"),
+        ("Sambag II, Cebu City", "Sambag II, Cebu City"),
+        ("San Antonio, Cebu City", "San Antonio, Cebu City"),
+        ("San Jose, Cebu City", "San Jose, Cebu City"),
+        ("San Nicolas Central, Cebu City", "San Nicolas Central, Cebu City"),
+        ("San Roque (Ciudad), Cebu City", "San Roque (Ciudad), Cebu City"),
+        ("Santa Cruz, Cebu City", "Santa Cruz, Cebu City"),
+        ("Sapangdaku, Cebu City", "Sapangdaku, Cebu City"),
+        ("Sawang Calero, Cebu City", "Sawang Calero, Cebu City"),
+        ("Sinsin, Cebu City", "Sinsin, Cebu City"),
+        ("Sirao, Cebu City", "Sirao, Cebu City"),
+        ("Suba Poblacion (Suba San Nicolas), Cebu City", "Suba Poblacion (Suba San Nicolas), Cebu City"),
+        ("Sudlon I, Cebu City", "Sudlon I, Cebu City"),
+        ("Sudlon II, Cebu City", "Sudlon II, Cebu City"),
+        ("Tabunan, Cebu City", "Tabunan, Cebu City"),
+        ("Tagbao, Cebu City", "Tagbao, Cebu City"),
+        ("Talamban, Cebu City", "Talamban, Cebu City"),
+        ("Taptap, Cebu City", "Taptap, Cebu City"),
+        ("Tejero (Villa Gonzalo), Cebu City", "Tejero (Villa Gonzalo), Cebu City"),
+        ("Tinago, Cebu City", "Tinago, Cebu City"),
+        ("Tisa, Cebu City", "Tisa, Cebu City"),
+        ("To-ong Pardo, Cebu City", "To-ong Pardo, Cebu City"),
+        ("T. Padilla, Cebu City", "T. Padilla, Cebu City"),
+        ("Zapatera, Cebu City", "Zapatera, Cebu City")
+    ]
+    useraddress_id = models.AutoField(primary_key=True)
+    useraddress= models.CharField(max_length=100, choices=USERADDRESS_CHOICES)
+
+    def __str__(self):
+        return f"{self.useraddress}"
     
+    class Meta:
+        ordering = ['useraddress']
+
+
 
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
@@ -138,7 +226,7 @@ class CustomUser(AbstractUser):
     date_of_birth = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True)
-    # address = models.ForeignKey(Address, on_delete=models.CASCADE, null=True, blank=True)  
+    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, null=True, blank=True)  
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     active_status = models.BooleanField(default=True) #used custom instead of default is_active
     is_approved = models.BooleanField(default=False)
@@ -161,7 +249,7 @@ class PendingUser(models.Model):
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
-    # address = models.ForeignKey(Address, on_delete=models.CASCADE, null=True, blank=True)  
+    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, blank=True, null=True)
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     request_date = models.DateTimeField(auto_now_add=True)
 
@@ -266,7 +354,7 @@ class FieldCropData(models.Model):
         self.save()
 
     def __str__(self):
-        return f"{self.crop_planted} planted in {self.field.field_name} on {self.planting_date}"
+        return f"Crop Data {self.crop_planted} planted in {self.field.field_name} on {self.planting_date}"
     
     class Meta:
         ordering = ['-planting_date']

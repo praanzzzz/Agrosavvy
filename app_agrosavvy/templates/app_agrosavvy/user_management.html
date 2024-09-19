@@ -3,14 +3,15 @@
 {% block content %}
 
 <div class="container mt-5">
-    <!-- Active Users Section -->
-    <h3 class="text-center mb-4">List of Active Users</h3>
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            {% if registered_users %}
+    <div class="row">
+        <!-- Main content area -->
+        <div class="col-md-8">
+            <!-- Active Users Section -->
+            <h3 class="text-center mb-4">Registered Users</h3>
             <div class="table-responsive">
-                <table class="table table-striped table-bordered table-hover">
-                    <thead class="thead-dark">
+                {% if registered_users %}
+                <table class="table table-borderless shadow-sm rounded">
+                    <thead class="bg-dark text-white">
                         <tr>
                             <th>User ID</th>
                             <th>Name</th>
@@ -38,20 +39,16 @@
                                 Unknown
                                 {% endif %}
                             </td>
-                            <td>
-                                {{ registered_user.useraddress.barangay }},
-                                {{ registered_user.useraddress.city_municipality }},
-                                {{ registered_user.useraddress.country }}
-                            </td>
+                            <td>{{ registered_user.useraddress }}</td>
                             <td>
                                 {% if registered_user.active_status %}
-                                Active
+                                <span class="badge bg-success">Active</span>
                                 {% else %}
-                                Deactivated
+                                <span class="badge bg-danger">Deactivated</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="btn-group" role="group">
+                                <div class="btn-group">
                                     {% if registered_user.active_status %}
                                     <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" onsubmit="confirmDeactivation(event)">
                                         {% csrf_token %}
@@ -69,47 +66,42 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        {% if registered_users_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ registered_users_page_obj.previous_page_number }}" aria-label="Previous">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% for num in registered_users_page_obj.paginator.page_range %}
+                        <li class="page-item {% if registered_users_page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if registered_users_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ registered_users_page_obj.next_page_number }}" aria-label="Next">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% else %}
+                <p class="text-muted text-center">No Registered Users</p>
+                {% endif %}
             </div>
 
-            <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-3">
-                <ul class="pagination justify-content-center">
-                    {% if registered_users_page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ registered_users_page_obj.previous_page_number }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% for num in registered_users_page_obj.paginator.page_range %}
-                    <li class="page-item {% if registered_users_page_obj.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endfor %}
-                    {% if registered_users_page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ registered_users_page_obj.next_page_number }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-
-            {% else %}
-            <p class="text-muted text-center">No Registered Users</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Pending Users Section -->
-    <h3 class="text-center mb-4 mt-5">List of Pending Users</h3>
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            {% if pending_users %}
+            <!-- Pending Users Section -->
+            <h3 class="text-center mb-4 mt-5">Pending Users</h3>
             <div class="table-responsive">
-                <table class="table table-striped table-bordered table-hover">
-                    <thead class="thead-dark">
+                {% if pending_users %}
+                <table class="table table-borderless shadow-sm rounded">
+                    <thead class="bg-dark text-white">
                         <tr>
                             <th>User ID</th>
                             <th>Name</th>
@@ -117,7 +109,6 @@
                             <th>Role</th>
                             <th>Address</th>
                             <th>Request Date</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -136,13 +127,8 @@
                                 Unknown
                                 {% endif %}
                             </td>
-                            <td>
-                                {{ pending_user.useraddress.barangay }},
-                                {{ pending_user.useraddress.city_municipality }},
-                                {{ pending_user.useraddress.country }}
-                            </td>
+                            <td>{{ pending_user.useraddress }}</td>
                             <td>{{ pending_user.request_date }}</td>
-                            <td>Waiting</td>
                             <td>
                                 <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" onsubmit="confirmApproval(event)">
                                     {% csrf_token %}
@@ -153,35 +139,112 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        {% if pending_users_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pending_users_page_obj.previous_page_number }}" aria-label="Previous">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% for num in pending_users_page_obj.paginator.page_range %}
+                        <li class="page-item {% if pending_users_page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if pending_users_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pending_users_page_obj.next_page_number }}" aria-label="Next">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% else %}
+                <p class="text-muted text-center">No Pending Users</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar with Recent Activities -->
+        <div class="col-md-4">
+            <!-- User Log -->
+            <div class="rounded p-3 bg-light shadow-sm mb-4">
+                <h4><strong>User Log</strong></h4>
+                <div>
+                    {% for event in login_events|slice:":5  " %}
+                    <div class="mb-3">
+                        <span>
+                         
+                            {% if event.user_id == null %}
+                            <strong>unknown user</strong>
+                            {% else %}
+                            <strong>@ {{ event.user.username }}</strong>
+                            {% endif %}
+
+
+                            {% if event.login_type == 0 %}logged in{% elif event.login_type == 1 %}logged out{% elif event.login_type == 2 %}failed login{% else %}error{% endif %}
+                            {{ event.datetime|timesince }} ago
+                        </span>
+                        <p class="small">IP: {{ event.remote_ip }}</p>
+                    </div>
+                    {% empty %}
+                    <p>No login events found.</p>
+                    {% endfor %}
+                </div>
             </div>
 
-            <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-3">
-                <ul class="pagination justify-content-center">
-                    {% if pending_users_page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ pending_users_page_obj.previous_page_number }}" aria-label="Previous">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                    {% for num in pending_users_page_obj.paginator.page_range %}
-                    <li class="page-item {% if pending_users_page_obj.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
+            <!-- CRUD Log -->
+            <div class="rounded p-3 bg-light shadow-sm">
+                <h4><strong>CRUD Log</strong></h4>
+                <div>
+                    {% for event in crud_events|slice:":5" %}
+                    <div class="mb-3">
+                        <span>
+                            {% if event.user_id == null %}
+                            <strong>unknown user</strong>
+                            {% else %}
+                            <strong>@ {{ event.user.username }}</strong>
+                            {% endif %}
+
+
+                           <!-- Event Type: Added, Updated, Deleted -->
+                           {% if event.event_type == 1 %}
+                           added
+                           {% elif event.event_type == 2 %}
+                           {% if event.changed_fields %}
+                           {% if 'is_deleted' in event.changed_fields %}
+                           {% if event.changed_fields.is_deleted.0 == "False" %}
+                           updated
+                           (Changed fields: {{ event.changed_fields }})
+                           {% else %}
+                           deleted
+                           {% endif %}
+                           {% else %}
+                           updated
+                           {% endif %}
+                           {% else %}
+                           updated
+                           {% endif %}
+                           {% elif event.event_type == 3 %}
+                           deleted
+                           {% else %}
+                           error
+                           {% endif %}
+
+                           {{ event.object_repr }}
+                           ,{{ event.datetime|timesince }} ago
+                        </span>
+                    </div>  
+                    {% empty %}
+                    <p>No CRUD events found.</p>
                     {% endfor %}
-                    {% if pending_users_page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ pending_users_page_obj.next_page_number }}" aria-label="Next">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% else %}
-            <p class="text-muted text-center">No Pending Users</p>
-            {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -1,26 +1,33 @@
 {% extends 'bofa_base.html' %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
     <div class="row">
-        <div class="col-md-6 ml-1">
-            <div class="card shadow p-4">
-                <h5 class="mb-4"><strong>Add Field Details</strong></h5>
-                <form id="fieldForm" method="POST">
-                    {% csrf_token %}
-                    {{ field_form.as_p }}
-                    <h5><strong>Address Details</strong> (cebu city only)</h5>
-                    {{ address_form.as_p }}
-                    <div class="form-group">
-                        <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
-                        <button type="submit" class="btn btn-success">Submit</button>
-                    </div>
-                </form>
+        <!-- Field and Address Details Section -->
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-4 text-primary"><strong>Add Field Details</strong></h4>
+                    <form id="fieldForm" method="POST">
+                        {% csrf_token %}
+                        {{ field_form.as_p }}
+                        
+                        <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small></h5>
+                        {{ address_form.as_p }}
+                        
+                        <div class="form-group mt-4">
+                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on Map</button>
+                            <button type="submit" class="btn btn-success btn-block mb-2">Submit</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
+
+        <!-- Map Section -->
         <div class="col-md-6">
-            <div class="card shadow">
-                <div id="map" style="height: 680px;"></div>
+            <div class="card shadow-lg border-0 rounded-3">
+                <div id="map" style="height: 680px; border-radius: 0.375rem;"></div>
             </div>
         </div>
     </div>
@@ -28,9 +35,7 @@
 
 
 
-<!-- 
-confirm if validation is correct 
--->
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

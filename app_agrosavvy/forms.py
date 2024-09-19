@@ -8,7 +8,6 @@ from .models import (
     CustomUser,
     PendingUser,
     ReviewRating,
-    Gender,
     Barangay,
     AI_Recommendations,
 )
@@ -90,8 +89,9 @@ class PendingUserForm(forms.ModelForm):
             "email",
             "date_of_birth",
             "gender",
+            "useraddress",
             "password",
-            "gender",
+
         ]
         widgets = {
             "email": forms.EmailInput(attrs={"class": "form-control"}),
@@ -106,6 +106,7 @@ class PendingUserForm(forms.ModelForm):
                 }
             ),
             "gender": forms.Select(attrs={"class": "form-control"}),
+            "useraddress": forms.Select(attrs={"class": "form-control"}),
         }
 
     def clean_username(self):
@@ -158,7 +159,9 @@ class CustomUserUpdateForm(UserChangeForm):
             "gender",
             "email",
             "date_of_birth",
+            "useraddress",
             "profile_picture",
+            
         ]  # Adjusted field names
 
     def __init__(self, *args, **kwargs):
@@ -171,6 +174,8 @@ class CustomUserUpdateForm(UserChangeForm):
         # self.fields["email"].label = "Email Address"
         self.fields["firstname"].label = "First Name"
         self.fields["lastname"].label = "Last Name"
+        self.fields["useraddress"].label = "Address"
+        self.fields["profile_picture"].label = "Profile Picture"
         self.fields["gender"].disabled = True
 
         for field_name, field in self.fields.items():
@@ -262,7 +267,7 @@ class AddressForm(forms.ModelForm):
                     "value": "Cebu City",
                 }
             ),
-            "country": forms.TextInput(
+            "country": forms.HiddenInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter country",

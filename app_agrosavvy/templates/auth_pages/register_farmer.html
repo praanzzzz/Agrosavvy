@@ -20,12 +20,11 @@
                     <span class="text-error">{{ field.errors }}</span>
                   </div>
                   {% endfor %}
-                  <!-- address form (new) -->
-                  {% for useraddressform in useraddressform %}
+                  {% for uaform in useraddress_form %}
                   <div class="form-group mb-3">
-                    {{ useraddressform.label_tag }}
-                    {{ useraddressform }}
-                    <span class="text-error">{{ field.errors }}</span>
+                    {{ uaform.label_tag }}
+                    {{ uaform }}
+                    <span class="text-error">{{ uaform.errors }}</span>
                   </div>
                   {% endfor %}
                   <button type="submit" class="btn btn-theme" value="Register">Create Account</button>

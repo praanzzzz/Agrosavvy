@@ -20,6 +20,14 @@
                     <span class="text-error">{{ field.errors }}</span>
                   </div>
                   {% endfor %}
+                  
+                  {% for uaform in useraddress_form %}
+                  <div class="form-group mb-3">
+                    {{ uaform.label_tag }}
+                    {{ uaform }}
+                    <span class="text-error">{{ uaform.errors }}</span>
+                  </div>
+                  {% endfor %}
                   <button type="submit" class="btn btn-theme" value="Register">Create Account</button>
                   <br><br>
                   <p class="text-muted">Already have an account? <a href="{% url 'my_login' %}">Login</a></p>

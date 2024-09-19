@@ -2,264 +2,212 @@
 {% load static %}
 {% block content %}
 
-<style>
-    .header {
-        padding: 10px 20px;
-    }
 
-    .input-group {
-        width: 800px;
-    }
+<!-- header -->
+<header class="header border-bottom mx-4 mb-5">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
+        <!-- Welcome Message -->
+        <div class="d-flex align-items-center mb-2 mb-md-0">
+            <strong class="me-2">Welcome Back, {{ user.username }} 👋</strong>
+        </div>
 
-    .dropdown,
-    .form-control,
-    .btn {
-        z-index: 1;
-    }
-</style>
-
-
-<header class="header d-flex justify-content-between align-items-center mt-4">
-    <!-- Search Bar -->
-    <div class="d-flex align-items-center">
-        <div class="input-group">
-            <input type="text" class="form-control" placeholder="Search" aria-label="Search">
+        <!-- Search Bar -->
+        <div class="d-flex align-items-center mb-2 mb-md-0">
+            <input type="text" class="form-control me-2" placeholder="Search" aria-label="Search"
+                style="max-width: 300px;">
             <button class="btn btn-outline-secondary" type="button">
                 <i class="fas fa-search"></i>
             </button>
         </div>
-    </div>
-    <!-- User Profile and Notification -->
-    <div class="d-flex align-items-center">
-        <button class="btn btn-notification me-3" type="button">
-            <i class="fas fa-bell"></i>
-        </button>
 
-        <div class="dropdown d-flex align-items-center user-info">
-            <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                {% if user.profile_picture %}
-                <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
-                    style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
-                {% else %}
-                <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
-                    style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
-                {% endif %}
+        <!-- User Profile and Notification -->
+        <div class="d-flex align-items-center mb-2 mb-md-0">
+            <button class="btn btn-outline-secondary me-3" type="button">
+                <i class="fas fa-bell"></i>
+            </button>
 
-                <div class="ms-2 me-3 d-flex flex-column text-start">
-                    <strong>{{ user.username }}</strong>
-                    {% if user.roleuser.roleuser == "farmer" %}
-                    <span class="small text-muted">Farmer</span>
-                    {% elif user.roleuser.roleuser == "brgy_officer" %}
-                    <span class="small text-muted">Brgy Officer</span>
-                    {% elif user.roleuser.roleuser == "da_admin" %}
-                    <span class="small text-muted">DA Admin</span>
-                    {% else %}
-                    <span>Unknown</span>
-                    {% endif %}
+            <!-- Review and Rating -->
+            <div class="me-2">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#reviewRatingModal">
+                    Leave a review
+                </button>
+
+                <!-- Modal -->
+                <div class="modal fade" id="reviewRatingModal" tabindex="-1" aria-labelledby="reviewRatingModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="reviewRatingModalLabel">Leave a Review</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="POST" action="{% url 'reviewrating' %}">
+                                    {% csrf_token %}
+                                    {{ rform.as_p }}
+                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </a>
+            </div>
 
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{% url 'bofa_settings' %}">Update Profile</a></li>
-                <li><a class="dropdown-item" href="{% url 'bofa_password_change' %}">Change Password</a></li>
-                <li><a class="dropdown-item" href="{% url 'my_logout' %}">Logout</a></li>
-            </ul>
+            <!-- Dropdown Menu -->
+            <div class="dropdown d-flex align-items-center">
+                <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
+                        style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                    {% else %}
+                    <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
+                        style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                    {% endif %}
+
+                    <div class="ms-2 d-flex flex-column text-start">
+                        <strong>{{ user.username }}</strong>
+                        {% if user.roleuser.roleuser == "farmer" %}
+                        <span class="small text-muted">Farmer</span>
+                        {% elif user.roleuser.roleuser == "brgy_officer" %}
+                        <span class="small text-muted">Brgy Officer</span>
+                        {% elif user.roleuser.roleuser == "da_admin" %}
+                        <span class="small text-muted">DA Admin</span>
+                        {% else %}
+                        <span>Unknown</span>
+                        {% endif %}
+                    </div>
+                </a>
+
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'bofa_settings' %}">Update Profile</a></li>
+                    <li><a class="dropdown-item" href="{% url 'bofa_password_change' %}">Change Password</a></li>
+                    <li><a class="dropdown-item" href="{% url 'my_logout' %}">Logout</a></li>
+                </ul>
+            </div>
         </div>
     </div>
-
-
 </header>
 
 
 
 
-
-
-<!-- review and rating -->
-<div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewRatingModal">
-        Leave a Review
-    </button>
-
-    <!-- Modal -->
-    <div class="modal fade" id="reviewRatingModal" tabindex="-1" aria-labelledby="reviewRatingModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="reviewRatingModalLabel">Leave a Review</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form method="post" action="{% url 'reviewrating' %}">
-                        {% csrf_token %}
-                        {{ rform.as_p }}
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<style>
-    /* Set the height for both charts */
-    .chart-container {
-        position: relative;
-        height: 400px;
-        /* Adjust height as needed */
-        width: 100%;
-    }
-</style>
-
-
+<!-- Container -->
 <div class="container mt-5">
-    <div class="row">
-        <!-- Pie chart for crop distribution -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Crop Distribution</h5>
-                    <div class="chart-container">
-                        <canvas id="cropPieChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Line chart for field registration -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Other charts</h5>
-                    <div class="chart-container">
-                        <!-- <canvas id="fieldRegistrationChart"></canvas> -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Retrieve chart data from Django context
-        var labels = {{ labels|safe }};
-        var data = {{ data|safe }};
-        
-        var ctx = document.getElementById('cropPieChart').getContext('2d');
-        var cropPieChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Total Acres',
-                    data: data,
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                        'rgba(54, 162, 235, 0.2)',
-                        'rgba(255, 206, 86, 0.2)',
-                        'rgba(75, 192, 192, 0.2)',
-                        'rgba(153, 102, 255, 0.2)',
-                        'rgba(255, 159, 64, 0.2)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                let value = context.raw || 0;
-                                return `${label}: ${value} acres`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    });
-</script>
-
-
-
-
-
-
-
-
-<div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-12">
-            <h1 class="text-center mb-4">Dashboard</h1>
+
             <!-- Summary Section -->
-            <div class="container">
-                <div class="row justify-content-center mb-4">
+            <div class="container mb-5">
+                <div class="row justify-content-center">
                     <!-- Number of Fields -->
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-tractor fa-2x text-primary"></i>
-                            <span class="d-block mt-2">Number of Fields</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ field_count }}</span>
+                    <div class="col-md-3 col-12 mb-3">
+                        <div class="card shadow-sm border-0 rounded h-100">
+                            <div class="card-body position-relative">
+                                <!-- Colored Line on the Left -->
+                                <div class="position-absolute top-0 start-0 h-100 bg-primary" style="width: 5px;"></div>
+                                <!-- Card Content -->
+                                <div class="d-flex flex-column ps-3">
+                                    <h5 class="text-start mb-1">Number of Fields</h5>
+                                    <span class="display-4 font-weight-bold">{{ field_count }}</span>
+                                </div>
+                                <!-- Icon in the Top Right Corner -->
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <i class="fas fa-tractor fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Total Number of Acres -->
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-map-marker-alt fa-2x text-success"></i>
-                            <span class="d-block mt-2">Total Acres</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ total_acres }}</span>
+                    <div class="col-md-3 col-12 mb-3">
+                        <div class="card shadow-sm border-0 rounded h-100">
+                            <div class="card-body position-relative">
+                                <div class="position-absolute top-0 start-0 h-100 bg-success" style="width: 5px;"></div>
+                                <div class="d-flex flex-column ps-3">
+                                    <h5 class="text-start mb-1">Total Acres</h5>
+                                    <span class="display-4 font-weight-bold">{{ total_acres }}</span>
+                                </div>
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <i class="fas fa-map-marker-alt fa-2x text-success"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Number of Users
-                    <div class="col-md-3 text-center shadow-sm p-3 mb-4 mx-2 bg-light rounded border">
-                        <h5>
-                            <i class="fas fa-users fa-2x text-warning"></i>
-                            <span class="d-block mt-2">Active Users</span>
-                        </h5>
-                        <span class="display-4 font-weight-bold">{{ active_user_count }}</span>
-                    </div> -->
+                    <!-- Number of Users -->
+                    <div class="col-md-3 col-12 mb-3">
+                        <div class="card shadow-sm border-0 rounded h-100">
+                            <div class="card-body position-relative">
+                                <div class="position-absolute top-0 start-0 h-100 bg-warning" style="width: 5px;"></div>
+                                <div class="d-flex flex-column ps-3">
+                                    <h5 class="text-start mb-1">Active Users</h5>
+                                    <span class="display-4 font-weight-bold">{{ active_user_count }}</span>
+                                </div>
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <i class="fas fa-users fa-2x text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Average Field Size -->
+                    <div class="col-md-3 col-12 mb-3">
+                        <div class="card shadow-sm border-0 rounded h-100">
+                            <div class="card-body position-relative">
+                                <div class="position-absolute top-0 start-0 h-100 bg-info" style="width: 5px;"></div>
+                                <div class="d-flex flex-column ps-3">
+                                    <h5 class="text-start mb-1">Average Field Size</h5>
+                                    <span class="display-4 font-weight-bold">{{ average_acres }}</span> acres
+                                </div>
+                                <div class="position-absolute top-0 end-0 p-3">
+                                    <i class="fas fa-ruler fa-2x text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-
-
-
-                <!-- List of Fields Section -->
-                <h3 class="text-center mb-4">List of Fields</h3>
+            <!-- Charts Section -->
+            <div class="container">
                 <div class="row">
-                    <!-- Table for Fields -->
-                    <div class="col-md-9 mb-4">
-                        <div class="table-responsive">
+                    <!-- Pie Chart for Crop Distribution -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Crop Distribution</h5>
+                                <div class="chart-containerpie">
+                                    <canvas id="cropPieChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line Chart for Field Registration -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <h5 class="card-title">Field Registration Trends</h5>
+                                <div class="chart-containerline">
+                                    <canvas id="fieldRegistrationChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field List Section -->
+            <div class="container mt-5">
+                <div class="row">
+                    <div class="col-md-9 mx-auto">
+                        <h3 class="mb-4">List of Fields</h3>
+
+                        <!-- Table for Fields -->
+                        <div class="table-responsive mb-4">
                             <table class="table table-striped table-bordered table-hover">
                                 <thead class="thead-dark">
                                     <tr>
@@ -269,13 +217,10 @@
                                         <th>Name</th>
                                         <th>Acres</th>
                                         <th>Location</th>
-                                        <!-- <th>Soil Data</th>
-                                        <th>Crop Planted</th> -->
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <!-- loop -->
                                     {% for field in bofa_page_obj %}
                                     <tr>
                                         <td>{{ field.field_id }}</td>
@@ -298,18 +243,18 @@
                                             {{ field.address.city_municipality }},
                                             {{ field.address.country }}
                                         </td>
-
-
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <a href="{% url 'bofa_manage_field' field.field_id %}"
-                                                    class="btn btn-success btn-sm mx-1">Manage</a>
+                                                    class="btn btn-success btn-sm">Manage</a>
                                             </div>
                                         </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
+                        </div>
+
                             <!-- Pagination -->
                             <nav aria-label="Page navigation" class="mt-3">
                                 <ul class="pagination justify-content-center">
@@ -336,27 +281,148 @@
                                     {% endif %}
                                 </ul>
                             </nav>
-                        </div>
                     </div>
-
-                    <!-- Recent Activities -->
-                    <!-- <div class="col-md-3">
-                        <div class="border rounded p-3 bg-light shadow-sm">
-                            <h4 class="mb-3"><strong>Recent Activity</strong></h4>
-                            <div>
-                                {% for fieldactivities in fields %}
-                                <div class="mb-3">
-                                    <span class="d-block">@ {{ fieldactivities.owner }} {{fieldactivities.created_at|timesince }} ago</span>
-                                    <p class="mb-0">Added field: {{ fieldactivities.field_name }} with {{fieldactivities.field_acres }} acres</p>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div> -->
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .chart-containerpie, .chart-containerline {
+        position: relative;
+        height: 400px;
+        width: 100%;
+    }
+</style>
+
+
+<!-- Pie Chart JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Retrieve chart data from Django context
+        var labels = {{ labels|safe }};
+        var data = {{ data|safe }};
+
+        var ctx = document.getElementById('cropPieChart').getContext('2d');
+        var cropPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Acres',
+                    data: data,
+                    backgroundColor: [
+                        '#FF6384', // Red
+                        '#36A2EB', // Blue
+                        '#FFCE56', // Yellow
+                        '#4BC0C0', // Green
+                        '#9966FF', // Purple
+                        '#FF9F40'  // Orange
+                    ],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                hoverOffset: 30, 
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                return `${label}: ${value} acres`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+<!-- Line Chart JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('fieldRegistrationChart').getContext('2d');
+        const fieldRegistrationChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ labelsfield|safe }},
+                datasets: [{
+                    label: 'Field Registrations',
+                    data: {{ datafield|safe }},
+                    borderColor: 'rgba(54, 162, 235, 1)', // Blue
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)', // Light blue background
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    pointRadius: 5,
+                    borderWidth: 3,
+                    tension: 0.3, // Smooth lines
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false // Disable legend
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let value = context.raw || 0;
+                                return `Fields: ${value}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            color: '#333'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Fields',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            color: '#333',
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
 
 {% endblock %}

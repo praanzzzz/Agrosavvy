@@ -15,6 +15,7 @@ from .models import (
     Barangay,
     Gender,
     AI_Recommendations,
+    UserAddress,
 )
 
 
@@ -25,7 +26,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("username", "password", "profile_picture")}),
         (
             "Personal info",
-            {"fields": ("firstname", "lastname", "email", "date_of_birth", "gender")}, # added gender here
+            {"fields": ("firstname", "lastname", "email", "date_of_birth", "gender", "useraddress",)}, 
         ),
         ("Roles", {"fields": ("roleuser",)}),
         (
@@ -50,6 +51,7 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
         ("Important dates", {"fields": ("last_login",)}),
+
     )
 
     add_fieldsets = (
@@ -106,7 +108,7 @@ def approve_users(modeladmin, request, queryset):
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
             gender=pending_user.gender, 
-            # useraddress=pending_user.address,
+            useraddress=pending_user.useraddress,
             roleuser = pending_user.roleuser,
             is_approved=True,
             approved_date=timezone.now(),
@@ -120,6 +122,7 @@ class PendingUserAdmin(admin.ModelAdmin):
         "username",
         "email",
         "roleuser",
+        'useraddress',
         "request_date",
     )
     actions = [approve_users]
@@ -130,9 +133,10 @@ class PendingUserAdmin(admin.ModelAdmin):
         "email",
         "firstname",
         "lastname",
-        "gender", # added gender here
+        "gender", 
         "date_of_birth",
-        "roleuser"
+        "useraddress",
+        "roleuser",
     )
 
     # Prevent deletion of pending users directly from admin
@@ -176,3 +180,4 @@ admin.site.register(RoleUser)
 admin.site.register(Barangay)
 admin.site.register(Gender)
 admin.site.register(AI_Recommendations)
+admin.site.register(UserAddress)
