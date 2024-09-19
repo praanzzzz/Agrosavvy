@@ -19,6 +19,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
+    body{
+      background-color: rgb(255, 255, 255);
+    }
     /* django messages styles */
     .alert {
       position: relative;
@@ -92,10 +95,13 @@
   {% include 'sidebar.html' %}
 
 
-  <main class="container">
-    {% block content %}
-    <!-- content -->
-    {% endblock %}
+  <main>
+    <div class="container">
+      {% block content %}
+      <!-- content -->
+      {% endblock %}
+    </div>
+
 
     <!-- Django Messages -->
     <div id="django-messages" class="fixed-top mt-4 container">
