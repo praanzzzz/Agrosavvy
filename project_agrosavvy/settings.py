@@ -167,3 +167,6 @@ DEFAULT_FROM_EMAIL = 'franzgabijan55@gmail.com'
 PASSWORD_RESET_TIMEOUT_DAYS = 1
 
 LOGIN_URL = 'my_login'
+
+# Increase the maximum number of form fields allowed
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Adjust this number as needed
