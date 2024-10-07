@@ -9,7 +9,9 @@ from .models import (
     PendingUser,
     ReviewRating,
     Barangay,
-    AI_Recommendations,
+    PredictionAI,
+    TipsAI,
+    ImageAnalysis,
 )
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
@@ -303,13 +305,10 @@ class AddressForm(forms.ModelForm):
 class FieldCropForm(forms.ModelForm):
     class Meta:
         model = FieldCropData
-        fields = ["crop_planted", "planting_date", "harvest_date"]
+        fields = ["crop_planted", "planting_date"]
         widgets = {
             "crop_planted": forms.Select(attrs={"class": "form-control"}),
             "planting_date": forms.DateInput(
-                attrs={"class": "form-control", "type": "date"}
-            ),
-            "harvest_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date"}
             ),
         }
@@ -368,16 +367,41 @@ class ReviewratingForm(forms.ModelForm):
 
 
 
-class AIRecommendationsForm(forms.ModelForm):
+class ImageAnalysisForm(forms.ModelForm):
     class Meta:
-        model = AI_Recommendations
-        fields = ['field', 'fieldsoildata']
+        model = ImageAnalysis
+        fields = ['image']
         widgets = {
-            'field': forms.Select(attrs={'class': 'form-control'}),
-            'fieldsoildata': forms.Select(attrs={'class': 'form-control'}),
+            'image': forms.ClearableFileInput(attrs={
+                'class': 'form-control-file',  # Bootstrap class for file input
+                # 'accept': 'image/*'  # Optional: limits file types to images
+            })
         }
-        labels = {
-        'field': '',
-        'fieldsoildata': '',
 
-    }
+
+
+class PredictionAIForm(forms.ModelForm):
+    class Meta:
+        model = PredictionAI
+        fields = ['field']
+        widgets = {
+            "field": forms.Select(attrs={'class':'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(PredictionAIForm, self).__init__(*args, **kwargs)
+        self.fields['field'].queryset = Field.objects.filter(is_deleted=False)
+
+
+
+class TipsAIForm(forms.ModelForm):
+    class Meta:
+        model = TipsAI
+        fields = ['field']
+        widgets = {
+            "field": forms.Select(attrs={'class':'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(TipsAIForm, self).__init__(*args, **kwargs)
+        self.fields['field'].queryset = Field.objects.filter(is_deleted=False)

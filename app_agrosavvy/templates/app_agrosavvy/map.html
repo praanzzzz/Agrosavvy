@@ -22,8 +22,8 @@
 
     #crop-filter {
         position: fixed;
-        top: 300px;
-        left: 1200px;
+        /* top: 300px;
+        left: 1200px; */
         z-index: 1;
         background-color: white;
         padding: 10px;
@@ -32,9 +32,6 @@
     }
 
     #contribute_btn {
-        position: fixed;
-        top: 45px;
-        left: 680px;
         z-index: 1;
     }
 
@@ -43,10 +40,6 @@
     /* header */
     .header {
         padding: 10px 20px;
-    }
-
-    .input-group {
-        width: 500px;
     }
 
     .dropdown,
@@ -62,15 +55,23 @@
 
 
 <header class="header d-flex justify-content-between align-items-center mt-4">
-    <!-- Search Bar -->
+    <!-- Filter-->
     <div class="d-flex align-items-center">
-        <div class="input-group">
-            <input type="text" class="form-control" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-secondary" type="button">
-                <i class="fas fa-search"></i>
-            </button>
+        <div id="crop-filter">
+            <label for="crop-select" class="pe-4">Filter by Crop:</label>
+            <select id="crop-select" style="width: 100px;" class="me-4"> <!-- Adjust the width as needed -->
+                <option value="all">All</option>
+                {% for crop in crops %}
+                <option value="{{ crop.crop_type }}">{{ crop.crop_type }}</option>
+                {% endfor %}
+            </select>
         </div>
     </div>
+    <!-- contribute -->
+    <div id="contribute_btn">
+        <a href="{% url 'add_field' %}"><button class="btn btn-primary">Contribute</button></a>
+    </div>
+    
     <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
         <button class="btn btn-notification me-3" type="button">
@@ -111,19 +112,6 @@
     </div>
 </header>
 
-<div id="crop-filter">
-    <label for="crop-select">Filter by Crop:</label>
-    <select id="crop-select">
-        <option value="all">All</option>
-        {% for crop in crops %}
-        <option value="{{ crop.crop_type }}">{{ crop.crop_type }}</option>
-        {% endfor %}
-    </select>
-</div>
-
-<div id="contribute_btn">
-    <a href="{% url 'add_field' %}"><button class="btn btn-primary">Contribute</button></a>
-</div>
 
 <div id="map"></div>
 

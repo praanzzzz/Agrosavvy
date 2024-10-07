@@ -37,10 +37,10 @@
                         <td>{{ field.address.barangay }}, {{ field.address.city_municipality }}, {{ field.address.country }}</td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{% url 'update_field' field.field_id %}" class="btn btn-outline-primary btn-sm">Update</a>
+                                <a id= "update_test" href="{% url 'update_field' field.field_id %}" class="btn btn-outline-primary btn-sm">Update</a>
                                 <form action="{% url 'delete_field' field.field_id %}" method="post" class="d-inline-block">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
+                                    <button id="deletefieldid" type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
                                 </form>
                             </div>
                         </td>
@@ -52,13 +52,13 @@
 
     <!-- Add Soil Data Button and Modal -->
     <div class="d-flex justify-content-end mb-4">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSoilDataModal">
+        <button id = "addsoildataid" type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSoilDataModal">
             Add Soil Data
         </button>
     </div>
     <div class="modal fade" id="addSoilDataModal" tabindex="-1" aria-labelledby="addSoilDataModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addSoilDataModalLabel">Add Soil Data</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -67,7 +67,7 @@
                     <form method="post" action="{% url 'add_soil_data' field_id=field.field_id %}">
                         {% csrf_token %}
                         {{ asdform.as_p }}
-                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        <button id="asdform_submit" type="submit" class="btn btn-primary mt-3">Submit</button>
                     </form>
                 </div>
             </div>
@@ -76,7 +76,7 @@
 
     <!-- Add Crop Data Button and Modal -->
     <div class="d-flex justify-content-end mb-4">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropDataModal">
+        <button id="addcropdataid" type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropDataModal">
             Add Crop Data
         </button>
     </div>
@@ -91,7 +91,7 @@
                     <form method="post" action="{% url 'add_crop_data' field_id=field.field_id %}">
                         {% csrf_token %}
                         {{ acdform.as_p }}
-                        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        <button id="acdform_submit" type="submit" class="btn btn-primary mt-3">Submit</button>
                     </form>
                 </div>
             </div>
@@ -126,10 +126,10 @@
                             <td>{{ fsd.ph }}</td>
                             <td>{{ fsd.record_date }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateSoilModal-{{ fsd.soil_id }}">Update</button>
+                                <button id="updatesoildataid" type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateSoilModal-{{ fsd.soil_id }}">Update</button>
                                 <form action="{% url 'delete_soil_data' fsd.soil_id %}" method="post" class="d-inline-block">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this soil data?')">Delete</button>
+                                    <button id="deletesoildataid" type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this soil data?')">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -231,7 +231,7 @@
                                         <form action="{% url 'update_crop_data' fcd.fieldcrop_id fcd.field.field_id %}" method="post">
                                             {% csrf_token %}
                                             {{ fcdforms|default_if_none:"{}"|dict_get:fcd.fieldcrop_id|default_if_none:"" }}
-                                            <button type="submit" class="btn btn-primary">Save changes</button>
+                                            <button id="deletecropdataid" type="submit" class="btn btn-primary">Save changes</button>
                                         </form>
                                     </div>
                                 </div>

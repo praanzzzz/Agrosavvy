@@ -32,9 +32,15 @@ urlpatterns = [
          template_name='auth_pages/password_reset_complete.html'
     ), name='password_reset_complete'),
 
-    #main pages for da admin
+    # main pages for da admin
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('ai', views.ai, name='ai'),
+
+    path('chat', views.chat, name='chat'),
+    path('image_analysis', views.image_analysis, name='image_analysis'),
+    path('predictionai', views.predictionai, name='predictionai'),
+    path('tipsai', views.tipsai, name = 'tipsai'),
+
+
     path('map', views.map, name='map'),
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),

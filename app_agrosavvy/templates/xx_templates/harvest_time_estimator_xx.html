@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .nav-tabs {
+    justify-content: center;
+  }
+
+  .nav-link {
+    padding: 1rem 1.5rem;
+    color: #4caf50;
+    transition: color 0.3s;
+  }
+
+  .nav-link.active {
+    color: #388e3c;
+    font-weight: bold;
+    position: relative;
+  }
+
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 100%;
+    height: 2px;
+    background-color: #388e3c;
+  }
+
+  .nav-link:not(.active):hover {
+    color: #388e3c;
+  }
+
+  #spinnerContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8); /* semi-transparent white background */
+    z-index: 9999; /* Highest z-index to make sure it's on top */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    display: none; /* Hidden by default */
+  }
+</style>
+
+<div id="spinnerContainer">
+  <div class="spinner-grow text-success spinner-grow-sm" role="status">
+    <span class="sr-only">Loading...</span>
+  </div>
+  <div class="spinner-grow text-success spinner-grow-sm mx-2" role="status">
+    <span class="sr-only">Loading...</span>
+  </div>
+  <div class="spinner-grow text-success spinner-grow-sm" role="status">
+    <span class="sr-only">Loading...</span>
+  </div>
+</div>
+
+<div class="container d-flex">
+  <div class="flex-grow-1 p-4 overflow-auto">
+    <div class="mb-4">
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a href="#" class="nav-link" data-tab="chat">Chat</a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'harvest_time_estimator' %}" class="nav-link active" data-tab="predict">Harvest Time Estimator</a>
+        </li>
+        <li class="nav-item">
+          <a href="{% url 'tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
+        </li>
+      </ul>
+    </div>
+
+    <div id="estimateTab" class="tab-content active">
+      <div class="card p-4">
+        <h2 class="h4">Harvest Time Estimator</h2>
+        <form method="POST" id="estimateForm">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <button id="estimateBtn" class="btn btn-success w-100">Get Estimate</button>
+        </form>
+        <div id="estimateResult" class="mt-2"></div>
+      </div>
+      {% if estimate_output %}
+      <div class="recommendations mt-4">
+        <h3>Output:</h3>
+        <div class="recommendation-content">
+          <p>{{ estimate_output|safe }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('estimateForm').onsubmit = function () {
+    document.getElementById('spinnerContainer').style.display = 'flex';
+  };
+</script>
+
+{% endblock %}

@@ -8,16 +8,7 @@
     <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
         <!-- Welcome Message -->
         <div class="d-flex align-items-center mb-2 mb-md-0">
-            <strong class="me-2">Welcome Back, {{ user.username }} 👋</strong>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="d-flex align-items-center mb-2 mb-md-0">
-            <input type="text" class="form-control me-2" placeholder="Search" aria-label="Search"
-                style="max-width: 300px;">
-            <button class="btn btn-outline-secondary" type="button">
-                <i class="fas fa-search"></i>
-            </button>
+            <strong class="welcome-message me-2">Welcome Back, {{ user.username }} 👋</strong>
         </div>
 
         <!-- User Profile and Notification -->
@@ -243,7 +234,7 @@
                                             {{ field.address.country }}
                                         </td>
                                         <td>
-                                            <div class="btn-group" role="group">
+                                            <div id = 'manage_field' class="btn-group" role="group">
                                                 <a href="{% url 'manage_field' field.field_id %}"
                                                     class="btn btn-success btn-sm">Manage</a>
                                             </div>

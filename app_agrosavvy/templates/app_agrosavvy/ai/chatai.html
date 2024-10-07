@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    .nav-tabs {
+        margin-top: 20px;
+        justify-content: center;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .nav-link {
+        padding: 10px 20px;
+        color: #333;
+        font-weight: 500;
+        transition: color 0.3s, background-color 0.3s;
+        border: none;
+    }
+
+    .nav-link.active {
+        color: #007bff;
+        border-bottom: 3px solid #007bff;
+        background-color: transparent;
+        font-weight: bold;
+    }
+
+    .nav-link:not(.active):hover {
+        color: #0056b3;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    /* Chat styles */
+    .chat-container {
+        height: 80vh;
+        display: flex;
+        flex-direction: column;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        background-color: #ffffff;
+    }
+
+    .card-header {
+        background-color: #007bff;
+        color: #ffffff;
+        font-weight: bold;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .messages-box {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        background-color: #f5f5f5;
+    }
+
+    .messages-list {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .message {
+        display: flex;
+        flex-direction: column;
+        margin: 10px 0;
+    }
+
+    .sent {
+        align-items: flex-end;
+    }
+
+    .received {
+        align-items: flex-start;
+    }
+
+    .message-label {
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+        color: #777;
+    }
+
+    .message-text {
+        max-width: 70%;
+        padding: 10px 15px;
+        border-radius: 15px;
+        background-color: #e0e0e0;
+        color: #333;
+        font-size: 0.95rem;
+    }
+
+    .sent .message-text {
+        background-color: #007bff;
+        color: #ffffff;
+        border-bottom-right-radius: 0;
+    }
+
+    .received .message-text {
+        background-color: #e0e0e0;
+        color: #333;
+        border-bottom-left-radius: 0;
+    }
+
+    /* Message form */
+    .message-form {
+        display: flex;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .message-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 15px;
+        padding: 10px 15px;
+        margin-right: 10px;
+    }
+
+    .btn-send {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 15px;
+        padding: 0 20px;
+        cursor: pointer;
+    }
+
+    .btn-send:hover {
+        background-color: #0056b3;
+    }
+
+    /* Spinner styles */
+    .spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute; 
+    bottom: 100px; 
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999; 
+    margin: 0; 
+    background: none; 
+}
+
+
+    .spinner .dot {
+        width: 10px;
+        height: 10px;
+        margin: 3px;
+        background-color: #007bff;
+        border-radius: 50%;
+        animation: bounce 0.6s infinite alternate;
+    }
+
+    .spinner .dot:nth-child(1) {
+        animation-delay: 0s;
+    }
+
+    .spinner .dot:nth-child(2) {
+        animation-delay: 0.1s;
+    }
+
+    .spinner .dot:nth-child(3) {
+        animation-delay: 0.2s;
+    }
+
+    .spinner .dot:nth-child(4) {
+        animation-delay: 0.3s;
+    }
+
+    .spinner .dot:nth-child(5) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+        0% {
+            transform: translateY(0);
+        }
+
+        100% {
+            transform: translateY(-10px);
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="d-flex justify-content-center mb-4">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a href="{% url 'chat' %}" class="nav-link active" data-tab="chat">Chat</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="chat-container position-relative">
+        <div class="card-header">Agrosavvy Chat</div>
+        <div class="messages-box">
+            <ul class="messages-list" id="messagesList">
+                {% for chat in chats %}
+                {% if chat.user == request.user %}
+                <li class="message sent">
+                    <div class="message-label">You</div>
+                    <div class="message-text">{{ chat.message }}</div>
+                </li>
+                <li class="message received">
+                    <div class="message-label">AI Chatbot</div>
+                    <div class="message-text">{{ chat.response }}</div>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+
+
+        <!-- spinner -->
+        <div class="spinner" id="spinner" style="display: none;">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+
+        <form class="message-form" id="messageForm">
+            {% csrf_token %}
+            <input type="text" class="form-control message-input" placeholder="Type your message..." id="messageInput">
+            <button type="submit" class="btn btn-send">Send</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function scrollToBottom() {
+        const messagesBox = document.querySelector('.messages-box');
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+    const messagesList = document.getElementById('messagesList');
+    const spinner = document.getElementById('spinner');
+
+    messageForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (message.length === 0) {
+            return;
+        }
+
+        const messageItem = document.createElement('li');
+        messageItem.classList.add('message', 'sent');
+        messageItem.innerHTML = `
+            <div class="message-label">You</div>
+            <div class="message-text">${message}</div>`;
+        messagesList.appendChild(messageItem);
+
+        messageInput.value = '';
+        scrollToBottom();  // Scroll to the bottom after adding the message
+
+        // Show the spinner while waiting for AI response
+        spinner.style.display = 'flex';
+
+        fetch('', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'message': message
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                const response = data.response;
+                const messageItem = document.createElement('li');
+                messageItem.classList.add('message', 'received');
+                messageItem.innerHTML = `
+                <div class="message-label">AI Chatbot</div>
+                <div class="message-text">${response}</div>`;
+                messagesList.appendChild(messageItem);
+                scrollToBottom();  // Scroll to the bottom after adding the response
+            })
+            .finally(() => {
+                // Hide the spinner after the response is received
+                spinner.style.display = 'none';
+            });
+    });
+
+    // Initial scroll to the bottom on page load
+    scrollToBottom();
+</script>
+
+{% endblock %}

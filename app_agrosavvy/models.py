@@ -345,8 +345,8 @@ class FieldCropData(models.Model):
     fieldcrop_id = models.AutoField(primary_key=True)
     crop_planted = models.ForeignKey(Crop, on_delete=models.CASCADE)
     planting_date = models.DateField()
-    harvest_date = models.DateField()
-    # new
+    # # maybe remove this
+    # harvest_date = models.DateField()
     is_deleted = models.BooleanField(default = False)
 
     def delete(self, *args, **kwargs):
@@ -358,6 +358,7 @@ class FieldCropData(models.Model):
     
     class Meta:
         ordering = ['-planting_date']
+
 
 
 class FieldSoilData(models.Model):
@@ -383,23 +384,60 @@ class FieldSoilData(models.Model):
 
 
 
-class AI_Recommendations(models.Model):
-    reco_id = models.AutoField(primary_key=True)
-    field = models.ForeignKey(Field, on_delete=models.CASCADE, null=True, blank=True)
-    fieldsoildata = models.ForeignKey(FieldSoilData, on_delete=models.CASCADE, null=True, blank=True)
-    # AI-generated recommendation fields
-    recommendations = models.TextField(blank=True, null=True)  # Store general recommendations (e.g., planting, soil treatment)
-    # created_at = models.DateTimeField(auto_now_add=True)
+class Chat(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    message = models.TextField()
+    response = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Recommendation for {self.field}"
-
-    class Meta:
-        ordering = ['-reco_id']
+        return f'{self.user.username}: {self.message}'
 
 
+# class ChatGroup(models.Model):
+#      user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
 
+#      def __str__self__(self):
+#          return f'{self.}'
+
+
+class ImageAnalysis(models.Model):
+    analysis_id = models.AutoField(primary_key=True)
+    image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
+    # image_url = models.URLField(null=True, blank=True) 
+    analysis_output = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.analysis_output[:50]
     
+
+class PredictionAI(models.Model):
+    predictionai_id = models.AutoField(primary_key=True)
+    field = models.ForeignKey(Field, on_delete=models.SET_NULL, null=True, blank=True)
+    # general prediction for yield, disease risk, planting harvest
+    prediction = models.TextField(blank=True, null=True) 
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Prediction for {self.field}. Date: {self.created_at}"
+    
+    class Meta:
+        ordering = ['-created_at']
+
+
+class TipsAI(models.Model):
+    tipsai_id = models.AutoField(primary_key=True)
+    field = models.ForeignKey(Field, on_delete=models.SET_NULL, null=True, blank=True)
+    # general tips on soil tips and pest management tips
+    tips = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Tips for {self.field}. Date: {self.created_at}"
+    
+    class Meta:
+        ordering = ['-created_at']
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):
