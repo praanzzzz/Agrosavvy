@@ -14,8 +14,13 @@ from .models import (
     Crop,
     Barangay,
     Gender,
-    AI_Recommendations,
     UserAddress,
+    ChatGroup,
+    Chat,
+    PredictionAI,
+    TipsAI,
+    ImageAnalysis,
+    
 )
 
 
@@ -179,5 +184,10 @@ admin.site.register(Crop)
 admin.site.register(RoleUser)
 admin.site.register(Barangay)
 admin.site.register(Gender)
-admin.site.register(AI_Recommendations)
 admin.site.register(UserAddress)
+admin.site.register(ChatGroup)
+admin.site.register(Chat)
+admin.site.register(ImageAnalysis)
+admin.site.register(PredictionAI)
+admin.site.register(TipsAI)
+
