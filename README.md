@@ -36,7 +36,7 @@ venv\scripts\activate
 
 --> Move into the env folder : 
 ```bash
-cd env
+cd venv
 ```
 
 ### Requirements
