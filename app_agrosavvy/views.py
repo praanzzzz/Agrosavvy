@@ -8,6 +8,7 @@ from .models import (
     FieldSoilData,
     FieldCropData,
     Chat,
+    ChatGroup,
 )
 from .forms import (
     FieldForm,
@@ -26,7 +27,8 @@ from .forms import (
 
 # others
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, StreamingHttpResponse
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
@@ -130,11 +132,8 @@ def dashboard(request):
 
     #  for brgy officers
     elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
-        # Extract barangay from user's address (brgy, Cebu City)
         user_address = request.user.useraddress.useraddress
-        # Extract the barangay part (removes the Cebu City)
         user_barangay = user_address.split(",")[0].strip() 
-        # Filter fields where the barangay in the Address model matches the extracted barangay
         fields = Field.objects.filter(
             Q(address__barangay__brgy_name=user_barangay, is_deleted=False)
         )
@@ -146,6 +145,7 @@ def dashboard(request):
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
         reviewrating_context = reviewrating(request)
+
         # pagination
         paginator = Paginator(fields, 10)  
         page_number = request.GET.get(
@@ -206,6 +206,7 @@ def dashboard(request):
         return redirect("forbidden")
 
 
+
 def ask_openai(message):
     response = client.chat.completions.create(
         model = "gpt-4o-mini",
@@ -219,29 +220,60 @@ def ask_openai(message):
 
 
 
-def chat(request):
-    chats = Chat.objects.filter(user=request.user)
 
-    if request.method == 'POST':
-        message = request.POST.get('message')
-        response = ask_openai(message)
+# chat and creation of chatgroup
+def chat(request, group_id=None):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer" ):
+        chat_group = None
+        if group_id:
+            chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user, is_deleted=False)
 
-        chat = Chat(user=request.user, message=message, response=response, created_at=timezone.now())
-        chat.save()
-        return JsonResponse({'message': message, 'response': response})
-    
-    context = {
-        "chats": chats
-    }
+        chats = Chat.objects.filter(user=request.user, chat_group=chat_group)
 
-    return render(request, 'app_agrosavvy/ai/chatai.html', context)
+        if request.method == 'POST':
+            message = request.POST.get('message', '').strip()
+
+            # If the message is empty, create a new chat group without sending a message
+            if not message:
+                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group
+                return JsonResponse({'group_id': chat_group.id, 'status': 'new_group_created'})
+
+            # If a message is present, send it to the existing or newly created chat group
+            if not chat_group:
+                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group if none exists
+
+            response = ask_openai(message)
+            chat = Chat(user=request.user, chat_group=chat_group, message=message, response=response, created_at=timezone.now())
+            chat.save()
+            return JsonResponse({'message': message, 'response': response, 'group_id': chat_group.id, 'status': 'message_sent'})
+        
+        context = {
+            "chats": chats,
+            "chat_group": chat_group,
+            "chat_groups": ChatGroup.objects.filter(user=request.user, is_deleted=False),
+        }
+
+        return render(request, 'app_agrosavvy/ai/chatai.html', context)
+    else:
+        return redirect("forbidden")
 
 
 
 
+def delete_chat_group(request, group_id):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        if request.method == 'POST':
+            chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user)
+            
+            if chat_group.user == request.user:
+                chat_group.delete()
+                messages.success(request, 'Chat group deleted successfully.')
+            else:
+                messages.error(request, 'You do not have permission to delete this chat group.')
 
-
-
+        return redirect('chat')
+    else:
+        return redirect("forbidden")
 
 
 
@@ -314,15 +346,14 @@ def image_analysis(request):
                         analysis.image = image
                         analysis.analysis_output = mark_safe(cleaned_content)
                         analysis.save()
-                        print("Analysis saved successfully.")
+                        messages.success(request, "Analysis saved.")
                     else:
-                        print('AI did not respond or no output provided')
-                 
+                        messages.error(request, "AI did not respond. Please try again later")
                 else:
-                    print("No image provided")
+                    messages.error(request, "No Image provided")
             else:
-                print("Form is invalid")
-                print(form.errors)  # Debug form errors
+                messages.error(request, 'Form is invalid.')
+                # print(form.errors)
         else:
             form = ImageAnalysisForm()
         context = {
@@ -420,16 +451,13 @@ def predictionai(request):
                         prediction.prediction = mark_safe(cleaned_content)
                         prediction.save()
                     else:
-                        print ('AI did not respond. no output provided')
+                        messages.error(request, "AI did not respond. Please try again later.")
                 else:
-                    # debug
-                    print("No soil data available for the selected field")
+                    messages.error(request, 'No soil data available for the selected field.')
             else:
-                # debug
-                print("Form is invalid")  
+                messages.error(request, "Form is invalid.")
         else:
             form = PredictionAIForm()
-
         context = {
             "form":form,
             "prediction":prediction.prediction if form.is_valid() else None,
@@ -487,8 +515,6 @@ def tipsai(request):
 
                         f"Ensure that your tips are easy to understand and provide clear action points to help the farmer enhance soil health and effectively manage pests."
                     )
-
-
                     messages = [
                         {"role": "user", "content": prompt}
                     ]
@@ -514,16 +540,13 @@ def tipsai(request):
                         tips.tips = mark_safe(cleaned_content)
                         tips.save()
                     else:
-                        print ('AI did not respond. no output provided')
+                        messages.error(request, "AI did not respond. Please try again later")
                 else:
-                    # debug
-                    print("No soil data available for the selected field")
+                    messages.error(request, "No soil data available for the selected field.")
             else:
-                # debug
-                print("Form is invalid")  
+                messages.error(request, "Form is invalid")
         else:
             form = TipsAIForm()
-
         context = {
             "form":form,
             "tips":tips.tips if form.is_valid() else None,
@@ -620,7 +643,6 @@ def add_field(request):
 
 
 def weather(request):
-
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         if request.method == "POST":
             location = request.POST.get("location")
@@ -772,7 +794,7 @@ def user_management(request):
 
 
 
-# user management for da admin
+# user management for da admin and brgy officer
 def admin_deactivate_account(request, user_id):
     user = get_object_or_404(CustomUser, id=user_id)
     if request.user.is_authenticated:
@@ -911,6 +933,8 @@ def manage_field(request, field_id):
         return redirect("forbidden")
 
 
+
+
 def update_field(request, field_id):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
         request.user.roleuser.roleuser =="brgy_officer"
@@ -1037,9 +1061,366 @@ def bofa_dashboard(request):
         return redirect("forbidden")
 
 
-def bofa_ai(request):
+
+
+
+
+
+
+
+
+def bofa_ask_openai(message):
+    response = client.chat.completions.create(
+        model = "gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an helpful assistant."},
+            {"role": "user", "content": message},
+        ]
+    )
+    answer = response.choices[0].message.content.strip()
+    return answer
+
+
+
+def bofa_chat(request, group_id=None):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        return render(request, "bofa_pages/bofa_ai.html", {})
+        chat_group = None
+        if group_id:
+            chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user, is_deleted=False)
+
+        chats = Chat.objects.filter(user=request.user, chat_group=chat_group)
+
+        if request.method == 'POST':
+            message = request.POST.get('message', '').strip()
+
+            # If the message is empty, create a new chat group without sending a message
+            if not message:
+                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group
+                return JsonResponse({'group_id': chat_group.id, 'status': 'new_group_created'})
+
+            # If a message is present, send it to the existing or newly created chat group
+            if not chat_group:
+                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group if none exists
+
+            response = bofa_ask_openai(message)
+            chat = Chat(user=request.user, chat_group=chat_group, message=message, response=response, created_at=timezone.now())
+            chat.save()
+            return JsonResponse({'message': message, 'response': response, 'group_id': chat_group.id, 'status': 'message_sent'})
+
+        context = {
+            "chats": chats,
+            "chat_group": chat_group,
+            "chat_groups": ChatGroup.objects.filter(user=request.user, is_deleted=False),
+        }
+
+        return render(request, 'bofa_pages/ai/bofa_chatai.html', context)
+    else:
+        return redirect('forbidden')
+
+
+
+def bofa_delete_chat_group(request, group_id):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        if request.method == 'POST':
+            chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user)
+            
+            if chat_group.user == request.user:
+                chat_group.delete()
+                messages.success(request, 'Chat group deleted successfully.')
+            else:
+                messages.error(request, 'You do not have permission to delete this chat group.')
+        return redirect('bofa_chat')
+    else:
+        return redirect("forbidden")
+
+
+
+
+
+THIS_MODEL = "gpt-4o-mini"
+
+
+def bofa_encode_image(image_file):
+    # with open(image_path, "rb") as image_file:
+    return base64.b64encode(image_file.read()).decode('utf-8')
+
+
+def bofa_image_analysis(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        analysis = None 
+
+        if request.method == 'POST':
+            form = ImageAnalysisForm(request.POST, request.FILES)
+            if form.is_valid():
+                analysis = form.save(commit=False)
+                image = form.cleaned_data.get('image') 
+
+                if image:
+                    base64_image = bofa_encode_image(image)
+
+                    # Send the request to the API
+                    response = client.chat.completions.create(
+                            model=THIS_MODEL,
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": [
+                                        {"type": "text",
+                                        "text": "As an AI field analyst, your task is to analyze the attached image. Focus on identifying the health condition of the crops, and suggest possible improvements. Highlight any visible issues (e.g., diseases, pests) or potential growth opportunities based on the image."
+                                        }
+                                    ],
+                                },
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "type":"text",
+                                            "text": "What is in this image?"
+                                        },
+                                        {
+                                            "type": "image_url",
+                                            "image_url": 
+                                                {
+                                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                                }
+                                        }
+                                    ]
+                                }
+                            ],
+                            max_tokens=300
+                    )
+
+                    if response.choices:
+                        ai_output = response.choices[0].message.content
+                        # print(f"AI Response: {ai_output}") 
+
+                        # Clean and format AI output for display
+                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
+                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
+                        cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+                        # Save analysis result and image
+                        analysis.image = image
+                        analysis.analysis_output = mark_safe(cleaned_content)
+                        analysis.save()
+                        messages.success(request, 'Analysis saved.')
+                    else:
+                        messages.error(request, "AI did not respond. Please try again later.")                
+                else:
+                    messages.error(request, "No image provided")
+            else:
+                messages.error(request, "Form is invalid.")
+                # print(form.errors)
+        else:
+            form = ImageAnalysisForm()
+        context = {
+            "form": form,
+            "analysis_output": analysis.analysis_output if analysis else None,
+        }
+        return render(request, "bofa_pages/ai/bofa_analysisai.html", context)
+    else:
+        return redirect("forbidden")
+
+
+
+
+
+
+
+
+
+    
+
+def bofa_predictionai(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        prediction = None  
+
+        if request.method == 'POST':
+            form = PredictionAIForm(request.POST)
+            if form.is_valid():
+                prediction = form.save(commit=False)
+
+                selected_field = form.cleaned_data.get('field')
+
+                latest_fieldsoildata = FieldSoilData.objects.filter(
+                    field=selected_field, is_deleted=False
+                    ).order_by('-record_date').first()
+                
+                if latest_fieldsoildata:
+                    prompt = (f"As an AI field analyst, your task is to provide accurate predictions in the following areas: "
+                        f"Crop Yield Prediction, Disease Risk Prediction, and Planting/Harvesting Prediction. "
+                        f"Your analysis should be concise and actionable, tailored to the current field conditions.\n\n"
+                        
+                        f"Field Summary:\n"
+                        f"  Role: Agriculturist\n"
+                        f"  Task: Provide predictions and recommendations based on the field and soil data.\n\n"
+                        
+                        f"Field Details:\n"
+                        f"  Field Name: {selected_field.field_name}\n"
+                        f"  Field Acres: {selected_field.field_acres}\n"
+                        f"  Location: {selected_field.address}\n\n"
+
+                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
+                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
+                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
+                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
+                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
+
+                        f"Task: Based on the field and soil data provided, predict the following:\n"
+                        
+                        f"1. **Crop Yield Prediction**: Estimate the expected yield for the crops best suited to these conditions "
+                        f"(e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
+                        f"Consider soil nutrient levels, pH balance, and field size in your prediction.\n"
+                        
+                        f"2. **Disease Risk Prediction**: Evaluate the risk of crop diseases based on soil health, environmental factors, and any vulnerabilities "
+                        f"you observe. Identify potential disease risks and suggest preventive measures or treatments.\n"
+                        
+                        f"3. **Planting/Harvesting Prediction**: Provide recommendations on optimal planting and harvesting times for the suggested crops, "
+                        f"considering field characteristics, soil conditions, and the region's climate.\n\n"
+
+                        f"Ensure that your predictions and recommendations are practical, easy to understand, and provide clear action points to help the farmer "
+                        f"improve yield, manage disease risks, and optimize planting and harvesting schedules."
+                    )
+
+                    messages = [
+                        {"role": "user", "content": prompt}
+                    ]
+
+                    response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages,
+                        temperature=1,
+                        max_tokens=500,
+                        top_p=1,
+                        frequency_penalty= 0,
+                        presence_penalty= 0,
+                        stream = False ,
+                    )
+
+                    if response.choices:
+                        response = response.choices[0].message.content
+                        # prediction.prediction = response
+                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
+                        # Replace headers (adjust for different levels if necessary)
+                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
+                        # Replace newlines with <br>
+                        cleaned_content = cleaned_content.replace('\n', '<br>')
+                        prediction.prediction = mark_safe(cleaned_content)
+                        prediction.save()
+                        messages.success(request, "Output saved.")
+                    else:
+                        messages.error(request, "AI did not respond. Please try again later.")
+                else:
+                    messages.error(request, "No soil data available for the selected field.")
+            else:
+                messages.error(request, "Form is invalid.")
+        else:
+            form = PredictionAIForm()
+
+        context = {
+            "form":form,
+            "prediction":prediction.prediction if form.is_valid() else None,
+        }
+        return render(request, "bofa_pages/ai/bofa_predictionai.html", context)
+    else:
+        return redirect("forbidden")
+
+
+
+
+
+def bofa_tipsai(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        tips = None  
+        if request.method == 'POST':
+            form = TipsAIForm(request.POST)
+
+            if form.is_valid():
+                tips = form.save(commit=False)
+
+                selected_field = form.cleaned_data.get('field')
+
+                latest_fieldsoildata = FieldSoilData.objects.filter(
+                    field=selected_field, is_deleted=False
+                    ).order_by('-record_date').first()
+                
+                if latest_fieldsoildata:
+                    prompt = (
+                        f"As an AI field analyst, your task is to provide detailed and actionable tips specifically on soil health and pest management. "
+                        f"Your recommendations should be practical and tailored to the current field conditions.\n\n"
+                        
+                        f"Field Summary:\n"
+                        f"  Role: Agriculturist\n"
+                        f"  Task: Provide insights and strategies based on the field and soil data.\n\n"
+                        
+                        f"Field Details:\n"
+                        f"  Field Name: {selected_field.field_name}\n"
+                        f"  Field Acres: {selected_field.field_acres}\n"
+                        f"  Location: {selected_field.address}\n\n"
+
+                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
+                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
+                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
+                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
+                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
+
+                        f"Task: Based on the provided soil data, generate tips on the following:\n"
+                        
+                        f"1. **Soil Health Tips**: Provide actionable recommendations for improving soil quality based on the nutrient levels and pH balance. "
+                        f"Consider practices such as crop rotation, organic amendments, and soil conservation techniques.\n"
+                        
+                        f"2. **Pest Management Strategies**: Offer effective pest management tips tailored to the crops best suited to these conditions (e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
+                        f"Identify common pests in the region and suggest prevention, monitoring, and control measures that are environmentally friendly and sustainable.\n\n"
+
+                        f"Ensure that your tips are easy to understand and provide clear action points to help the farmer enhance soil health and effectively manage pests."
+                    )
+
+
+                    messages = [
+                        {"role": "user", "content": prompt}
+                    ]
+
+                    response = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages,
+                        temperature=1,
+                        max_tokens=500,
+                        top_p=1,
+                        frequency_penalty= 0,
+                        presence_penalty= 0,
+                        stream = False ,
+                    )
+
+                    if response.choices:
+                        response = response.choices[0].message.content
+                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
+                        # Replace headers (adjust for different levels if necessary)
+                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
+                        # Replace newlines with <br>
+                        cleaned_content = cleaned_content.replace('\n', '<br>')
+                        tips.tips = mark_safe(cleaned_content)
+                        tips.save()
+                        messages.successs(request, "Tip saved.")
+                    else:
+                        messages.error(request, "AI did not respond. Please try again later.")
+                else:
+                    messages.error(request, "No soil data available for the selected field.")
+            else:
+                messages.error(request, "Form is invalid.")
+        else:
+            form = TipsAIForm()
+
+        context = {
+            "form":form,
+            "tips":tips.tips if form.is_valid() else None,
+        }
+        return render(request, "bofa_pages/ai/bofa_tipsai.html", context)
+    else:
+        return redirect("forbidden")
+
+
+
+
+
 
 
 # no auth yet and filters
@@ -1072,6 +1453,9 @@ def bofa_map(request):
         "crops": Crop.objects.all(),
     }
     return render(request, "bofa_pages/bofa_map.html", context)
+
+
+
 
 
 def bofa_add_field(request):
@@ -1125,6 +1509,7 @@ def bofa_weather(request):
 def bofa_settings(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         user = get_object_or_404(CustomUser, pk=request.user.pk)
+        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             updateprofileform = CustomUserUpdateForm(
@@ -1142,6 +1527,7 @@ def bofa_settings(request):
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform}
+        context.update(reviewrating_context)
         return render(request, "bofa_pages/bofa_settings.html", context)
     else:
         return redirect("forbidden")
@@ -1294,7 +1680,7 @@ def reviewrating(request):
             elif request.user.roleuser.roleuser == "farmer":
                 return redirect("bofa_dashboard")
         else:
-            messages.error(request, "Please correct the errors below.")
+            print("Please correct the errors below.")
     else:
         rform = ReviewratingForm()
 
@@ -1508,28 +1894,6 @@ def register_da_admin(request):
         "form": form,
     }
     return render(request, "auth_pages/register_da_admin.html", context)
-
-
-# # if farmer - maybe use this (direct sign up - no approval needed) but no. (since farmers must be in cebu city only)(needs approval jud)
-# def register_farmer(request):
-#     if request.method == "POST":
-#         form = SignUpForm(request.POST)
-#         if form.is_valid():
-#             user = form.save(commit=False)
-#             farmer = RoleUser.objects.get(roleuser="farmer")
-#             user.roleuser = farmer
-#             user.request_date = now()
-#             user.save()
-#             messages.success(
-#                 request,
-#                 "Account is now registered. Log in now.",
-#             )
-#             return redirect("my_login")
-#         else:
-#             messages.error(request, "Please check the form.")
-#     else:
-#         form = SignUpForm()
-#     return render(request, "auth_pages/register_farmer.html", {"form": form})
 
 
 

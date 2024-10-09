@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bofa_base.html' %}
 {% block content %}
 
 <style>
@@ -42,7 +42,7 @@
     }
 
     .card-header {
-        background-color: #228b34;;
+        background-color: #228b34;
         color: #ffffff;
         font-weight: bold;
         padding: 10px;
@@ -219,16 +219,16 @@
     <div class="d-flex justify-content-center mb-4">
         <ul class="nav nav-tabs">
             <li class="nav-item">
-                <a href="{% url 'chat' %}" class="nav-link active" data-tab="chat">Chat</a>
+                <a href="{% url 'bofa_chat' %}" class="nav-link active" data-tab="chat">Chat</a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
+                <a href="{% url 'bofa_image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
+                <a href="{% url 'bofa_predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
             </li>
             <li class="nav-item">
-                <a href="{% url 'tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
+                <a href="{% url 'bofa_tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
             </li>
         </ul>
     </div>
@@ -262,7 +262,7 @@
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <form action="{% url 'delete_chat_group' group.id %}" method="POST" style="display:inline;">
+                                    <form action="{% url 'bofa_delete_chat_group' group.id %}" method="POST" style="display:inline;">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-danger">Delete</button>
                                     </form>
@@ -322,6 +322,7 @@
 
 
 
+
 <script>
     // Function to scroll to the bottom of the chat messages
     function scrollToBottom() {
@@ -361,7 +362,7 @@
         spinner.style.display = 'flex';
 
         // Make the POST request to send the message and receive the AI's response
-        fetch(`/chat/group/${currentGroupId}/`, {
+        fetch(`/bofa_chat/group/${currentGroupId}/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -388,15 +389,9 @@
 
 
 
-
-
-
-    
-
-
     // Event listener for creating a new chat group
     document.getElementById('createGroupButton').addEventListener('click', () => {
-        fetch('/chat/', {  // Make sure this URL is correctly mapped in your Django urls.py
+        fetch('/bofa_chat/', {  // Make sure this URL is correctly mapped in your Django urls.py
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -431,12 +426,9 @@
     });
 
 
-
-
-
     // Function to load chats for a specific group
     function loadChatsForGroup(groupId) {
-        fetch(`/chat/group/${groupId}/`)
+        fetch(`/bofa_chat/group/${groupId}/`)
             .then(response => response.text())
             .then(data => {
                 // Replace the chat messages container with the new content
@@ -454,11 +446,6 @@
                 console.error('Error loading chats for group:', error);
             });
     }
-
-
-
-
-
 
 
     // Event listener for switching between chat groups
@@ -479,5 +466,4 @@
     scrollToBottom();
 
 </script>
-
 {% endblock %}

@@ -22,7 +22,6 @@ class Gender(models.Model):
     GENDER_CHOICES=[
         ("Male", "Male"),
         ("Female","Female"),
-        ("Other", "Other"),
     ]
     gender = models.CharField(max_length=7, choices=GENDER_CHOICES)
 
@@ -369,7 +368,6 @@ class FieldSoilData(models.Model):
     potassium = models.FloatField(null=True, blank=True)
     ph = models.FloatField(null=True, blank=True)
     record_date = models.DateField()
-    # new
     is_deleted = models.BooleanField(default = False)
 
     def delete(self, *args, **kwargs):
@@ -384,21 +382,33 @@ class FieldSoilData(models.Model):
 
 
 
+
+class ChatGroup(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
+
+    def __str__(self):
+        return f'{self.id}. {self.user.username}'
+    
+    class Meta:
+        ordering = ['-created_at']
+
+
 class Chat(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    chat_group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='chats') 
     message = models.TextField()
     response = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.user.username}: {self.message}'
-
-
-# class ChatGroup(models.Model):
-#      user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-
-#      def __str__self__(self):
-#          return f'{self.}'
+    
 
 
 class ImageAnalysis(models.Model):
@@ -410,6 +420,8 @@ class ImageAnalysis(models.Model):
 
     def __str__(self):
         return self.analysis_output[:50]
+    
+
     
 
 class PredictionAI(models.Model):

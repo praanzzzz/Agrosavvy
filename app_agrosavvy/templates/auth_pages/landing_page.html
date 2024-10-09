@@ -1,157 +1,917 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgroSavvy</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    <link rel="stylesheet" href="/static/css/lp_style.css">
-</head>
-<body>
-    <!-- Header Section -->
-    <header>
-        <div class="logo">
-            <img src="static/images/AgroSavvy_Logo.png" alt="AgroSavvy" class="logo-image">
-            AgroSavvy
-        </div>
-        <nav>
-            <ul>
-                <li><a href="#">Home</a></li>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Services</a></li>
-                <li><a href="#">Contact Us</a></li>
-            </ul>
-        </nav>
-        <a href="{% url 'my_login' %}" class="register-button">Register/Login</a>
-    </header>
-    
 
-    <!-- Hero Section -->
+<head>
+    <title>Welcome || AgroSavvy</title>
+    <link rel="icon" href="/static/images/Logo_AgroSavvy.png" type="image/png" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
+    <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet" type="text/css" />
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet" type="text/css" />
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            font: 400 15px Lato, sans-serif;
+            line-height: 1.8;
+            color: #818181;
+        }
+
+        .single_advisor_profile {
+            position: relative;
+            margin-bottom: 50px;
+            -webkit-transition-duration: 500ms;
+            transition-duration: 500ms;
+            z-index: 1;
+            border-radius: 15px;
+            -webkit-box-shadow: 0 0.25rem 1rem 0 rgba(47, 91, 234, 0.125);
+            box-shadow: 0 0.25rem 1rem 0 rgba(47, 91, 234, 0.125);
+        }
+
+        .single_advisor_profile .advisor_thumb {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px 15px 0 0;
+            z-index: 1;
+            margin: 0 auto;
+            padding: 30px 30px 0 30px;
+            background-image: url('/static/images/green_background.jpg');
+            overflow: hidden;
+        }
+
+        .single_advisor_profile .advisor_thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* Ensure the image covers the container while maintaining aspect ratio */
+            border-radius: inherit;
+            /* Apply the same border-radius to the image */
+        }
+
+        .single_advisor_profile .advisor_thumb::after {
+            height: 160px;
+            bottom: -90px;
+        }
+
+        .single_advisor_profile .single_advisor_details_info {
+            position: relative;
+            z-index: 1;
+            padding: 30px;
+            text-align: right;
+            -webkit-transition-duration: 500ms;
+            transition-duration: 500ms;
+            border-radius: 0 0 15px 15px;
+            background-color: #ffffff;
+        }
+
+        .single_advisor_profile .single_advisor_details_info::after {
+            -webkit-transition-duration: 500ms;
+            transition-duration: 500ms;
+            position: absolute;
+            z-index: 1;
+            width: 50px;
+            height: 3px;
+            background-color: #3f43fd;
+            content: "";
+            top: 12px;
+            right: 30px;
+        }
+
+        .single_advisor_profile .single_advisor_details_info h6 {
+            margin-bottom: 0.25rem;
+            -webkit-transition-duration: 500ms;
+            transition-duration: 500ms;
+        }
+
+        @media only screen and (min-width: 768px) and (max-width: 991px) {
+            .single_advisor_profile .single_advisor_details_info h6 {
+                font-size: 14px;
+            }
+        }
+
+        .single_advisor_profile .single_advisor_details_info p {
+            -webkit-transition-duration: 500ms;
+            transition-duration: 500ms;
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+
+        @media only screen and (min-width: 768px) and (max-width: 991px) {
+            .single_advisor_profile .single_advisor_details_info p {
+                font-size: 12px;
+            }
+        }
+
+        .single_advisor_profile:hover .advisor_thumb::after,
+        .single_advisor_profile:focus .advisor_thumb::after {
+            background-color: #051396a8;
+        }
+
+        .single_advisor_profile:hover .single_advisor_details_info,
+        .single_advisor_profile:focus .single_advisor_details_info {
+            background-color: #051396a8;
+        }
+
+        .single_advisor_profile:hover .single_advisor_details_info::after,
+        .single_advisor_profile:focus .single_advisor_details_info::after {
+            background-color: #ffffff;
+        }
+
+        .single_advisor_profile:hover .single_advisor_details_info h6,
+        .single_advisor_profile:focus .single_advisor_details_info h6 {
+            color: #ffffff;
+        }
+
+        .single_advisor_profile:hover .single_advisor_details_info p,
+        .single_advisor_profile:focus .single_advisor_details_info p {
+            color: #ffffff;
+        }
+
+        h2 {
+            font-size: 24px;
+            text-transform: uppercase;
+            color: #303030;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        h4 {
+            font-size: 19px;
+            line-height: 1.375em;
+            color: #303030;
+            font-weight: 400;
+            margin-bottom: 30px;
+        }
+
+        .jumbotron {
+            background-color: #000000;
+            color: #fff;
+            padding: 100px 25px;
+            font-family: Montserrat, sans-serif;
+        }
+
+        .container-fluid {
+            padding: 60px 50px;
+        }
+
+        .cta-button {
+            background-color: #006400;
+            padding: 15px 30px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 18px;
+            margin-top: 20px;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: #4caf50;
+        }
+
+        /* Add styles for the logo and image */
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo-image {
+            width: 200px;
+            /* Adjust the size as needed */
+            height: fit-content;
+            margin-right: 10px;
+            /* Adds space between logo and text */
+        }
+
+        .hero {
+            background-image: url("/static/images/farm.jpg");
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+            color: white;
+            padding: 100px 20px;
+            position: relative;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin: 0;
+        }
+
+        div.scroll-container {
+            background-color: transparent;
+            overflow: auto;
+            white-space: nowrap;
+            padding: 10px;
+        }
+
+        div.scroll-container img {
+            padding: 5px;
+            width: 480px;
+            height: 350px;
+            object-fit: cover;
+        }
+
+        .hero p {
+            font-size: 24px;
+        }
+
+        .bg-grey {
+            background-color: #f6f6f6;
+        }
+
+        .logo-small {
+            color: #006400;
+            font-size: 50px;
+        }
+
+        .logo {
+            color: #006400;
+            font-size: 200px;
+        }
+
+        .thumbnail {
+            padding: 0 0 15px 0;
+            border: none;
+            border-radius: 0;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            margin-bottom: 10px;
+        }
+
+        /* .carousel-control.right,
+        .carousel-control.left {
+            background-image: none;
+            color: #006400;
+        } */
+
+        .carousel-indicators li {
+            border-color: #006400;
+        }
+
+        .carousel-indicators li.active {
+            background-color: #006400;
+        }
+
+        .item h4 {
+            font-size: 19px;
+            line-height: 1.375em;
+            font-weight: 400;
+            font-style: italic;
+            margin: 70px 0;
+        }
+
+        .item span {
+            font-style: normal;
+        }
+
+        .panel {
+            border: 1px solid #006400;
+            border-radius: 0 !important;
+            transition: box-shadow 0.5s;
+        }
+
+        .panel:hover {
+            box-shadow: 5px 0px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-footer .btn:hover {
+            border: 1px solid #006400;
+            background-color: #fff !important;
+            color: #006400;
+        }
+
+        .panel-heading {
+            color: #fff !important;
+            background-color: #0e770e !important;
+            padding: 25px;
+            border-bottom: 1px solid transparent;
+            border-top-left-radius: 0px;
+            border-top-right-radius: 0px;
+            border-bottom-left-radius: 0px;
+            border-bottom-right-radius: 0px;
+        }
+
+        .panel-footer {
+            background-color: white !important;
+        }
+
+        .panel-footer h3 {
+            font-size: 32px;
+        }
+
+        .panel-footer h4 {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .panel-footer .btn {
+            margin: 15px 0;
+            background-color: #006400;
+            color: #fff;
+        }
+
+        .navbar {
+            margin-bottom: 0;
+            background-color: #006400;
+            z-index: 9999;
+            border: 0;
+            font-size: 12px !important;
+            line-height: 1.42857143 !important;
+            letter-spacing: 4px;
+            border-radius: 0;
+            font-family: Montserrat, sans-serif;
+        }
+
+        .navbar li a,
+        .navbar .navbar-brand {
+            color: #fff !important;
+        }
+
+        .navbar-nav li a:hover,
+        .navbar-nav li.active a {
+            color: #006400 !important;
+            background-color: #fff !important;
+        }
+
+        .navbar-default .navbar-toggle {
+            border-color: transparent;
+            color: #fff !important;
+        }
+
+        footer .glyphicon {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #006400;
+        }
+
+        .slideanim {
+            visibility: hidden;
+        }
+
+        .slide {
+            animation-name: slide;
+            -webkit-animation-name: slide;
+            animation-duration: 1s;
+            -webkit-animation-duration: 1s;
+            visibility: visible;
+        }
+
+        @keyframes slide {
+            0% {
+                opacity: 0;
+                transform: translateY(70%);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0%);
+            }
+        }
+
+        @-webkit-keyframes slide {
+            0% {
+                opacity: 0;
+                -webkit-transform: translateY(70%);
+            }
+
+            100% {
+                opacity: 1;
+                -webkit-transform: translateY(0%);
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .col-sm-4 {
+                text-align: center;
+                margin: 25px 0;
+            }
+
+            .btn-lg {
+                width: 100%;
+                margin-bottom: 35px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .logo {
+                font-size: 150px;
+            }
+        }
+
+
+
+
+        /* django toast messages style */
+
+        /* django messages styles */
+        .alert {
+            position: relative;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            animation: fadeInOut 4s ease forwards;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .alert-warning {
+            color: #856404;
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .alert-dismissible {
+            padding-right: 3.5rem;
+        }
+
+        .alert-dismissible .btn-close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 1rem 1.25rem;
+            color: inherit;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            10% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            90% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+        }
+    </style>
+</head>
+
+<body id="myPage" data-spy="scroll" data-target=".navbar" data-offset="60">
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <img src="/static/images/AgroSavvy_Banner.png" href="index.html" alt="AgroSavvy" class="logo-image" />
+            </div>
+            <div class="collapse navbar-collapse" id="myNavbar">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#about">ABOUT</a></li>
+                    <li><a href="#services">SERVICES</a></li>
+                    <li><a href="#pricing">PRICING</a></li>
+                    <li><a href="#Developers">DEVELOPERS</a></li>
+                    <li><a href="#contact">CONTACT</a></li>
+                    <li><a href="{% url 'my_login' %}">LOGIN/REGISTER</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <section class="hero">
         <h1>Empowering Modern Agriculture with Smart Solutions</h1>
-        <p>Join us in transforming the future of agriculture with cutting-edge technology and sustainable practices.</p>
+        <p>
+            Join us in transforming the future of agriculture with cutting-edge
+            technology and sustainable practices.
+        </p>
         <a href="{% url 'my_login' %}" class="cta-button">Get Started</a>
     </section>
 
+    <!-- Container (About Section) -->
+    <div id="about" class="container-fluid">
+        <div class="row">
+            <div class="col-sm-8">
+                <h2>About</h2>
+                <br />
+                <h4>
+                    AgroSavvy is a Web Application that can help our beloved farmers to
+                    give them a great and wondeful recommendation using AgroSavvy.
+                </h4>
+                <br />
+                <p>
+                    AgroSavvy is a platform focused on agriculture, designed to support
+                    key stakeholders in the agricultural sector such as farmers, local
+                    government officials (Barangay officials), and the Department of
+                    Agriculture. Its primary objective is to facilitate efficient
+                    communication, coordination, and resource management among these
+                    groups.
+                </p>
+                <h3>Key Features</h3>
+                <p>
+                    <strong>Farmer Support: </strong>
+                    Provides tools and resources for farmers to improve their
+                    agricultural practices, access vital information.
+                </p>
+                <p>
+                    <strong>Barangay Officials: </strong>
+                    Helps local government units (Barangay officials) manage
+                    agricultural activities within their areas, promote local farming
+                    initiatives, and ensure effective communication between farmers and
+                    government agencies.
+                </p>
+                <p>
+                    <strong>Department of Agriculture: </strong>Serves as a bridge
+                    between the Department of Agriculture and local stakeholders,
+                    allowing for better distribution of government programs, subsidies,
+                    and information to farmers and local officials.
+                </p>
 
-    <!-- Documentation Section -->
-    <section class="documentation">
-        <h2>Our Documentation</h2>
-        <p>Explore the resources and guides we’ve created to help you get the most out of AgroSavvy.</p>
-        <div class="documents-container">
-            <div class="document">
-                <h3>Getting Started Guide</h3>
-                <p>Learn how to set up and start using AgroSavvy effectively.</p>
-                <a href="#" class="doc-link">Read More</a>
+                <h5>
+                    The AgroSavvy platform offers a user-friendly interface where each
+                    user type (farmer, Barangay official, Department of Agriculture
+                    representative) can register and access tailored services, making
+                    the process of agricultural management and support more efficient.
+                </h5>
+                <br /><button class="btn btn-default btn-lg">Get in Touch</button>
             </div>
-            <div class="document">
-                <h3>Best Practices for Sustainable Agriculture</h3>
-                <p>Discover the best practices that align with sustainable agriculture principles.</p>
-                <a href="#" class="doc-link">Read More</a>
-            </div>
-            <div class="document">
-                <h3>Technical Support</h3>
-                <p>Find answers to common technical issues and how to resolve them.</p>
-                <a href="#" class="doc-link">Read More</a>
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-signal logo"></span>
             </div>
         </div>
-    </section>
-    
-    <!--Image Gallery-->
+    </div>
+
+    <div class="container-fluid bg-grey">
+        <div class="row">
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-globe logo slideanim"></span>
+            </div>
+            <div class="col-sm-8">
+                <h2>Our Values</h2>
+                <br />
+                <h4>
+                    <strong>MISSION:</strong> Our mission is to empower farmers, local
+                    government officials, and agricultural agencies with innovative
+                    tools and technology that streamline communication, enhance
+                    agricultural practices, and promote sustainable farming, ultimately
+                    improving food security and rural livelihoods."
+                </h4>
+                <br />
+                <p>
+                    <strong>VISION:</strong> Our vision is to be the leading digital
+                    platform revolutionizing agriculture by fostering collaboration,
+                    efficiency, and innovation in farming communities, ensuring a
+                    sustainable and prosperous future for all stakeholders in the
+                    agricultural ecosystem."
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="scroll-container">
-        <img src="static/images/farm_1.jpg">
-        <img src="static/images/farm_2.jpg">
-        <img src="static/images/farm.jpg">
-        <img src="static/images/Farmer.jpg">
-        <img src="static/images/farm_3.jpg">
-        <img src="static/images/farm_4.jpg">
-        <img src="static/images/farm_.jpg">
+        <img src="/static/images/farm_1.jpg" />
+        <img src="/static/images/farm_2.jpg" />
+        <img src="/static/images/farm.jpg" />
+        <img src="/static/images/Farmer.jpg" />
+        <img src="/static/images/farm_3.jpg" />
+        <img src="/static/images/farm_4.jpg" />
+        <img src="/static/images/farm_.jpg" />
+    </div>
+    <!-- Container (Services Section) -->
+    <div id="services" class="container-fluid text-center">
+        <h2>SERVICES</h2>
+        <h4>What we offer</h4>
+        <br />
+        <div class="row slideanim">
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-off logo-small"></span>
+                <h4>POWER</h4>
+            </div>
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-heart logo-small"></span>
+                <h4>LOVE</h4>
+            </div>
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-lock logo-small"></span>
+                <h4>JOB DONE</h4>
+            </div>
+        </div>
+        <br /><br />
+        <div class="row slideanim">
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-leaf logo-small"></span>
+                <h4>GREEN</h4>
+            </div>
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-certificate logo-small"></span>
+                <h4>CERTIFIED</h4>
+            </div>
+            <div class="col-sm-4">
+                <span class="glyphicon glyphicon-wrench logo-small"></span>
+                <h4 style="color: #303030">HARD WORK</h4>
+            </div>
+        </div>
     </div>
 
-    <!-- Testimonials Section -->
-    <section class="testimonials">
-        <div class="background-animation"></div> <!-- Animated background -->
-        <h2>What Our Users Say</h2>
-        <div class="testimonials-container">
-            <div class="testimonial">
-                <p>"AgroSavvy has revolutionized the way we approach farming. The insights and tools provided are invaluable."</p>
-                <h4>John Doe, Farmer</h4>
+    <!-- Container (Pricing Section) -->
+    <div id="pricing" class="container-fluid">
+        <div class="text-center">
+            <h2>Pricing</h2>
+            <h4>Choose a payment plan that works for you</h4>
+        </div>
+        <div class="col-sm-5 col-md-6">
+            <div class="panel panel-default text-center">
+                <div class="panel-heading">
+                    <h1>Basic</h1>
+                </div>
+                <div class="panel-body">
+                    <p><strong>20</strong> Lorem</p>
+                    <p><strong>15</strong> Ipsum</p>
+                    <p><strong>5</strong> Dolor</p>
+                    <p><strong>2</strong> Sit</p>
+                    <p><strong>Endless</strong> Amet</p>
+                </div>
+                <div class="panel-footer">
+                    <h3>$19</h3>
+                    <h4>per month</h4>
+                    <button class="btn btn-lg">Sign Up</button>
+                </div>
             </div>
-            <div class="testimonial">
-                <p>"As a Barangay Official, AgroSavvy helps us better support our local farmers with data-driven decisions."</p>
-                <h4>Jane Smith, Barangay Official</h4>
+        </div>
+
+        <div class="col-sm-5 offset-sm-2 col-md-6 offset-md-0">
+            <div class="panel panel-default text-center">
+                <div class="panel-heading">
+                    <h1>Premium</h1>
+                </div>
+                <div class="panel-body">
+                    <p><strong>100</strong> Lorem</p>
+                    <p><strong>50</strong> Ipsum</p>
+                    <p><strong>25</strong> Dolor</p>
+                    <p><strong>10</strong> Sit</p>
+                    <p><strong>Endless</strong> Amet</p>
+                </div>
+                <div class="panel-footer">
+                    <h3>$49</h3>
+                    <h4>per month</h4>
+                    <button class="btn btn-lg">Sign Up</button>
+                </div>
             </div>
-            <div class="testimonial">
-                <p>"The platform is user-friendly and provides excellent resources for sustainable agriculture."</p>
-                <h4>Michael Johnson, Department of Agriculture</h4>
-            </div>
         </div>
-    </section>
-
-    <!-- Footer Section -->
-    <footer>
-        <div class="quick-links">
-            <a href="#">Home</a>
-            <a href="#">About</a>
-            <a href="#">Services</a>
-            <a href="#">Contact Us</a>
-        </div>
-        <div class="social-media">
-            <a href="#">Facebook</a>
-            <a href="#">Twitter</a>
-            <a href="#">Instagram</a>
-        </div>
-        <div class="contact-info">
-            <p>Email: ctu@agrosavvy.com</p>
-            <p>Phone: +123 456 7890</p>
-            <p>Address: Cebu Technological University</p>
-        </div>
-    </footer>
-
-
-    
-
-  <!-- Django Messages -->
-  <div id="django-messages" class="fixed-top mt-4 container">
-    <div class="row justify-content-center">
-      <div class="col-md-4">
-        {% for message in messages %}
-        <div id="django-message-{{ forloop.counter }}"
-          class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <script>
-          setTimeout(function () {
-            document.getElementById("django-message-{{ forloop.counter }}").remove();
-          }, 3000); // Remove after 3 seconds
-        </script>
-        {% endfor %}
-      </div>
     </div>
-  </div>
 
-  <!-- JAVASCRIPT CDN -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-    integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
-    crossorigin="anonymous"></script> -->
-    
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
-    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
-    crossorigin="anonymous"></script>
+    <!-- Container (Developers Section) -->
+    <div id="Developers" class="container-fluid text-center bg-grey">
+        <h2>Developers</h2>
+        <br />
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-8 col-lg-6">
+                <!-- Section Heading-->
+                <div class="section_heading text-center wow fadeInUp" data-wow-delay="0.2s"
+                    style="visibility: visible; animation-delay: 0.2s; animation-name: fadeInUp;">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3">
+                <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.2s"
+                    style="visibility: visible; animation-delay: 0.2s; animation-name: fadeInUp;">
+                    <div class="advisor_thumb"><img src="/static/images/RacomaBryan.png" alt="Racoma, Bryan G.">
+                    </div>
+                    <div class="single_advisor_details_info">
+                        <h6>Bryan G. Racoma</h6>
+                        <p class="designation">Hustler</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.3s"
+                    style="visibility: visible; animation-delay: 0.3s; animation-name: fadeInUp;">
+                    <div class="advisor_thumb"><img src="/static/images/GabijanFranz.png" alt="Gabijan, Franz">
+                    </div>
+                    <div class="single_advisor_details_info">
+                        <h6>Franz Anthony D. Gabijan</h6>
+                        <p class="designation">Hacker</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.4s"
+                    style="visibility: visible; animation-delay: 0.4s; animation-name: fadeInUp;">
+                    <div class="advisor_thumb"><img src="/static/images/CaramalesZ.png" alt="">
+                    </div>
+                    <div class="single_advisor_details_info">
+                        <h6>Z Caramales</h6>
+                        <p class="designation">Hipster</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-3">
+                <div class="single_advisor_profile wow fadeInUp" data-wow-delay="0.5s"
+                    style="visibility: visible; animation-delay: 0.5s; animation-name: fadeInUp;">
+                    <div class="advisor_thumb"><img src="/static/images/LugsanayLouis.png" alt="">
+                    </div>
+                    <div class="single_advisor_details_info">
+                        <h6>Louis R. Lugsanay</h6>
+                        <p class="designation">Hipster</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div style="text-align: center;">
+
+
+        <h2>What our customers say</h2>
+        <div id="myCarousel" class="carousel slide text-center" data-ride="carousel">
+            <!-- Indicators -->
+            <ol class="carousel-indicators">
+                <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+                <li data-target="#myCarousel" data-slide-to="1"></li>
+                <li data-target="#myCarousel" data-slide-to="2"></li>
+            </ol>
+
+            <!-- Wrapper for slides -->
+            <div class="carousel-inner" role="listbox">
+                <div class="item active">
+                    <h4>
+                        "This company is the best. I am so happy with the result!"<br /><span>Michael Roe, Vice
+                            President, Comment Box</span>
+                    </h4>
+                </div>
+                <div class="item">
+                    <h4>
+                        "One word... WOW!!"<br /><span>John Doe, Salesman, Rep Inc</span>
+                    </h4>
+                </div>
+                <div class="item">
+                    <h4>
+                        "Could I... BE any more happy with this company?"<br /><span>Chandler Bing, Actor,
+                            FriendsAlot</span>
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <!-- Left and right controls -->
+        <!-- <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
+            <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+            <span class="sr-only">Previous</span>
+        </a>
+        <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
+            <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+            <span class="sr-only">Next</span>
+        </a> -->
+    </div>
+    </div>
+    <div id="contact" class="container-fluid bg-grey">
+        <h2 class="text-center">CONTACT</h2>
+        <div class="row">
+            <div class="col-sm-5">
+                <p>Contact us and we'll get back to you within 24 hours.</p>
+                <p>
+                    <span class="glyphicon glyphicon-map-marker"></span> Cebu,
+                    Philippines
+                </p>
+                <p><span class="glyphicon glyphicon-phone"></span> +63 000000000</p>
+                <p>
+                    <span class="glyphicon glyphicon-envelope"></span>
+                    AgroSavvy@gmail.com
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+    <!-- Django Messages -->
+    <div id="django-messages" class="fixed-top mt-4 container">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                {% for message in messages %}
+                <div id="django-message-{{ forloop.counter }}"
+                    class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <script>
+                    setTimeout(function () {
+                        document.getElementById("django-message-{{ forloop.counter }}").remove();
+                    }, 3000); // Remove after 3 seconds
+                </script>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+
+
+
 
     <script>
+        $(document).ready(function () {
+            // Add smooth scrolling to all links in navbar + footer link
+            $(".navbar a, footer a[href='#myPage']").on("click", function (event) {
+                // Make sure this.hash has a value before overriding default behavior
+                if (this.hash !== "") {
+                    // Prevent default anchor click behavior
+                    event.preventDefault();
+
+                    // Store hash
+                    var hash = this.hash;
+
+                    // Using jQuery's animate() method to add smooth page scroll
+                    // The optional number (900) specifies the number of milliseconds it takes to scroll to the specified area
+                    $("html, body").animate(
+                        {
+                            scrollTop: $(hash).offset().top,
+                        },
+                        900,
+                        function () {
+                            // Add hash (#) to URL when done scrolling (default click behavior)
+                            window.location.hash = hash;
+                        }
+                    );
+                } // End if
+            });
+
+            $(window).scroll(function () {
+                $(".slideanim").each(function () {
+                    var pos = $(this).offset().top;
+
+                    var winTop = $(window).scrollTop();
+                    if (pos < winTop + 600) {
+                        $(this).addClass("slide");
+                    }
+                });
+            });
+        });
+
+
+
         function toggleCard() {
-    const cardBody = document.getElementById('card-body');
-    const toggleIcon = document.querySelector('.toggle-icon');
-    
-    if (cardBody.style.display === "none" || cardBody.style.display === "") {
-        cardBody.style.display = "block";
-        toggleIcon.textContent = "-";
-    }
-}
+            const cardBody = document.getElementById('card-body');
+            const toggleIcon = document.querySelector('.toggle-icon');
+
+            if (cardBody.style.display === "none" || cardBody.style.display === "") {
+                cardBody.style.display = "block";
+                toggleIcon.textContent = "-";
+            }
+        }
+
+
     </script>
 </body>
+
 </html>

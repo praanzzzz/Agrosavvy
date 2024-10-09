@@ -2,6 +2,8 @@
 {% load custom_filters %}
 
 {% block content %}
+
+
 <div class="container mt-4">
     <!-- Field Details Table -->
     <div class="card mb-4">
@@ -34,14 +36,52 @@
                         <td>{{ field.owner }}</td>
                         <td>{{ field.field_name }}</td>
                         <td>{{ field.field_acres }}</td>
-                        <td>{{ field.address.barangay }}, {{ field.address.city_municipality }}, {{ field.address.country }}</td>
+                        <td>{{ field.address.barangay }}, {{ field.address.city_municipality }}, {{field.address.country }}</td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a id= "update_test" href="{% url 'update_field' field.field_id %}" class="btn btn-outline-primary btn-sm">Update</a>
+                                <!-- <a id= "update_test" href="{% url 'update_field' field.field_id %}" class="btn btn-outline-primary btn-sm">Update</a>
                                 <form action="{% url 'delete_field' field.field_id %}" method="post" class="d-inline-block">
                                     {% csrf_token %}
                                     <button id="deletefieldid" type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this field?')">Delete</button>
-                                </form>
+                                </form> -->
+
+                                <!-- Update button -->
+                                <a id="update_test" href="{% url 'update_field' field.field_id %}"
+                                    class="btn btn-outline-primary btn-sm">Update</a>
+
+                                <!-- Delete button (trigger the modal) -->
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#confirmDeleteModal">
+                                    Delete
+                                </button>
+
+                                <!-- Confirmation Modal -->
+                                <div class="modal fade" id="confirmDeleteModal" tabindex="-1"
+                                    aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Deletion
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete this field?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{% url 'delete_field' field.field_id %}" method="post"
+                                                    class="d-inline-block">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </td>
                     </tr>
@@ -52,13 +92,15 @@
 
     <!-- Add Soil Data Button and Modal -->
     <div class="d-flex justify-content-end mb-4">
-        <button id = "addsoildataid" type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSoilDataModal">
+        <button id="addsoildataid" type="button" class="btn btn-success" data-bs-toggle="modal"
+            data-bs-target="#addSoilDataModal">
             Add Soil Data
         </button>
     </div>
-    <div class="modal fade" id="addSoilDataModal" tabindex="-1" aria-labelledby="addSoilDataModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addSoilDataModal" tabindex="-1" aria-labelledby="addSoilDataModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
-        <div class="modal-content">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addSoilDataModalLabel">Add Soil Data</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -74,13 +116,16 @@
         </div>
     </div>
 
+
     <!-- Add Crop Data Button and Modal -->
     <div class="d-flex justify-content-end mb-4">
-        <button id="addcropdataid" type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropDataModal">
+        <button id="addcropdataid" type="button" class="btn btn-success" data-bs-toggle="modal"
+            data-bs-target="#addCropDataModal">
             Add Crop Data
         </button>
     </div>
-    <div class="modal fade" id="addCropDataModal" tabindex="-1" aria-labelledby="addCropDataModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addCropDataModal" tabindex="-1" aria-labelledby="addCropDataModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -126,24 +171,59 @@
                             <td>{{ fsd.ph }}</td>
                             <td>{{ fsd.record_date }}</td>
                             <td class="text-center">
-                                <button id="updatesoildataid" type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateSoilModal-{{ fsd.soil_id }}">Update</button>
-                                <form action="{% url 'delete_soil_data' fsd.soil_id %}" method="post" class="d-inline-block">
-                                    {% csrf_token %}
-                                    <button id="deletesoildataid" type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this soil data?')">Delete</button>
-                                </form>
+                                <button id="updatesoildataid" type="button" class="btn btn-outline-primary btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#updateSoilModal-{{ fsd.soil_id }}">Update</button>
+                                <!-- Delete button (trigger the modal) -->
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#confirmDeleteSoilDataModal">
+                                    Delete
+                                </button>
+
+                                <!-- Confirmation Modal for Soil Data Deletion -->
+                                <div class="modal fade" id="confirmDeleteSoilDataModal" tabindex="-1"
+                                    aria-labelledby="confirmDeleteSoilDataModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="confirmDeleteSoilDataModalLabel">Confirm
+                                                    Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete this soil data?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{% url 'delete_soil_data' fsd.soil_id %}" method="post"
+                                                    class="d-inline-block">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </td>
                         </tr>
 
                         <!-- Update Soil Data Modal -->
-                        <div class="modal fade" id="updateSoilModal-{{ fsd.soil_id }}" tabindex="-1" aria-labelledby="updateSoilModalLabel-{{ fsd.soil_id }}" aria-hidden="true">
+                        <div class="modal fade" id="updateSoilModal-{{ fsd.soil_id }}" tabindex="-1"
+                            aria-labelledby="updateSoilModalLabel-{{ fsd.soil_id }}" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="updateSoilModalLabel-{{ fsd.soil_id }}">Update Soil Data</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        <h5 class="modal-title" id="updateSoilModalLabel-{{ fsd.soil_id }}">Update Soil
+                                            Data</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <form action="{% url 'update_soil_data' fsd.soil_id fsd.field.field_id %}" method="post">
+                                        <form action="{% url 'update_soil_data' fsd.soil_id fsd.field.field_id %}"
+                                            method="post">
                                             {% csrf_token %}
                                             {{ fsdforms|default_if_none:"{}"|dict_get:fsd.soil_id|default_if_none:"" }}
                                             <button type="submit" class="btn btn-primary">Save changes</button>
@@ -200,7 +280,7 @@
                         <tr>
                             <th scope="col">Crop Type</th>
                             <th scope="col">Planting Date</th>
-                            <th scope="col">Harvest Date</th>  
+
                             <th scope="col" class="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -209,29 +289,64 @@
                         <tr>
                             <td>{{ fcd.crop_planted }}</td>
                             <td>{{ fcd.planting_date }}</td>
-                            <td>{{ fcd.harvest_date }}</td>
+
                             <td class="text-center">
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateCropModal-{{ fcd.crop_id }}">Update</button>
-                                <form action="{% url 'delete_crop_data' fcd.fieldcrop_id %}" method="post" class="d-inline-block">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this crop data?')">Delete</button>
-                                </form>
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#updateCropModal-{{ fcd.crop_id }}">Update</button>
+                                <!-- Delete button (trigger the modal) -->
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#confirmDeleteCropDataModal">
+                                    Delete
+                                </button>
+
+                                <!-- Confirmation Modal for Crop Data Deletion -->
+                                <div class="modal fade" id="confirmDeleteCropDataModal" tabindex="-1"
+                                    aria-labelledby="confirmDeleteCropDataModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="confirmDeleteCropDataModalLabel">Confirm
+                                                    Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete this crop data?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{% url 'delete_crop_data' fcd.fieldcrop_id %}"
+                                                    method="post" class="d-inline-block">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </td>
                         </tr>
 
                         <!-- Update Crop Data Modal -->
-                        <div class="modal fade" id="updateCropModal-{{ fcd.crop_id }}" tabindex="-1" aria-labelledby="updateCropModalLabel-{{ fcd.crop_id }}" aria-hidden="true">
+                        <div class="modal fade" id="updateCropModal-{{ fcd.crop_id }}" tabindex="-1"
+                            aria-labelledby="updateCropModalLabel-{{ fcd.crop_id }}" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="updateCropModalLabel-{{ fcd.fieldcrop_id }}">Update Crop Data</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        <h5 class="modal-title" id="updateCropModalLabel-{{ fcd.fieldcrop_id }}">Update
+                                            Crop Data</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                            aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <form action="{% url 'update_crop_data' fcd.fieldcrop_id fcd.field.field_id %}" method="post">
+                                        <form action="{% url 'update_crop_data' fcd.fieldcrop_id fcd.field.field_id %}"
+                                            method="post">
                                             {% csrf_token %}
-                                            {{ fcdforms|default_if_none:"{}"|dict_get:fcd.fieldcrop_id|default_if_none:"" }}
-                                            <button id="deletecropdataid" type="submit" class="btn btn-primary">Save changes</button>
+                                            {{fcdforms|default_if_none:"{}"|dict_get:fcd.fieldcrop_id|default_if_none:""}}
+                                            <button id="deletecropdataid" type="submit" class="btn btn-primary">Save
+                                                changes</button>
                                         </form>
                                     </div>
                                 </div>

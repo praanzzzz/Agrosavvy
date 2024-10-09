@@ -157,10 +157,33 @@
   <div class="row">
     <div class="col-md-6 mt-5 offset-md-3">
       <div class="d-flex align-items-center mt-3">
-        <form method="post" action="{% url 'bofa_deactivate_account' %}" onsubmit="confirmDeactivation(event)">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-primary deactivate-button">Deactivate</button>
-        </form>
+       <!-- Deactivate button (trigger the modal) -->
+        <button type="button" class="btn btn-primary deactivate-button" data-bs-toggle="modal" data-bs-target="#confirmDeactivateAccountModal">
+          Deactivate
+        </button>
+
+        <!-- Confirmation Modal for Deactivating Account -->
+        <div class="modal fade" id="confirmDeactivateAccountModal" tabindex="-1" aria-labelledby="confirmDeactivateAccountModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                  <div class="modal-header">
+                      <h5 class="modal-title" id="confirmDeactivateAccountModalLabel">Deactivate Account</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                      <p>Are you sure you want to deactivate this account?</p>
+                  </div>
+                  <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <form method="post" action="{% url 'bofa_deactivate_account' %}" class="d-inline-block">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-danger">Deactivate</button>
+                      </form>
+                  </div>
+              </div>
+          </div>
+        </div>
+
         <span class="additional-text mx-4">By deactivating this account, you will temporarily lose access to
           all of your Agrosavvy data. You will not be able to create a
           new account with the username <strong>{{ user.username }}</strong>. Are you sure you want to proceed?

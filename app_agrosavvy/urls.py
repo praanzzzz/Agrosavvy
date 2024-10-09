@@ -35,7 +35,10 @@ urlpatterns = [
     # main pages for da admin
     path('dashboard/', views.dashboard, name='dashboard'),
 
-    path('chat', views.chat, name='chat'),
+    # ai
+    path('chat/', views.chat, name='chat'),
+    path('chat/group/<int:group_id>/', views.chat, name='chat_group'),
+    path('chat/delete_group/<int:group_id>/', views.delete_chat_group, name='delete_chat_group'),
     path('image_analysis', views.image_analysis, name='image_analysis'),
     path('predictionai', views.predictionai, name='predictionai'),
     path('tipsai', views.tipsai, name = 'tipsai'),
@@ -85,7 +88,18 @@ urlpatterns = [
 
     #barangay officers and farmers page
     path('bofa_dashboard/', views.bofa_dashboard, name='bofa_dashboard'),
-    path('bofa_ai', views.bofa_ai, name='bofa_ai'),
+    # path('bofa_ai', views.bofa_ai, name='bofa_ai'),
+
+    # ai
+    path('bofa_chat/', views.bofa_chat, name='bofa_chat'),
+    path('bofa_chat/group/<int:group_id>/', views.bofa_chat, name='bofa_chat_group'),
+    path('bofa_chat/delete_group/<int:group_id>/', views.bofa_delete_chat_group, name='bofa_delete_chat_group'),
+    path('bofa_image_analysis', views.bofa_image_analysis, name='bofa_image_analysis'),
+    path('bofa_predictionai', views.bofa_predictionai, name='bofa_predictionai'),
+    path('bofa_tipsai', views.bofa_tipsai, name = 'bofa_tipsai'),
+
+
+
     path('bofa_map', views.bofa_map, name='bofa_map'),
     path('bofa_add_field', views.bofa_add_field, name='bofa_add_field'),
     path('bofa_weather', views.bofa_weather, name='bofa_weather'),

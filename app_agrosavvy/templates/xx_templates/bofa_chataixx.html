@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'bofa_base.html' %}
 {% block content %}
 
 <style>
@@ -42,7 +42,7 @@
     }
 
     .card-header {
-        background-color: #228b34;;
+        background-color: #007bff;
         color: #ffffff;
         font-weight: bold;
         padding: 10px;
@@ -219,24 +219,26 @@
     <div class="d-flex justify-content-center mb-4">
         <ul class="nav nav-tabs">
             <li class="nav-item">
-                <a href="{% url 'chat' %}" class="nav-link active" data-tab="chat">Chat</a>
-            </li>
-            <li class="nav-item">
-                <a href="{% url 'image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
-            </li>
-            <li class="nav-item">
-                <a href="{% url 'predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
-            </li>
-            <li class="nav-item">
-                <a href="{% url 'tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
-            </li>
+                <a href="{% url 'bofa_chat' %}" class="nav-link active" data-tab="analyze">Chat</a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'bofa_image_analysis' %}" class="nav-link" data-tab="analyze">Analyze</a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'bofa_predictionai' %}" class="nav-link" data-tab="predict">Predict</a>
+              </li>
+              <li class="nav-item">
+                <a href="{% url 'bofa_tipsai' %}" class="nav-link" data-tab="tips">Tips</a>
+              </li>
         </ul>
     </div>
 
+
+    
     <div class="row chat-layout d-flex">
         <!-- Sidebar for Chat Groups -->
         <div class="col-md-4 col-lg-3 chat-groups-container border-right p-2">
-            <button id="createGroupButton" class="btn btn-success w-100 mt-3">Add new message <i class="fa-solid fa-plus"></i></button>
+            <button id="createGroupButton" class="btn btn-primary w-100 mt-3">Add new message <i class="fa-solid fa-plus"></i></button>
             <div class="message-label mt-4"><h6>History</h6></div>
             <ul id="chatGroupsList">
                 {% for group in chat_groups %}
@@ -244,33 +246,11 @@
                     <a href="?group_id={{ group.id }}" class="chat-group-link" style="text-decoration: none; color: #333;">
                         {{ group.created_at|date:"Y-m-d H:i" }} messages
                     </a>
-                    <!-- Delete button (trigger the modal) -->
-                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmDeleteChatGroupModal">
-                        Delete
-                    </button>
-
-                    <!-- Confirmation Modal for Deleting Chat Group -->
-                    <div class="modal fade" id="confirmDeleteChatGroupModal" tabindex="-1" aria-labelledby="confirmDeleteChatGroupModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="confirmDeleteChatGroupModalLabel">Delete Chat Group</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p>Are you sure you want to delete this chat group?</p>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <form action="{% url 'delete_chat_group' group.id %}" method="POST" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    <form action="{% url 'bofa_delete_chat_group' group.id %}" method="POST" style="display:inline;" 
+                        onsubmit="return confirm('Are you sure you want to delete this chat group?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
                 </li>
                 {% endfor %}
             </ul>
@@ -396,7 +376,7 @@
 
     // Event listener for creating a new chat group
     document.getElementById('createGroupButton').addEventListener('click', () => {
-        fetch('/chat/', {  // Make sure this URL is correctly mapped in your Django urls.py
+        fetch('/bofa_chat/', {  // Make sure this URL is correctly mapped in your Django urls.py
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
