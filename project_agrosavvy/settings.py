@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'app_agrosavvy',
     # log
     'easyaudit',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
