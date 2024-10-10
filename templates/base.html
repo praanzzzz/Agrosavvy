@@ -96,8 +96,14 @@
 <body>
   {% include 'sidebar.html' %}
 
-
   <main>
+    {% block header %}
+      <div class="container">
+        {% include 'header_base.html' %}
+      </div>
+    {% endblock %}
+
+
     <div class="container">
       {% block content %}
       <!-- content -->

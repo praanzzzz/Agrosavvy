@@ -96,6 +96,13 @@
 
 
   <main>
+    {% block header %}
+      <div class="container">
+        {% include 'bofa_header_base.html' %}
+      </div>
+    {% endblock %}
+
+
     <div class="container">
       {% block content %}
       <!-- content -->
