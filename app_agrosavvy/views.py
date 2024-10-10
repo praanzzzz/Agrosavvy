@@ -655,7 +655,6 @@ def weather(request):
 def settings(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
-        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             updateprofileform = CustomUserUpdateForm(
@@ -673,10 +672,28 @@ def settings(request):
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform}
-        context.update(reviewrating_context)
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
+
+
+
+
+#view profile
+def view_profile(request):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser=='da_admin' or request.user.roleuser.roleuser=='brgy_officer'):
+        owner=request.user
+        fields = Field.objects.filter(owner = request.user, is_deleted=False)
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+
+        context = {
+            "field_count": fields.count(),
+        }
+        return render(request, "app_agrosavvy/view_profile.html", context)
+    else:
+        return redirect("forbidden")
+
+
 
 
 
@@ -1089,8 +1106,6 @@ def bofa_dashboard(request):
 
         # LINE CHART CODE HERE
         
-
-
 
         # paginator for fieldcropdata
         paginator = Paginator(fields, 3)  # 3 fields per page
@@ -1565,7 +1580,6 @@ def bofa_weather(request):
 def bofa_settings(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         user = get_object_or_404(CustomUser, pk=request.user.pk)
-        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             updateprofileform = CustomUserUpdateForm(
@@ -1583,7 +1597,6 @@ def bofa_settings(request):
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform}
-        context.update(reviewrating_context)
         return render(request, "bofa_pages/bofa_settings.html", context)
     else:
         return redirect("forbidden")
@@ -1592,8 +1605,18 @@ def bofa_settings(request):
 
 
 
+def bofa_view_profile(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser=='farmer':
+        owner=request.user
+        fields = Field.objects.filter(owner = request.user, is_deleted=False)
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
 
-
+        context = {
+            "field_count": fields.count(),
+        }
+        return render(request, "bofa_pages/bofa_view_profile.html", context)
+    else:
+        return redirect("forbidden")
 
 
 
@@ -2075,7 +2098,6 @@ def my_logout(request):
 def password_change(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
-        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
@@ -2095,7 +2117,6 @@ def password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
         context = {"passwordchangeform": passwordchangeform}
-        context.update(reviewrating_context)
         return render(
             request, "app_agrosavvy/settings_section/password_change.html", context
         )
@@ -2121,7 +2142,6 @@ def deactivate_account(request):
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         user = get_object_or_404(CustomUser, pk=request.user.pk)
-        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
@@ -2141,7 +2161,6 @@ def bofa_password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
         context = {"passwordchangeform": passwordchangeform}
-        context.update(reviewrating_context)
         return render(
             request,
             "bofa_pages/bofa_settings_section/bofa_password_change.html",

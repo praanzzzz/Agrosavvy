@@ -1,64 +1,64 @@
 {% extends 'bofa_base.html' %}
 {% load static %}
+{% block header %}
+{% endblock %}
 {% block content %}
 
 <style>
-    body,
-   html {
-       height: 100%;
-       margin: 0;
-       width: auto;
-       overflow: hidden;
-   }
+     body,
+    html {
+        height: 100%;
+        margin: 0;
+        width: auto;
+        overflow: hidden;
+    }
 
-   #map {
-       position: fixed;
-       top: 0;
-       bottom: 0;
-       left: 0;
-       width: 100%;
-       height: 100%;
-   }
+    #map {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
 
-   #crop-filter {
-       position: fixed;
-       /* top: 300px;
-       left: 1200px; */
-       z-index: 1;
-       background-color: white;
-       padding: 10px;
-       border-radius: 5px;
-       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-   }
+    #crop-filter {
+        position: fixed;
+        /* top: 300px;
+        left: 1200px; */
+        z-index: 1;
+        background-color: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
 
-   #contribute_btn {
-       z-index: 1;
-   }
+    #contribute_btn {
+        z-index: 1;
+    }
 
 
 
-   /* header */
-   .header {
-       padding: 10px 20px;
-   }
+    /* header */
+    .header {
+        padding: 10px 20px;
+    }
 
-   .dropdown,
-   .form-control,
-   .btn {
-       z-index: 1;
-   }
+    .dropdown,
+    .form-control,
+    .btn {
+        z-index: 1;
+    }
 
-   .text-white {
-   color: white !important;
+    .text-white {
+    color: white !important;
 }
 </style>
 
 
-
 <header class="header d-flex justify-content-between align-items-center mt-4">
-   
-     <!-- Filter-->
-     <div class="d-flex align-items-center">
+    <!-- Filter-->
+    <div class="d-flex align-items-center">
         <div id="crop-filter">
             <label for="crop-select" class="pe-4">Filter by Crop:</label>
             <select id="crop-select" style="width: 100px;" class="me-4"> <!-- Adjust the width as needed -->
@@ -69,18 +69,16 @@
             </select>
         </div>
     </div>
-
-
-
+    <!-- contribute -->
     <div id="contribute_btn">
         <a href="{% url 'bofa_add_field' %}"><button class="btn btn-primary">Contribute</button></a>
     </div>
-
+    
     <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
-        <button class="btn btn-notification me-3" type="button">
-            <i class="fas fa-bell" style="color:white;"></i>
-        </button>
+        <button class="btn btn-outline-secondary me-3" type="button">
+            <a href="{% url 'bofa_view_notification' %}"><i class="fas fa-bell" style="color: white;"></i></a>   
+            </button>
 
         <div class="dropdown d-flex align-items-center user-info">
             <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
@@ -100,7 +98,7 @@
                     {% elif user.roleuser.roleuser == "brgy_officer" %}
                     <span class="small text-white">Brgy Officer</span>
                     {% elif user.roleuser.roleuser == "da_admin" %}
-                    <span class="small text-white">DA Admin</span>
+                    <span class="small text-white">CAD Admin</span>
                     {% else %}
                     <span>Unknown</span>
                     {% endif %}
@@ -108,14 +106,13 @@
             </a>
 
             <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'bofa_view_profile' %}">Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'bofa_settings' %}">Update Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'bofa_password_change' %}">Change Password</a></li>
                 <li><a class="dropdown-item" href="{% url 'my_logout' %}">Logout</a></li>
             </ul>
         </div>
     </div>
-
-
 </header>
 
 
@@ -131,8 +128,8 @@
         zoom: 11
     });
 
-    // Add zoom and rotation controls to the map.
-    map.addControl(new mapboxgl.NavigationControl());
+     // Add zoom and rotation controls to the map.
+     map.addControl(new mapboxgl.NavigationControl());
 
     var fields = JSON.parse('{{ fields_json|escapejs }}');
     var markers = [];

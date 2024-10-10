@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block header %}
+{% endblock %}
 {% block content %}
 
 <style>
@@ -74,9 +76,9 @@
     
     <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
-        <button class="btn btn-notification me-3" type="button">
-            <i class="fas fa-bell" style="color:white;"></i>
-        </button>
+        <button class="btn btn-outline-secondary me-3" type="button">
+            <a href="{% url 'view_notification' %}"><i class="fas fa-bell" style="color: white;"></i></a>   
+            </button>
 
         <div class="dropdown d-flex align-items-center user-info">
             <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
@@ -104,6 +106,7 @@
             </a>
 
             <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'view_profile' %}">Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'settings' %}">Update Profile</a></li>
                 <li><a class="dropdown-item" href="{% url 'password_change' %}">Change Password</a></li>
                 <li><a class="dropdown-item" href="{% url 'my_logout' %}">Logout</a></li>

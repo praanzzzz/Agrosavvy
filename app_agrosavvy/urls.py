@@ -47,9 +47,10 @@ urlpatterns = [
     path('map', views.map, name='map'),
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
-    path('settings/', views.settings, name='settings'),
+    path('settings/', views.settings, name='settings'), # update profile
     path('user_management', views.user_management, name='user_management'),
-    # new
+
+
     path('create_notification', views.create_notification, name='create_notification'),
     path('view_notification', views.view_notification, name='view_notification'),
 
@@ -58,10 +59,13 @@ urlpatterns = [
     path('admin_activate_account/<int:user_id>', views.admin_activate_account, name='admin_activate_account'),
     path('admin_approve_user/<int:user_id>', views.admin_approve_user, name='admin_approve_user'),
 
+
     #settings section urls
+    path('view_profile', views.view_profile, name='view_profile'),
     path('settings/password_change', views.password_change, name='password_change'),
     path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
   
+
 
     #field management for da admin
     path('dashboard/manage_field/update_field/<int:field_id>/', views.update_field, name='update_field'),
@@ -90,7 +94,7 @@ urlpatterns = [
 
     #barangay officers and farmers page
     path('bofa_dashboard/', views.bofa_dashboard, name='bofa_dashboard'),
-    # path('bofa_ai', views.bofa_ai, name='bofa_ai'),
+
 
     # ai
     path('bofa_chat/', views.bofa_chat, name='bofa_chat'),
@@ -111,8 +115,9 @@ urlpatterns = [
     path('bofa_view_notification', views.bofa_view_notification, name='bofa_view_notification'),
 
 
-    
+
     #settings section urls
+    path('bofa_view_profile', views.bofa_view_profile, name='bofa_view_profile'),
     path('bofa_settings/bofa_password_change', views.bofa_password_change, name='bofa_password_change'),
     path('bofa_deactivate_account/', views.bofa_deactivate_account, name='bofa_deactivate_account'),
 
