@@ -12,6 +12,9 @@ from .models import (
     PredictionAI,
     TipsAI,
     ImageAnalysis,
+    Notification,
+    UserAddress,
+    RoleUser,
 )
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
@@ -405,3 +408,39 @@ class TipsAIForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(TipsAIForm, self).__init__(*args, **kwargs)
         self.fields['field'].queryset = Field.objects.filter(is_deleted=False)
+
+
+
+# class CreateNotificationForm(forms.ModelForm):
+#     class Meta:
+#         model = Notification
+#         fields =['user_receiver', 'subject', 'message']
+#         widgets = {
+#             "user_receiver": forms.Select(attrs={'class':'form-control'}),
+#             "subject": forms.TextInput(attrs={'class':'form-control'}),
+#             "message": forms.TextInput(attrs={'class':'form-control'}),
+#         }
+
+
+
+
+class CreateNotificationForm(forms.ModelForm):
+    NOTIF_CHOICES = [
+        ('all', 'All Users'),
+        ('single_user', 'Single User'),
+        ('role', 'By Role'),
+        ('useraddress', 'By User Address'),
+    ]
+
+    notification_type = forms.ChoiceField(choices=NOTIF_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    user_receiver = forms.ModelChoiceField(queryset=CustomUser.objects.all(), widget=forms.Select(attrs={'class': 'form-control'}), required=False)
+    role = forms.ModelChoiceField(queryset=RoleUser.objects.all(), widget=forms.Select(attrs={'class': 'form-control'}), required=False)
+    useraddress = forms.ModelChoiceField(queryset=UserAddress.objects.all(), widget=forms.Select(attrs={'class': 'form-control'}), required=False)
+
+    class Meta:
+        model = Notification
+        fields = ['subject', 'message']
+        widgets = {
+            "subject": forms.TextInput(attrs={'class': 'form-control'}),
+            "message": forms.Textarea(attrs={'class': 'form-control'}),
+        }

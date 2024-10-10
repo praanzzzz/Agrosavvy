@@ -20,7 +20,7 @@ from .models import (
     PredictionAI,
     TipsAI,
     ImageAnalysis,
-    
+    Notification,
 )
 
 
@@ -190,4 +190,5 @@ admin.site.register(Chat)
 admin.site.register(ImageAnalysis)
 admin.site.register(PredictionAI)
 admin.site.register(TipsAI)
+admin.site.register(Notification)
 

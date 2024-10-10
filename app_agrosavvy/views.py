@@ -9,6 +9,7 @@ from .models import (
     FieldCropData,
     Chat,
     ChatGroup,
+    Notification,
 )
 from .forms import (
     FieldForm,
@@ -23,6 +24,7 @@ from .forms import (
     PredictionAIForm,
     TipsAIForm,
     ImageAnalysisForm,
+    CreateNotificationForm,
 )
 
 # others
@@ -61,7 +63,7 @@ OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
 
-# Main pages for da_admin
+# Main pages for da_admin and brgy officers
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         fields = Field.objects.filter(is_deleted=False)
@@ -560,16 +562,6 @@ def tipsai(request):
 
 
 
-
-
-
-
-
-
-
-
-
-
 def map(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         fields_json = []
@@ -785,8 +777,67 @@ def user_management(request):
 
 
 
+# Create notification based on the selected option
+def create_notification(request):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        if request.method == 'POST':
+            form = CreateNotificationForm(request.POST)
+            if form.is_valid():
+                notification_type = form.cleaned_data['notification_type']
+                subject = form.cleaned_data['subject']
+                message = form.cleaned_data['message']
+
+                # Handle notification based on the selected type
+                if notification_type == 'all':
+                    users = CustomUser.objects.all()
+
+                elif notification_type == 'single_user':
+                    user_receiver = form.cleaned_data['user_receiver']
+                    users = [user_receiver]
+
+                elif notification_type == 'role':
+                    role = form.cleaned_data['role']
+                    users = CustomUser.objects.filter(roleuser=role)
+
+                elif notification_type == 'useraddress':
+                    useraddress = form.cleaned_data['useraddress']
+                    users = CustomUser.objects.filter(useraddress=useraddress)
+
+                # Create notifications for the selected users
+                for user in users:
+                    Notification.objects.create(
+                        user_sender=request.user,
+                        user_receiver=user,
+                        subject=subject,
+                        message=message
+                    )
+
+                messages.success(request, "Notifications successfully sent.")
+                return redirect('create_notification')
+            else:
+                messages.error(request, "Form is invalid.")
+        else:
+            form = CreateNotificationForm()
+        context = {
+            "form": form,
+        }
+        return render(request, "app_agrosavvy/create_notification.html", context)
+    return redirect("forbidden")
 
 
+
+# for all as long as authenticated
+def view_notification(request):
+    if request.user.is_authenticated:
+        # Fetch notifications for the currently logged-in user
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+
+        context = {
+            'notifications': notifications,
+        }
+        return render(request, 'app_agrosavvy/view_notification.html', context)
+    else:
+        return redirect("forbidden")
 
 
 
@@ -1001,7 +1052,7 @@ def delete_field(request, field_id):
 
 
 
-# Brgy officers and farmers pages
+# farmers pages
 # main pages
 
 def bofa_dashboard(request):
@@ -1034,6 +1085,11 @@ def bofa_dashboard(request):
         # Prepare data for the chart
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
+
+
+        # LINE CHART CODE HERE
+        
+
 
 
         # paginator for fieldcropdata
@@ -1648,6 +1704,14 @@ def bofa_delete_field(request, field_id):
 
 
 
+def bofa_view_notification(request):
+    # Fetch notifications for the currently logged-in user
+    notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+    context = {
+        'notifications': notifications,
+    }
+    return render(request, 'bofa_pages/bofa_view_notification.html', context)
+
 
 
 
@@ -2011,6 +2075,7 @@ def my_logout(request):
 def password_change(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         user = get_object_or_404(CustomUser, pk=request.user.pk)
+        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
@@ -2030,6 +2095,7 @@ def password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
         context = {"passwordchangeform": passwordchangeform}
+        context.update(reviewrating_context)
         return render(
             request, "app_agrosavvy/settings_section/password_change.html", context
         )
@@ -2055,6 +2121,7 @@ def deactivate_account(request):
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         user = get_object_or_404(CustomUser, pk=request.user.pk)
+        reviewrating_context = reviewrating(request)
 
         if request.method == "POST":
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
@@ -2074,6 +2141,7 @@ def bofa_password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
         context = {"passwordchangeform": passwordchangeform}
+        context.update(reviewrating_context)
         return render(
             request,
             "bofa_pages/bofa_settings_section/bofa_password_change.html",

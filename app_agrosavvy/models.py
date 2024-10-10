@@ -129,6 +129,8 @@ class Address(models.Model):
         return f"address {self.barangay}, {self.city_municipality}, {self.country}"
 
 
+
+
 class UserAddress(models.Model):
     USERADDRESS_CHOICES = [
         ("Adlaon, Cebu City", "Adlaon, Cebu City"),
@@ -213,7 +215,6 @@ class UserAddress(models.Model):
     
     class Meta:
         ordering = ['useraddress']
-
 
 
 
@@ -450,6 +451,21 @@ class TipsAI(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+
+
+class Notification(models.Model):
+    user_receiver = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='received_notifications')
+    user_sender = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
+    subject = models.TextField()
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+
+    def __str__(self):
+        return f"Notification to {self.user_receiver} - {self.subject[:20]}"
+
 
 # this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
 def get_weather_data(location):

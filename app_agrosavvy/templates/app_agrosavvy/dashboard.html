@@ -14,7 +14,7 @@
         <!-- User Profile and Notification -->
         <div class="d-flex align-items-center mb-2 mb-md-0">
             <button class="btn btn-outline-secondary me-3" type="button">
-                <i class="fas fa-bell"></i>
+            <a href="{% url 'view_notification' %}"><i class="fas fa-bell"></i></a>   
             </button>
 
             <!-- Review and Rating -->
@@ -65,7 +65,7 @@
                         {% elif user.roleuser.roleuser == "brgy_officer" %}
                         <span class="small text-muted">Brgy Officer</span>
                         {% elif user.roleuser.roleuser == "da_admin" %}
-                        <span class="small text-muted">DA Admin</span>
+                        <span class="small text-muted">CAD Admin</span>
                         {% else %}
                         <span>Unknown</span>
                         {% endif %}
@@ -220,7 +220,7 @@
                                             {% elif field.owner.roleuser.roleuser == "brgy_officer" %}
                                             Barangay Officer
                                             {% elif field.owner.roleuser.roleuser == "da_admin" %}
-                                            DA Admin
+                                            CAD Admin
                                             {% else %}
                                             Unknown
                                             {% endif %}

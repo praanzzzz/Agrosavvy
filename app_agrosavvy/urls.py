@@ -49,7 +49,9 @@ urlpatterns = [
     path('weather', views.weather, name='weather'),
     path('settings/', views.settings, name='settings'),
     path('user_management', views.user_management, name='user_management'),
-
+    # new
+    path('create_notification', views.create_notification, name='create_notification'),
+    path('view_notification', views.view_notification, name='view_notification'),
 
     # user management
     path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
@@ -104,6 +106,11 @@ urlpatterns = [
     path('bofa_add_field', views.bofa_add_field, name='bofa_add_field'),
     path('bofa_weather', views.bofa_weather, name='bofa_weather'),
     path('bofa_settings/', views.bofa_settings, name='bofa_settings'),
+
+    # new
+    path('bofa_view_notification', views.bofa_view_notification, name='bofa_view_notification'),
+
+
     
     #settings section urls
     path('bofa_settings/bofa_password_change', views.bofa_password_change, name='bofa_password_change'),
