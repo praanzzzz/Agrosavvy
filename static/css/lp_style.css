@@ -1,3 +1,4 @@
+
 /* General Styles */
 body {
     font-family: Arial, sans-serif;
@@ -240,7 +241,7 @@ nav ul li a:hover {
     left: 0;
     width: 200%;
     height: 200%;
-    background-image: url('image/farm.jpg');
+    background-image: url('/static/images/farm.jpg');
     background-size: cover;
     background-position: center;
     opacity: 0.1;
@@ -331,5 +332,3 @@ div.scroll-container img {
     height: 350px;
     object-fit: cover;
 }
-
-
