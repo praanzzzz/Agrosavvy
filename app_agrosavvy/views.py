@@ -45,6 +45,7 @@ from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
 from django.utils.safestring import mark_safe
 import re, base64
+from django.shortcuts import render, get_object_or_404, redirect
 
 
 # AI
@@ -686,8 +687,20 @@ def settings(request):
     else:
         return redirect("forbidden")
 
+#view profile
+def view_profile(request):
+    if request.user.is_authenticated:
+        owner=request.user
+        fields = Field.objects.filter(owner = request.user, is_deleted=False)
+        user = get_object_or_404(CustomUser, pk=request.user.pk)
+        reviewrating_context = reviewrating(request)
 
-
+        context = {
+            "field_count": fields.count(),
+        }
+        return render(request, "app_agrosavvy/view_profile.html", context)
+    else:
+        return redirect("forbidden")
 
 
 

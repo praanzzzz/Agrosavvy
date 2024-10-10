@@ -47,7 +47,7 @@ urlpatterns = [
     path('map', views.map, name='map'),
     path('add_field', views.add_field, name='add_field'),
     path('weather', views.weather, name='weather'),
-    path('settings/', views.settings, name='settings'),
+    path('settings/', views.settings, name='settings'), # Update Profile
     path('user_management', views.user_management, name='user_management'),
 
 
@@ -59,6 +59,7 @@ urlpatterns = [
     #settings section urls
     path('settings/password_change', views.password_change, name='password_change'),
     path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
+    path('view_profile/', views.view_profile, name='view_profile'),
   
 
     #field management for da admin
