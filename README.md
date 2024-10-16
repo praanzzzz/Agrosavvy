@@ -34,11 +34,6 @@ venv\scripts\activate
 
 ```
 
---> Move into the env folder : 
-```bash
-cd venv
-```
-
 ### Requirements
 --> Install the requirements using the command below :
 ```bash
