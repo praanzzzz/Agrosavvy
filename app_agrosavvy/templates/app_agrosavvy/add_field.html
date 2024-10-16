@@ -2,7 +2,12 @@
 {% block header %}
 {% endblock %}
 {% block content %}
+
+
+
+
 <div class="container mt-5">
+
     <div class="row">
         <!-- Field and Address Details Section -->
         <div class="col-md-6">
@@ -12,12 +17,14 @@
                     <form id="fieldForm" method="POST">
                         {% csrf_token %}
                         {{ field_form.as_p }}
-                        
-                        <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small></h5>
+
+                        <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small>
+                        </h5>
                         {{ address_form.as_p }}
-                        
+
                         <div class="form-group mt-4">
-                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on Map</button>
+                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on
+                                Map</button>
                             <button type="submit" class="btn btn-success btn-block mb-2">Submit</button>
                         </div>
                     </form>
@@ -35,26 +42,90 @@
 </div>
 
 
+<div id="alertPlaceholder"></div>
 
-<!-- 
-confirm if validation is correct 
--->
+
+<style>
+    #alertPlaceholder {
+        position: absolute; /* Absolute positioning to overlay on top */
+        top: 20px; /* Position from the top of the page */
+        left: 50%; /* Position from the left side */
+        transform: translateX(-50%); /* Center the alert box horizontally */
+        width: 350px; /* Fixed width for the alert box */
+        z-index: 9999; /* Ensure it stays above other content */
+    }
+
+    .alert {
+        border-radius: 8px; /* Rounded corners */
+        padding: 15px; /* Padding for the alert box */
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Deeper shadow for prominence */
+        margin-bottom: 15px; /* Space below alerts */
+        transition: all 0.3s ease; /* Smooth transition for appearance */
+        border: 1px solid transparent; /* Border for better visibility */
+        animation: fadeIn 0.5s forwards; /* Fade-in animation */
+    }
+
+    .alert-danger {
+        background-color: #f8d7da; /* Light red background */
+        color: #721c24; /* Dark red text */
+        border-color: #f5c6cb; /* Light red border */
+    }
+
+    .alert-warning {
+        background-color: #fff3cd; /* Light yellow background */
+        color: #856404; /* Dark yellow text */
+        border-color: #ffeeba; /* Light yellow border */
+    }
+
+    .alert-success {
+        background-color: #d4edda; /* Light green background */
+        color: #155724; /* Dark green text */
+        border-color: #c3e6cb; /* Light green border */
+    }
+
+    .alert-dismissible .btn-close {
+        margin-left: 15px; /* Space between alert text and close button */
+    }
+
+    /* Fade-in animation */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-
-
-
         function submitForm() {
             document.getElementById('fieldForm').addEventListener('submit', function (e) {
                 e.preventDefault();
 
+                // Validate if the city is Cebu City
                 var cityField = document.getElementById('id_city_municipality').value;
                 if (cityField.trim().toLowerCase() !== 'cebu city') {
-                    alert('The address must be in Cebu City.');
+                    showAlert('The address must be in Cebu City.', 'warning');
                     return;
                 }
 
+                // Check if latitude and longitude fields are filled
+                var latitude = document.getElementById('id_latitude').value;
+                var longitude = document.getElementById('id_longitude').value;
+                if (!latitude || !longitude) {
+                    showAlert('Please click "Show on map" to get coordinates.', 'warning');
+                    return;
+                }
+
+
+                // use fetch api
                 var formData = new FormData(this);
                 var url = '{% url "add_field" %}';
                 var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
@@ -66,13 +137,14 @@ confirm if validation is correct
                         'X-CSRFToken': csrfToken,
                     }
                 })
+
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            alert('Field saved successfully!');
+                            showAlert('Field saved successfully!', 'success');
                             window.location.href = '{% url "dashboard" %}';
                         } else {
-                            alert('Error saving field.');
+                            showAlert('Error saving field.' , 'danger');
                         }
                     })
                     .catch(error => {
@@ -85,20 +157,25 @@ confirm if validation is correct
 
 
 
-
-
+ 
 
         function initializeMap() {
-            // Set the Mapbox access token
             mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-            // Create and initialize the Mapbox map
+            var cebucityBounds = [
+                [123.7500, 10.2500], // Southwest coordinates
+                [123.9500, 10.4500]  // Northeast coordinates
+            ];
+
             var map = new mapboxgl.Map({
-                container: 'map', // The ID of the container where the map will be displayed
-                style: 'mapbox://styles/mapbox/satellite-streets-v11', // The style of the map
-                center: [123.876705, 10.308258], // Initial map center coordinates
-                zoom: 12 // Initial zoom level
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-streets-v11',
+                center: [123.80833, 10.34629],
+                zoom: 11,
+                minZoom: 11, // Set the minimum zoom level
+                maxBounds: cebucityBounds // Restrict the view to Cebu City
             });
+
 
             // Create a draggable marker and add it to the map
             var marker = new mapboxgl.Marker({ draggable: true })
@@ -178,7 +255,7 @@ confirm if validation is correct
                             document.getElementById('id_longitude').value = lngLat[0]; // Update longitude field
                             getAddress(lngLat[0], lngLat[1]); // Fetch and update address details for the new coordinates
                         } else {
-                            alert('Address not found'); // Alert if the address could not be geocoded
+                            showAlert('Address not found', 'warning'); // Alert if the address could not be geocoded
                         }
                     })
                     .catch(error => {
@@ -188,9 +265,41 @@ confirm if validation is correct
         }
 
 
+
+
+
+
+        // Function to show Bootstrap alerts
+        function showAlert(message, type) {
+            const alertPlaceholder = document.getElementById('alertPlaceholder');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.role = 'alert';
+            alert.innerHTML = message + `
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertPlaceholder.appendChild(alert);
+
+            // Automatically close the alert after 5 seconds
+            setTimeout(() => {
+                const alertInstance = new bootstrap.Alert(alert);
+                alertInstance.close();
+            }, 3000); // Close after 5000 milliseconds (5 seconds)
+        }
+
+        // Function to clear alerts
+        function clearAlerts() {
+            const alertPlaceholder = document.getElementById('alertPlaceholder');
+            alertPlaceholder.innerHTML = ''; // Clear previous alerts
+        }
+
+
+
         submitForm();
         initializeMap();
     });
+
+
 </script>
 
 {% endblock %}

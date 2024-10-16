@@ -1,6 +1,5 @@
 {% load static %}
 
-
 <!-- header -->
 <header class="header border-bottom mx-4 mb-5">
     <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
@@ -8,27 +7,68 @@
         <div class="d-flex align-items-center mb-2 mb-md-0">
             <strong class="welcome-message me-2">Welcome Back, {{ user.username }} 👋</strong>
         </div>
-  
+
         <!-- User Profile and Notification -->
         <div class="d-flex align-items-center mb-2 mb-md-0">
-            <button class="btn btn-outline-secondary me-3" type="button">
-            <a href="{% url 'bofa_view_notification' %}"><i class="fas fa-bell"></i></a>   
-            </button>
-  
-  
-  
-            <!-- Dropdown Menu -->
-            <div class="dropdown d-flex align-items-center">
-                <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button"
+
+            <!-- Notification Icon with Dropdown -->
+            <div class="dropdown me-3 position-relative">
+                <button class="btn btn-outline-secondary position-relative" type="button" id="notificationDropdown"
                     data-bs-toggle="dropdown" aria-expanded="false">
-                    {% if user.profile_picture %}
-                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture"
-                        style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                    <i class="fas fa-bell"></i>
+                    <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">{{ notifications|length }}</span>
+                </button>
+
+                <!-- Notification Dropdown Menu with Scrollable Box -->
+                <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="notificationDropdown" 
+                    style="width: 300px; max-height: 400px; overflow-y: auto;">
+                    <h6 class="dropdown-header">Notifications <span class="badge bg-danger">{{ notifications|length }}</span></h6>
+
+                    {% if notifications %}
+                        {% for notification in notifications %}
+                        <li class="dropdown-item d-flex align-items-start mb-2" style="white-space: normal;">
+                            <div class="me-3">
+                                <i class="fas fa-bell text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong class="d-block text-truncate" style="max-width: 200px;">{{ notification.subject }}</strong>
+                                <small class="text-secondary d-block text-truncate" style="max-width: 200px;">{{ notification.message }}</small>
+                                <div class="d-flex justify-content-between text-muted small mt-1">
+                                    <span class="text-truncate">
+                                        <i class="fas fa-user-circle"></i> {{ notification.user_sender }}: 
+                                        {{ notification.user_sender.roleuser.roleuser }}
+                                    </span>
+                                    <span class="ms-2">
+                                        <i class="fas fa-calendar-alt"></i> {{ notification.created_at|date:"Y-m-d H:i" }}
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                        <hr class="dropdown-divider">
+                        {% endfor %}
                     {% else %}
-                    <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture"
-                        style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
+                        <li class="dropdown-item text-center text-muted">✨ No Notifications ✨</li>
                     {% endif %}
-  
+                    <a>
+                        <li class="dropdown-item text-center">
+                            <a href="{% url 'bofa_view_notification' %}" class="text-decoration-underline d-block text-center">View All Notifications</a>
+                        </li>                    
+                    </a>
+                </ul>
+            </div>
+
+            <!-- User Profile Dropdown -->
+            <div class="dropdown d-flex align-items-center">
+                <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="rounded-circle"
+                        style="width: 30px; height: 30px; object-fit: cover;" />
+                    {% else %}
+                    <img src="{% static 'default_pp.jpg' %}" alt="Default Profile Picture" class="rounded-circle"
+                        style="width: 30px; height: 30px; object-fit: cover;" />
+                    {% endif %}
+
                     <div class="ms-2 d-flex flex-column text-start">
                         <strong>{{ user.username }}</strong>
                         {% if user.roleuser.roleuser == "farmer" %}
@@ -51,5 +91,4 @@
             </div>
         </div>
     </div>
-  </header>
-  
+</header>

@@ -5,8 +5,7 @@
 {% block content %}
 
 <style>
-     body,
-    html {
+    body, html {
         height: 100%;
         margin: 0;
         width: auto;
@@ -24,8 +23,8 @@
 
     #crop-filter {
         position: fixed;
-        /* top: 300px;
-        left: 1200px; */
+        top: 40px;
+        left: 100px;
         z-index: 1;
         background-color: white;
         padding: 10px;
@@ -33,35 +32,69 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
     }
 
+    #navigation-controls {
+        position: fixed;
+        top: 130px;
+        left: 100px;
+        z-index: 1;
+        background-color: white;
+        padding: 15px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        width: 280px;
+        transition: all 0.3s ease;
+    }
+
+    #navigation-controls.minimized {
+        width: 50px;
+        height: 50px;
+        overflow: hidden;
+    }
+
+    #navigation-controls h4 {
+        margin-bottom: 15px;
+    }
+
+    #navigation-controls .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    #navigation-controls input {
+        margin-bottom: 10px;
+    }
+
     #contribute_btn {
         z-index: 1;
     }
 
-
-
-    /* header */
     .header {
         padding: 10px 20px;
     }
 
-    .dropdown,
-    .form-control,
-    .btn {
+    .dropdown, .form-control, .btn {
         z-index: 1;
     }
 
     .text-white {
-    color: white !important;
-}
+        color: white !important;
+    }
+
+    .custom-marker {
+        cursor: pointer;
+    }
+
+    .mapboxgl-popup-content .btn {
+        width: 100%;
+        margin-top: 10px;
+    }
 </style>
 
-
 <header class="header d-flex justify-content-between align-items-center mt-4">
-    <!-- Filter-->
     <div class="d-flex align-items-center">
         <div id="crop-filter">
             <label for="crop-select" class="pe-4">Filter by Crop:</label>
-            <select id="crop-select" style="width: 100px;" class="me-4"> <!-- Adjust the width as needed -->
+            <select id="crop-select" style="width: 100px;" class="me-4">
                 <option value="all">All</option>
                 {% for crop in crops %}
                 <option value="{{ crop.crop_type }}">{{ crop.crop_type }}</option>
@@ -69,16 +102,56 @@
             </select>
         </div>
     </div>
-    <!-- contribute -->
     <div id="contribute_btn">
         <a href="{% url 'add_field' %}"><button class="btn btn-primary">Contribute</button></a>
     </div>
     
-    <!-- User Profile and Notification -->
     <div class="d-flex align-items-center">
-        <button class="btn btn-outline-secondary me-3" type="button">
-            <a href="{% url 'view_notification' %}"><i class="fas fa-bell" style="color: white;"></i></a>   
-            </button>
+                   <!-- Notification Icon with Dropdown -->
+                   <div class="dropdown me-3 position-relative">
+                    <button class="btn btn-outline-secondary position-relative" type="button" id="notificationDropdown"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">{{ notifications|length }}</span>
+                    </button>
+    
+                    <!-- Notification Dropdown Menu with Scrollable Box -->
+                    <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="notificationDropdown" 
+                        style="width: 300px; max-height: 400px; overflow-y: auto;">
+                        <h6 class="dropdown-header">Notifications <span class="badge bg-danger">{{ notifications|length }}</span></h6>
+    
+                        {% if notifications %}
+                            {% for notification in notifications %}
+                            <li class="dropdown-item d-flex align-items-start mb-2" style="white-space: normal;">
+                                <div class="me-3">
+                                    <i class="fas fa-bell text-warning"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong class="d-block text-truncate" style="max-width: 200px;">{{ notification.subject }}</strong>
+                                    <small class="text-secondary d-block text-truncate" style="max-width: 200px;">{{ notification.message }}</small>
+                                    <div class="d-flex justify-content-between text-muted small mt-1">
+                                        <span class="text-truncate">
+                                            <i class="fas fa-user-circle"></i> {{ notification.user_sender }}: 
+                                            {{ notification.user_sender.roleuser.roleuser }}
+                                        </span>
+                                        <span class="ms-2">
+                                            <i class="fas fa-calendar-alt"></i> {{ notification.created_at|date:"Y-m-d H:i" }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                            <hr class="dropdown-divider">
+                            {% endfor %}
+                        {% else %}
+                            <li class="dropdown-item text-center text-muted">✨ No Notifications ✨</li>
+                        {% endif %}
+                        <a>
+                            <li class="dropdown-item text-center">
+                                <a href="{% url 'view_notification' %}" class="text-decoration-underline d-block text-center">View All Notifications</a>
+                            </li>                    
+                        </a>
+                    </ul>
+                </div>
 
         <div class="dropdown d-flex align-items-center user-info">
             <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
@@ -91,14 +164,14 @@
                     style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;" />
                 {% endif %}
 
-                <div class=" yow ms-2 me-3 d-flex flex-column text-start text-muted text-white">
+                <div class="ms-2 me-3 d-flex flex-column text-start text-muted text-white">
                     <strong>{{ user.username }}</strong>
                     {% if user.roleuser.roleuser == "farmer" %}
                     <span class="small text-white">Farmer</span>
                     {% elif user.roleuser.roleuser == "brgy_officer" %}
                     <span class="small text-white">Brgy Officer</span>
                     {% elif user.roleuser.roleuser == "da_admin" %}
-                    <span class="small text-white">CAD Admin</span>
+                    <span class="small text-white">DA Admin</span>
                     {% else %}
                     <span>Unknown</span>
                     {% endif %}
@@ -115,54 +188,209 @@
     </div>
 </header>
 
-
 <div id="map"></div>
+
+<div id="navigation-controls">
+    <h4>Navigation</h4>
+    <button id="use-gps" class="btn btn-primary">Use My Current Location</button>
+    <input type="text" id="custom-location" class="form-control" placeholder="Enter custom location">
+</div>
 
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-    var map = new mapboxgl.Map({
+    const cebucityBounds = [
+        [123.7500, 10.2500],
+        [123.9500, 10.4500]
+    ];
+
+    const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/satellite-streets-v11',
         center: [123.80833, 10.34629],
-        zoom: 11
+        zoom: 11,
+        minZoom: 11,
+        maxBounds: cebucityBounds
     });
 
-     // Add zoom and rotation controls to the map.
-     map.addControl(new mapboxgl.NavigationControl());
+    map.addControl(new mapboxgl.NavigationControl());
 
-    var fields = JSON.parse('{{ fields_json|escapejs }}');
-    var markers = [];
+    const fields = JSON.parse('{{ fields_json|escapejs }}');
+    let markers = [];
+    let userLocation = null;
+    let selectedDestination = null;
+    let userLocationMarker = null;
+    let navigationActive = false;
+    let activePopup = null;
 
     function addMarkers(fields) {
-        fields.forEach(function (field) {
-            var marker = new mapboxgl.Marker()
+        fields.forEach(field => {
+            const el = document.createElement('div');
+            el.className = 'custom-marker';
+            el.style.backgroundImage = `url('/static/crop_icons/${field.crop.toLowerCase().replace(' ', '_')}.jpg')`;
+            el.style.width = '30px';
+            el.style.height = '30px';
+            el.style.backgroundSize = 'cover';
+            el.style.borderRadius = '50%';
+            el.style.border = '5px solid white';
+
+            const popup = new mapboxgl.Popup({ offset: 25 })
+                .setHTML(`
+                    <strong>${field.name}</strong><br>
+                    Hectares: ${field.acres}<br>
+                    Crop: ${field.crop}<br>
+                    <button class="navigate-to-field btn btn-primary">Navigate Here</button>
+                `);
+
+            const marker = new mapboxgl.Marker(el)
                 .setLngLat([field.longitude, field.latitude])
-                .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${field.name}, Acres: ${field.acres}, Crop: ${field.crop}`))
+                .setPopup(popup)
                 .addTo(map);
+
             markers.push(marker);
+
+            popup.on('open', () => {
+                activePopup = popup;
+                const navigateButton = popup.getElement().querySelector('.navigate-to-field');
+                if (navigateButton) {
+                    navigateButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        selectedDestination = [field.longitude, field.latitude];
+                        if (userLocation) {
+                            if (navigationActive) {
+                                clearNavigation();
+                                navigateButton.textContent = 'Navigate Here';
+                                navigateButton.classList.remove('btn-danger');
+                                navigateButton.classList.add('btn-primary');
+                            } else {
+                                startNavigation();
+                                navigateButton.textContent = 'Stop';
+                                navigateButton.classList.remove('btn-primary');
+                                navigateButton.classList.add('btn-danger');
+                            }
+                        } else {
+                            alert("Please set your current location first.");
+                        }
+                    });
+                }
+            });
         });
+    }
+
+    function filterMarkers(selectedCrop) {
+        markers.forEach(marker => marker.remove());
+        markers = [];
+
+        const filteredFields = selectedCrop === 'all' 
+            ? fields 
+            : fields.filter(field => field.crop === selectedCrop);
+        addMarkers(filteredFields);
+    }
+
+    function updateUserLocation(position) {
+        userLocation = position;
+        if (userLocationMarker) {
+            userLocationMarker.remove();
+        }
+        userLocationMarker = new mapboxgl.Marker({color: '#FF0000'})
+            .setLngLat(userLocation)
+            .addTo(map);
+    }
+
+    function startNavigation() {
+        if (userLocation && selectedDestination) {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${userLocation[0]},${userLocation[1]};${selectedDestination[0]},${selectedDestination[1]}?steps=true&geometries=geojson&access_token=${mapboxgl.accessToken}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const route = data.routes[0].geometry;
+
+                    if (map.getSource('route')) {
+                        map.getSource('route').setData(route);
+                    } else {
+                        map.addLayer({
+                            'id': 'route',
+                            'type': 'line',
+                            'source': {
+                                'type': 'geojson',
+                                'data': {
+                                    'type': 'Feature',
+                                    'properties': {},
+                                    'geometry': route
+                                }
+                            },
+                            'layout': {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            'paint': {
+                                'line-color': '#3887be',
+                                'line-width': 5,
+                                'line-opacity': 0.75
+                            }
+                        });
+                    }
+
+                    const bounds = new mapboxgl.LngLatBounds(userLocation, selectedDestination);
+                    map.fitBounds(bounds, { padding: 50 });
+                    navigationActive = true;
+                });
+        }
+    }
+
+    function clearNavigation() {
+        if (navigationActive) {
+            if (map.getLayer('route')) {
+                map.removeLayer('route');
+            }
+            if (map.getSource('route')) {
+                map.removeSource('route');
+            }
+            navigationActive = false;
+            map.fitBounds(cebucityBounds, { padding: 20 });
+        }
+    }
+
+    function toggleNavigationControls() {
+        const navigationControls = document.getElementById('navigation-controls');
     }
 
     addMarkers(fields);
 
-    document.getElementById('crop-select').addEventListener('change', function () {
-        var selectedCrop = this.value;
+    document.getElementById('crop-select').addEventListener('change', (e) => filterMarkers(e.target.value));
 
-        markers.forEach(function (marker) {
-            marker.remove();
-        });
-        markers = [];
-
-        if (selectedCrop === 'all') {
-            addMarkers(fields);
+    document.getElementById('use-gps').addEventListener('click', () => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                position => updateUserLocation([position.coords.longitude, position.coords.latitude]),
+                () => alert("Error: The Geolocation service failed.")
+            );
         } else {
-            var filteredFields = fields.filter(function (field) {
-                return field.crop === selectedCrop;
-            });
-            addMarkers(filteredFields);
+            alert("Error: Your browser doesn't support geolocation.");
         }
     });
-</script>
 
+    document.getElementById('custom-location').addEventListener('change', (e) => {
+        const customLocation = e.target.value;
+        fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(customLocation)}.json?access_token=${mapboxgl.accessToken}&bbox=123.7500,10.2500,123.9500,10.4500`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.features && data.features.length > 0) {
+                    updateUserLocation(data.features[0].center);
+                } else {
+                    alert("Location not found within Cebu City.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred while searching for the location.");
+            });
+    });
+
+    document.getElementById('minimize-nav').addEventListener('click', toggleNavigationControls);
+
+    map.fitBounds(cebucityBounds, { padding: 20 });
+</script>
 {% endblock %}

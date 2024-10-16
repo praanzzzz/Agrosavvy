@@ -54,14 +54,14 @@
                             </div>
 
                             <h5 class="mb-1 text-white">{{user.username}}</h5>
-                            <h6 class="text-light">
+                            <h6 class="text-light mt-3 mb-1">
                                 <div>
                                     {% if user.roleuser.roleuser == "farmer" %}
-                                    <strong> Farmer</strong>
+                                    Farmer
                                     {% elif user.roleuser.roleuser == "brgy_officer" %}
-                                    <strong> Brgy Officer</strong>
+                                    Brgy Officer
                                     {% elif user.roleuser.roleuser == "da_admin" %}
-                                    <strong> City Agriculture Department</strong>
+                                    City Agriculture Department
                                     {% else %}
                                     <strong> Unknown</strong>
                                     {% endif %}
@@ -125,7 +125,7 @@
                                         <p>Gender: <strong>{{user.gender}}</strong></p>
                                         <p>Birthdate: <strong>{{user.date_of_birth}}</strong></p>
                                         <p>Address: <strong>{{user.useraddress}}</strong></p>
-                                        <h6>Number of Fields: <strong>{{ field_count }}</strong></h6>
+                                        <h6>Number of Fields Contributed: <strong>{{ field_count }}</strong></h6>
 
                                     </div>
                                 </div>

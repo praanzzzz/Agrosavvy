@@ -18,6 +18,7 @@ class RoleUser(models.Model):
         return self.roleuser
     
 
+
 class Gender(models.Model):
     GENDER_CHOICES=[
         ("Male", "Male"),
@@ -122,11 +123,11 @@ class Address(models.Model):
     barangay = models.ForeignKey(Barangay, on_delete=models.SET_NULL, blank=True, null=True)
     city_municipality = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
-    latitude = models.FloatField(blank=True, null=True)
+    latitude = models.FloatField(blank=True, null=True) # change this
     longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
-        return f"address {self.barangay}, {self.city_municipality}, {self.country}"
+        return f"{self.barangay}, {self.city_municipality}, {self.country}"
 
 
 
@@ -249,9 +250,12 @@ class PendingUser(models.Model):
     lastname = models.CharField(max_length=30, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
+    # contact number
+    # if brgy, add official ID number
     useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, blank=True, null=True)
     roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
     request_date = models.DateTimeField(auto_now_add=True)
+    is_disapproved = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'firstname', 'lastname']
@@ -299,7 +303,7 @@ class ReviewRating(models.Model):
 class Field(models.Model):
     field_id = models.AutoField(primary_key=True)
     field_name = models.CharField(max_length=100)
-    field_acres = models.FloatField()
+    field_acres = models.FloatField()  # changed to hectares in templates only
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name="fields", null=True)
     owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True)
     created_at = models.DateTimeField(default=timezone.now)

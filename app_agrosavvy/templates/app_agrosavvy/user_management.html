@@ -10,6 +10,24 @@
         <div class="col-md-8">
             <!-- Active Users Section -->
             <h3 class="text-center mb-4">Registered Users</h3>
+            <form method="get" action="{% url 'user_management' %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="registered_search" placeholder="Search registered users..." value="{{ registered_search_query }}" class="form-control">
+                    <select name="registered_filter" class="form-select">
+                        <option value="">All roles</option>
+                        <option value="farmer" {% if registered_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
+                        <option value="brgy_officer" {% if registered_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
+                    </select>
+                    <select name="registered_sort" class="form-select">
+                        <option value="">Sort by</option>
+                        <option value="username" {% if registered_sort_by == 'username' %}selected{% endif %}>Username</option>
+                        <option value="email" {% if registered_sort_by == 'email' %}selected{% endif %}>Email</option>
+                        <option value="firstname" {% if registered_sort_by == 'firstname' %}selected{% endif %}>First Name</option>
+                        <option value="lastname" {% if registered_sort_by == 'lastname' %}selected{% endif %}>Last Name</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
             <div class="table-responsive">
                 {% if registered_users %}
                 <table class="table table-borderless shadow-sm rounded">
@@ -35,8 +53,6 @@
                                 Farmer
                                 {% elif registered_user.roleuser.roleuser == "brgy_officer" %}
                                 Barangay Officer
-                                {% elif registered_user.roleuser.roleuser == "da_admin" %}
-                                CAD Admin
                                 {% else %}
                                 Unknown
                                 {% endif %}
@@ -52,86 +68,41 @@
                             <td>
                                 <div class="btn-group">
                                     {% if registered_user.active_status %}
-                                        <!-- Deactivate button (trigger the modal) -->
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeactivateUserModal">
-                                            Deactivate
-                                        </button>
-                                
-                                        <!-- Confirmation Modal for User Deactivation -->
-                                        <div class="modal fade" id="confirmDeactivateUserModal" tabindex="-1" aria-labelledby="confirmDeactivateUserModalLabel" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="confirmDeactivateUserModalLabel">Confirm Deactivation</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        Are you sure you want to deactivate this user?
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" class="d-inline-block">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-danger">Deactivate</button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" onsubmit="confirmDeactivation(event)">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to deactivate this user?')">Deactivate</button>
+                                    </form>
                                     {% else %}
-                                        <!-- Activate button (trigger the modal) -->
-                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmActivateUserModal">
-                                            Activate
-                                        </button>
-                                
-                                        <!-- Confirmation Modal for User Activation -->
-                                        <div class="modal fade" id="confirmActivateUserModal" tabindex="-1" aria-labelledby="confirmActivateUserModalLabel" aria-hidden="true">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title" id="confirmActivateUserModalLabel">Confirm Activation</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        Are you sure you want to activate this user?
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                        <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" class="d-inline-block">
-                                                            {% csrf_token %}
-                                                            <button type="submit" class="btn btn-success">Activate</button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" onsubmit="confirmActivation(event)">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Are you sure you want to activate this user?')">Activate</button>
+                                    </form>
                                     {% endif %}
                                 </div>
-                                
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
 
-                <!-- Pagination -->
+                <!-- Pagination for Registered Users -->
                 <nav aria-label="Page navigation" class="mt-3">
                     <ul class="pagination justify-content-center">
                         {% if registered_users_page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ registered_users_page_obj.previous_page_number }}" aria-label="Previous">
+                            <a class="page-link" href="?registered_page={{ registered_users_page_obj.previous_page_number }}&registered_search={{ registered_search_query }}&registered_filter={{ registered_filter_type }}&registered_sort={{ registered_sort_by }}" aria-label="Previous">
                                 &laquo;
                             </a>
                         </li>
                         {% endif %}
                         {% for num in registered_users_page_obj.paginator.page_range %}
                         <li class="page-item {% if registered_users_page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            <a class="page-link" href="?registered_page={{ num }}&registered_search={{ registered_search_query }}&registered_filter={{ registered_filter_type }}&registered_sort={{ registered_sort_by }}">{{ num }}</a>
                         </li>
                         {% endfor %}
                         {% if registered_users_page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ registered_users_page_obj.next_page_number }}" aria-label="Next">
+                            <a class="page-link" href="?registered_page={{ registered_users_page_obj.next_page_number }}&registered_search={{ registered_search_query }}&registered_filter={{ registered_filter_type }}&registered_sort={{ registered_sort_by }}" aria-label="Next">
                                 &raquo;
                             </a>
                         </li>
@@ -145,6 +116,25 @@
 
             <!-- Pending Users Section -->
             <h3 class="text-center mb-4 mt-5">Pending Users</h3>
+            <form method="get" action="{% url 'user_management' %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="pending_search" placeholder="Search pending users..." value="{{ pending_search_query }}" class="form-control">
+                    <select name="pending_filter" class="form-select">
+                        <option value="">All roles</option>
+                        <option value="farmer" {% if pending_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
+                        <option value="brgy_officer" {% if pending_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
+                    </select>
+                    <select name="pending_sort" class="form-select">
+                        <option value="">Sort by</option>
+                        <option value="username" {% if pending_sort_by == 'username' %}selected{% endif %}>Username</option>
+                        <option value="email" {% if pending_sort_by == 'email' %}selected{% endif %}>Email</option>
+                        <option value="firstname" {% if pending_sort_by == 'firstname' %}selected{% endif %}>First Name</option>
+                        <option value="lastname" {% if pending_sort_by == 'lastname' %}selected{% endif %}>Last Name</option>
+                        <option value="request_date" {% if pending_sort_by == 'request_date' %}selected{% endif %}>Request Date</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
             <div class="table-responsive">
                 {% if pending_users %}
                 <table class="table table-borderless shadow-sm rounded">
@@ -177,57 +167,39 @@
                             <td>{{ pending_user.useraddress }}</td>
                             <td>{{ pending_user.request_date }}</td>
                             <td>
-                               <!-- Approve button (trigger the modal) -->
-                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmApproveUserModal">
-                                Approve
-                            </button>
-
-                            <!-- Confirmation Modal for User Approval -->
-                            <div class="modal fade" id="confirmApproveUserModal" tabindex="-1" aria-labelledby="confirmApproveUserModalLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="confirmApproveUserModalLabel">Confirm Approval</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            Are you sure you want to approve this user?
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" class="d-inline-block">
-                                                {% csrf_token %}
-                                                <button type="submit" class="btn btn-success">Approve</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                                <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" onsubmit="confirmApproval(event)">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Are you sure you want to approve this user?')">Approve</button>
+                                </form>
+                                <form method="post" action="{% url 'admin_disapprove_user' pending_user.id %}" onsubmit="confirmDisapproval(event)">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to disapprove this user?')">Disapprove</button>
+                                </form>
+                                
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
 
-                <!-- Pagination -->
+                <!-- Pagination for Pending Users -->
                 <nav aria-label="Page navigation" class="mt-3">
                     <ul class="pagination justify-content-center">
                         {% if pending_users_page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ pending_users_page_obj.previous_page_number }}" aria-label="Previous">
+                            <a class="page-link" href="?pending_page={{ pending_users_page_obj.previous_page_number }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}" aria-label="Previous">
                                 &laquo;
                             </a>
                         </li>
                         {% endif %}
                         {% for num in pending_users_page_obj.paginator.page_range %}
                         <li class="page-item {% if pending_users_page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            <a class="page-link" href="?pending_page={{ num }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}">{{ num }}</a>
                         </li>
                         {% endfor %}
                         {% if pending_users_page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ pending_users_page_obj.next_page_number }}" aria-label="Next">
+                            <a class="page-link" href="?pending_page={{ pending_users_page_obj.next_page_number }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}" aria-label="Next">
                                 &raquo;
                             </a>
                         </li>
@@ -246,17 +218,14 @@
             <div class="rounded p-3 bg-light shadow-sm mb-4">
                 <h4><strong>User Log</strong></h4>
                 <div>
-                    {% for event in login_events|slice:":5  " %}
+                    {% for event in login_events|slice:":5" %}
                     <div class="mb-3">
                         <span>
-                         
                             {% if event.user_id == null %}
                             <strong>unknown user</strong>
                             {% else %}
                             <strong>@ {{ event.user.username }}</strong>
                             {% endif %}
-
-
                             {% if event.login_type == 0 %}logged in{% elif event.login_type == 1 %}logged out{% elif event.login_type == 2 %}failed login{% else %}error{% endif %}
                             {{ event.datetime|timesince }} ago
                         </span>
@@ -280,34 +249,30 @@
                             {% else %}
                             <strong>@ {{ event.user.username }}</strong>
                             {% endif %}
-
-
-                           <!-- Event Type: Added, Updated, Deleted -->
-                           {% if event.event_type == 1 %}
-                           added
-                           {% elif event.event_type == 2 %}
-                           {% if event.changed_fields %}
-                           {% if 'is_deleted' in event.changed_fields %}
-                           {% if event.changed_fields.is_deleted.0 == "False" %}
-                           updated
-                           (Changed fields: {{ event.changed_fields }})
-                           {% else %}
-                           deleted
-                           {% endif %}
-                           {% else %}
-                           updated
-                           {% endif %}
-                           {% else %}
-                           updated
-                           {% endif %}
-                           {% elif event.event_type == 3 %}
-                           deleted
-                           {% else %}
-                           error
-                           {% endif %}
-
-                           {{ event.object_repr }}
-                           ,{{ event.datetime|timesince }} ago
+                            {% if event.event_type == 1 %}
+                            added
+                            {% elif event.event_type == 2 %}
+                            {% if event.changed_fields %}
+                            {% if 'is_deleted' in event.changed_fields %}
+                            {% if event.changed_fields.is_deleted.0 == "False" %}
+                            updated
+                            (Changed fields: {{ event.changed_fields }})
+                            {% else %}
+                            deleted
+                            {% endif %}
+                            {% else %}
+                            updated
+                            {% endif %}
+                            {% else %}
+                            updated
+                            {% endif %}
+                            {% elif event.event_type == 3 %}
+                            deleted
+                            {% else %}
+                            error
+                            {% endif %}
+                            {{ event.object_repr }}
+                            ,{{ event.datetime|timesince }} ago
                         </span>
                     </div>  
                     {% empty %}

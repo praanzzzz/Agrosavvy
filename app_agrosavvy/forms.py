@@ -232,6 +232,9 @@ class FieldForm(forms.ModelForm):
     class Meta:
         model = Field
         fields = ["field_name", "field_acres"]
+        labels = {
+            "field_acres": "Field Hectares"
+        }
         widgets = {
             "field_name": forms.TextInput(
                 attrs={
@@ -243,7 +246,7 @@ class FieldForm(forms.ModelForm):
             "field_acres": forms.NumberInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Enter field size in acres",
+                    "placeholder": "Enter field size in hectares",
                 }
             ),
         }
@@ -317,6 +320,7 @@ class FieldCropForm(forms.ModelForm):
         }
 
 
+
 class FieldSoilDataForm(forms.ModelForm):
     class Meta:
         model = FieldSoilData
@@ -336,7 +340,7 @@ class FieldSoilDataForm(forms.ModelForm):
                 attrs={"class": "form-control", "placeholder": "Enter potassium level"}
             ),
             "ph": forms.NumberInput(
-                attrs={"class": "form-control", "placeholder": "Enter pH level"}
+                attrs={"class": "form-control", "placeholder": "Enter pH level","min": 0, "max": 10,}
             ),
             "record_date": forms.DateInput(
                 attrs={"class": "form-control", "type": "date"}
