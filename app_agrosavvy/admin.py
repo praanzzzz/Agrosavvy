@@ -128,6 +128,7 @@ class PendingUserAdmin(admin.ModelAdmin):
         "email",
         "roleuser",
         'useraddress',
+        "is_disapproved",
         "request_date",
     )
     actions = [approve_users]
@@ -145,8 +146,8 @@ class PendingUserAdmin(admin.ModelAdmin):
     )
 
     # Prevent deletion of pending users directly from admin
-    def has_delete_permission(self, request, obj=None):
-        return False
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
 
     # Prevent adding new pending users directly from admin
     def has_add_permission(self, request):
@@ -173,9 +174,17 @@ class ReviewRatingAdmin(admin.ModelAdmin):
         "rate_date",
     )
 
+
+class FieldAdmin(admin.ModelAdmin):
+    list_display = (
+        "field_name",
+        "owner",
+        "address",
+    )
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
-admin.site.register(Field)
+admin.site.register(Field, FieldAdmin)
 admin.site.register(Address)
 admin.site.register(ReviewRating, ReviewRatingAdmin)
 admin.site.register(FieldCropData)

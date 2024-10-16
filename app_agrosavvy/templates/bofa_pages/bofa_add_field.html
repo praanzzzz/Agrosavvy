@@ -91,11 +91,18 @@
             mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
             // Create and initialize the Mapbox map
+            var cebucityBounds = [
+                [123.7500, 10.2500], // Southwest coordinates
+                [123.9500, 10.4500]  // Northeast coordinates
+             ];
+
             var map = new mapboxgl.Map({
-                container: 'map', // The ID of the container where the map will be displayed
-                style: 'mapbox://styles/mapbox/satellite-streets-v11', // The style of the map
-                center: [123.876705, 10.308258], // Initial map center coordinates
-                zoom: 12 // Initial zoom level
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-streets-v11',
+                center: [123.80833, 10.34629],
+                zoom: 11,
+                minZoom: 11, // Set the minimum zoom level
+                maxBounds: cebucityBounds // Restrict the view to Cebu City
             });
 
             // Create a draggable marker and add it to the map

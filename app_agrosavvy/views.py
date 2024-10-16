@@ -10,7 +10,9 @@ from .models import (
     Chat,
     ChatGroup,
     Notification,
+    Barangay,
 )
+
 from .forms import (
     FieldForm,
     AddressForm,
@@ -41,7 +43,7 @@ import requests
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, Max, Subquery, OuterRef
 from django.utils import timezone
 from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
@@ -63,10 +65,35 @@ OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
 
+
 # Main pages for da_admin and brgy officers
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        # Search, Filter, and Sort
+        search_query = request.GET.get('search', '')
+        filter_type = request.GET.get('filter', '')
+        sort_by = request.GET.get('sort', '')
+
         fields = Field.objects.filter(is_deleted=False)
+
+        if search_query:
+            fields = fields.filter(
+                Q(field_name__icontains=search_query) |
+                Q(owner__username__icontains=search_query) |
+                Q(address__barangay__brgy_name__icontains=search_query)
+            )
+
+        if filter_type:
+            fields = fields.filter(owner__roleuser__roleuser=filter_type)
+
+        if sort_by == 'name':
+            fields = fields.order_by('field_name')
+        elif sort_by == 'acres':
+            fields = fields.order_by('field_acres')
+
+
+        # retrieve data
         crops = Crop.objects.all()
         active_users = CustomUser.objects.filter(active_status=True)
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
@@ -74,7 +101,7 @@ def dashboard(request):
         average_acres = round(average_acres, 2)
         reviewrating_context = reviewrating(request)
 
-        # pie chart
+        # Pie Chart Data
         labels = []
         data = []
         queryset = FieldCropData.objects.filter(field__is_deleted=False, is_deleted=False
@@ -84,8 +111,7 @@ def dashboard(request):
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
 
-
-        # line chart
+        # Line Chart Data
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
         field_data = (
@@ -101,31 +127,30 @@ def dashboard(request):
         labelsfield = [data["month"] for data in field_data]
         datafield = [data["count"] for data in field_data]
 
-
-        # paginator
-        paginator = Paginator(fields, 10)  # 10 fields per page
-        page_number = request.GET.get(
-            "page"
-        )  # Get the current page number from the request
-        page_obj = paginator.get_page(
-            page_number
-        )  # Get the page object for the current page
-
+        # Pagination
+        paginator = Paginator(fields, 5)  
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
 
         context = {
+            "notifications": notifications,
             "fields": fields,
             "crops": crops,
             "field_count": fields.count(),
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
-            "average_acres": average_acres,  
-            # charts
+            "average_acres": average_acres,
+            # Charts
             "labels": labels,
             "data": data,
             "labelsfield": labelsfield,
             "datafield": datafield,
-            # pagination
+            # Pagination
             "page_obj": page_obj,
+            # Search, Filter, and Sort Context
+            "search_query": search_query,
+            "filter_type": filter_type,
+            "sort_by": sort_by,
         }
         context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", context)
@@ -134,11 +159,41 @@ def dashboard(request):
 
     #  for brgy officers
     elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        
+
+
+         # Search, Filter, and Sort
+        search_query = request.GET.get('search', '')
+        filter_type = request.GET.get('filter', '')
+        sort_by = request.GET.get('sort', '')
+
+        fields = Field.objects.filter(is_deleted=False)
+
+        if search_query:
+            fields = fields.filter(
+                Q(field_name__icontains=search_query) |
+                Q(owner__username__icontains=search_query) |
+                Q(address__barangay__brgy_name__icontains=search_query)
+            )
+
+        if filter_type:
+            fields = fields.filter(owner__roleuser__roleuser=filter_type)
+
+        if sort_by == 'name':
+            fields = fields.order_by('field_name')
+        elif sort_by == 'acres':
+            fields = fields.order_by('field_acres')
+
+
+
+        # retrieve data: it only shows fields registered to the same address of the brgy officer
         user_address = request.user.useraddress.useraddress
         user_barangay = user_address.split(",")[0].strip() 
         fields = Field.objects.filter(
             Q(address__barangay__brgy_name=user_barangay, is_deleted=False)
         )
+
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         active_users = CustomUser.objects.filter(
             useraddress__useraddress__startswith=user_barangay,  # Check for users in the same barangay
@@ -146,16 +201,13 @@ def dashboard(request):
         )
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
+
+
         reviewrating_context = reviewrating(request)
 
-        # pagination
-        paginator = Paginator(fields, 10)  
-        page_number = request.GET.get(
-            "page"
-        )  
-        page_obj = paginator.get_page(
-            page_number
-        ) 
+
+
+
         # pie chart
         # Filter FieldCropData by fields in the same barangay
         queryset = FieldCropData.objects.filter(
@@ -169,6 +221,8 @@ def dashboard(request):
         # Prepare data for the pie chart
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
+
+
 
 
         # line chart
@@ -190,7 +244,21 @@ def dashboard(request):
         labelsfield = [data["month"] for data in field_data]
         datafield = [data["count"] for data in field_data]
 
+
+
+
+
+        # pagination
+        paginator = Paginator(fields, 5)  
+        page_number = request.GET.get(
+            "page"
+        )  
+        page_obj = paginator.get_page(
+            page_number
+        )
+
         brgy_officer_context={
+            "notifications": notifications,
             "fields": fields,
             "field_count": fields.count(),
             "total_acres": total_acres,
@@ -201,11 +269,17 @@ def dashboard(request):
             "data": data,
             "labelsfield": labelsfield,
             "datafield": datafield,
+            # Search, Filter, and Sort Context
+            "search_query": search_query,
+            "filter_type": filter_type,
+            "sort_by": sort_by,
         }
         brgy_officer_context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", brgy_officer_context)
     else:
         return redirect("forbidden")
+
+
 
 
 
@@ -258,7 +332,6 @@ def chat(request, group_id=None):
         return render(request, 'app_agrosavvy/ai/chatai.html', context)
     else:
         return redirect("forbidden")
-
 
 
 
@@ -561,35 +634,35 @@ def tipsai(request):
 
 
 
-
 def map(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         fields_json = []
 
-        # Fetches all field crop data (wrong)
-        # add filters to show only the current crop planted. (not the history or all data)
-        # field_crop_data = FieldCropData.objects.select_related("field", "crop_planted")
+        # Subquery to get the latest crop data for each field
+        latest_crop = FieldCropData.objects.filter(
+            field=OuterRef('field_id'),
+            is_deleted=False
+        ).order_by('-planting_date')
 
-        field_crop_data = (
-            FieldCropData.objects
-            .select_related("field", "crop_planted")
-            .filter(field__is_deleted=False)
+        # Fetch fields with their latest crop data
+        fields = Field.objects.filter(is_deleted=False).annotate(
+            latest_crop_id=Subquery(latest_crop.values('fieldcrop_id')[:1]),
+            latest_crop_type=Subquery(latest_crop.values('crop_planted__crop_type')[:1])
         )
 
-
-        for data in field_crop_data:
-            if data.field.address:
-                fields_json.append(
-                    {
-                        "name": data.field.field_name,
-                        "acres": data.field.field_acres,
-                        "latitude": data.field.address.latitude,
-                        "longitude": data.field.address.longitude,
-                        "crop": data.crop_planted.crop_type,
-                    }
-                )
+        for field in fields:
+            if field.address:
+                fields_json.append({
+                    "name": field.field_name,
+                    "acres": field.field_acres,
+                    "latitude": field.address.latitude,
+                    "longitude": field.address.longitude,
+                    "crop": field.latest_crop_type or "No crop data",
+                })
 
         context = {
+            "notifications": notifications,
             "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
             "crops": Crop.objects.all(),
         }
@@ -609,6 +682,7 @@ def add_field(request):
                 field.address = address
                 field.owner = request.user
                 field.save()
+                messages.success(request, "Field saved successfully.")
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -654,6 +728,7 @@ def weather(request):
 # update profile
 def settings(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -671,7 +746,7 @@ def settings(request):
         else:
             updateprofileform = CustomUserUpdateForm(instance=user)
 
-        context = {"updateprofileform": updateprofileform}
+        context = {"updateprofileform": updateprofileform, "notifications":  notifications}
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
@@ -682,12 +757,14 @@ def settings(request):
 #view profile
 def view_profile(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser=='da_admin' or request.user.roleuser.roleuser=='brgy_officer'):
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         owner=request.user
         fields = Field.objects.filter(owner = request.user, is_deleted=False)
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         context = {
             "field_count": fields.count(),
+            "notifications": notifications,
         }
         return render(request, "app_agrosavvy/view_profile.html", context)
     else:
@@ -704,90 +781,106 @@ def view_profile(request):
 
 
 def user_management(request):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        # fields = Field.objects.filter(is_deleted=False)
-        registered_users = CustomUser.objects.exclude(roleuser__roleuser="da_admin").exclude(is_superuser=True)
-        pending_users = PendingUser.objects.exclude(roleuser__roleuser="da_admin") #.exclude(roleuser__roleuser="farmer")
-        # logs for login and crud events
-        login_events = LoginEvent.objects.all().order_by('-datetime')
-        crud_events = CRUDEvent.objects.all().order_by('-datetime')
+    if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
+        user_role = request.user.roleuser.roleuser
+        user_barangay = request.user.useraddress.useraddress.split(',')[0].strip() if user_role == "brgy_officer" else None
 
+        # Registered Users
+        registered_search_query = request.GET.get('registered_search', '')
+        registered_filter_type = request.GET.get('registered_filter', '')
+        registered_sort_by = request.GET.get('registered_sort', '')
 
-        # Set up the paginator
-        paginator = Paginator(registered_users, 4)  
-        page_number = request.GET.get("page") 
-        registered_users_page_obj = paginator.get_page(page_number)  
+        if user_role == "da_admin":
+            registered_users = CustomUser.objects.exclude(roleuser__roleuser="da_admin").exclude(is_superuser=True)
+        else:  # brgy_officer
+            registered_users = CustomUser.objects.filter(
+                useraddress__useraddress__startswith=user_barangay,
+                roleuser__roleuser="farmer"
+            )
 
-        paginator = Paginator(pending_users, 4)
-        page_number = request.GET.get("page")
-        pending_users_page_obj = paginator.get_page(page_number)
+        if registered_search_query:
+            registered_users = registered_users.filter(
+                Q(username__icontains=registered_search_query) |
+                Q(email__icontains=registered_search_query) |
+                Q(firstname__icontains=registered_search_query) |
+                Q(lastname__icontains=registered_search_query)
+            )
+
+        if registered_filter_type and user_role == "da_admin":
+            registered_users = registered_users.filter(roleuser__roleuser=registered_filter_type)
+
+        if registered_sort_by:
+            registered_users = registered_users.order_by(registered_sort_by)
+
+        # Pending Users
+        pending_search_query = request.GET.get('pending_search', '')
+        pending_filter_type = request.GET.get('pending_filter', '')
+        pending_sort_by = request.GET.get('pending_sort', '')
+
+        if user_role == "da_admin":
+            pending_users = PendingUser.objects.exclude(roleuser__roleuser="da_admin").filter(is_disapproved=False)
+        else:  # brgy_officer
+            pending_users = PendingUser.objects.filter(
+                useraddress__useraddress__startswith=user_barangay,
+                roleuser__roleuser="farmer", is_disapproved=False   
+            )
+
+        if pending_search_query:
+            pending_users = pending_users.filter(
+                Q(username__icontains=pending_search_query) |
+                Q(email__icontains=pending_search_query) |
+                Q(firstname__icontains=pending_search_query) |
+                Q(lastname__icontains=pending_search_query)
+            )
+
+        if pending_filter_type and user_role == "da_admin":
+            pending_users = pending_users.filter(roleuser__roleuser=pending_filter_type, is_disapproved=False)
+
+        if pending_sort_by:
+            pending_users = pending_users.order_by(pending_sort_by)
+
+        # Pagination for registered users
+        registered_paginator = Paginator(registered_users, 4)
+        registered_page_number = request.GET.get("registered_page")
+        registered_users_page_obj = registered_paginator.get_page(registered_page_number)
+
+        # Pagination for pending users
+        pending_paginator = Paginator(pending_users, 4)
+        pending_page_number = request.GET.get("pending_page")
+        pending_users_page_obj = pending_paginator.get_page(pending_page_number)
+
+        # Login and CRUD events
+        if user_role == "da_admin":
+            login_events = LoginEvent.objects.all().order_by('-datetime')
+            crud_events = CRUDEvent.objects.all().order_by('-datetime')
+        else:  # brgy_officer
+            login_events = LoginEvent.objects.filter(
+                user__useraddress__useraddress__startswith=user_barangay,
+            ).order_by('-datetime')
+            crud_events = CRUDEvent.objects.filter(
+                user__useraddress__useraddress__startswith=user_barangay,
+            ).order_by('-datetime')
 
         context = {
-            # "fields": fields,
-            "login_events": login_events,
-            "crud_events": crud_events,
             "registered_users": registered_users,
             "registered_users_page_obj": registered_users_page_obj,
             "pending_users": pending_users,
             "pending_users_page_obj": pending_users_page_obj,
+            "login_events": login_events,
+            "crud_events": crud_events,
+            "registered_search_query": registered_search_query,
+            "registered_filter_type": registered_filter_type,
+            "registered_sort_by": registered_sort_by,
+            "pending_search_query": pending_search_query,
+            "pending_filter_type": pending_filter_type,
+            "pending_sort_by": pending_sort_by,
+            "user_role": user_role,
         }
 
         return render(request, "app_agrosavvy/user_management.html", context)
-    
-
-
-    if request.user.is_authenticated and request.user.roleuser.roleuser == 'brgy_officer':
-        # Get the address from the user's user address model
-        user_address = request.user.useraddress.useraddress
-
-        # Extract the barangay part (removes the Cebu City)
-        user_barangay = user_address.split(",")[0].strip() 
-        
-        # Assuming CustomUser has a ForeignKey to UserAddress named `useraddress`
-        registered_users = CustomUser.objects.filter(
-            useraddress__useraddress__startswith=user_barangay,  # Access barangay through the related UserAddress model
-            roleuser__roleuser="farmer"  # Show only farmers
-        )
-
-
-        pending_users = PendingUser.objects.filter(
-            useraddress__useraddress__startswith=user_barangay,
-            roleuser__roleuser="farmer"
-        )
-
-
-        # Filter login events and CRUD events based on the barangay of users involved
-        login_events = LoginEvent.objects.filter(
-            user__useraddress__useraddress__startswith=user_barangay,
-        ).order_by('-datetime')
-        
-        crud_events = CRUDEvent.objects.filter(
-            user__useraddress__useraddress__startswith=user_barangay,
-        ).order_by('-datetime')
-
-
-         # Set up the paginator
-        paginator = Paginator(registered_users, 4)  
-        page_number = request.GET.get("page") 
-        registered_users_page_obj = paginator.get_page(page_number)  
-
-        paginator = Paginator(pending_users, 4)  
-        page_number = request.GET.get("page") 
-        pending_users_page_obj = paginator.get_page(page_number)  
-
-
-
-        brgy_off_context= {
-            "registered_users": registered_users,
-            "registered_users_page_obj": registered_users_page_obj,
-            "pending_users": pending_users,
-            "pending_users_page_obj": pending_users_page_obj,
-            "login_events": login_events,
-            "crud_events":crud_events,
-        }
-        return render(request, "app_agrosavvy/user_management.html", brgy_off_context)
     else:
-            return redirect("forbidden")
+        return redirect("forbidden")
+
 
 
 
@@ -797,6 +890,7 @@ def user_management(request):
 # Create notification based on the selected option
 def create_notification(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         if request.method == 'POST':
             form = CreateNotificationForm(request.POST)
             if form.is_valid():
@@ -837,13 +931,14 @@ def create_notification(request):
             form = CreateNotificationForm()
         context = {
             "form": form,
+            "notifications": notifications,
         }
         return render(request, "app_agrosavvy/create_notification.html", context)
     return redirect("forbidden")
 
 
 
-# for all as long as authenticated
+# for all - as long as authenticated
 def view_notification(request):
     if request.user.is_authenticated:
         # Fetch notifications for the currently logged-in user
@@ -891,6 +986,22 @@ def admin_activate_account(request, user_id):
         return redirect("forbidden")
 
 
+def admin_disapprove_user(request, user_id):
+    pending_user = get_object_or_404(PendingUser, id=user_id)
+
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            pending_user.is_disapproved = True
+            pending_user.save()
+            messages.success(request, "The pending user is disapproved.")
+            return redirect("user_management")
+        return render(request, "app_agrosavvy/user_management.html")
+    else:
+        return redirect("forbidden")
+    
+
+
+
 def admin_approve_user(request, user_id):
     pending_user = get_object_or_404(PendingUser, id=user_id)
 
@@ -930,61 +1041,155 @@ def admin_approve_user(request, user_id):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # field management
 def manage_field(request, field_id):    
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
         request.user.roleuser.roleuser == "brgy_officer"                                  
         ):
-        field = get_object_or_404(
-            Field, field_id=field_id
-        )  # used for reference or select a specific field
-        fieldsoildata = FieldSoilData.objects.filter(
-            field=field, is_deleted=False
-        )  # displays soil data history of a field
-        fieldcropdata = FieldCropData.objects.filter(
-            field=field, is_deleted=False
-        )  # displays crop data history of a field
+        # field = get_object_or_404(Field, field_id=field_id)
+
+        # # Soil Data
+        # soil_filter_type = request.GET.get('soil_filter', '')
+        # soil_sort_by = request.GET.get('soil_sort', '')
+
+        # fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
+
+        # if soil_filter_type:
+        #     if soil_filter_type == 'acidic':
+        #         fieldsoildata = fieldsoildata.filter(ph__lt=7)
+        #     elif soil_filter_type == 'neutral':
+        #         fieldsoildata = fieldsoildata.filter(ph=7)
+        #     elif soil_filter_type == 'alkaline':
+        #         fieldsoildata = fieldsoildata.filter(ph__gt=7)
+
+        # if soil_sort_by:
+        #     if soil_sort_by == 'date_asc':
+        #         fieldsoildata = fieldsoildata.order_by('record_date')
+        #     elif soil_sort_by == 'date_desc':
+        #         fieldsoildata = fieldsoildata.order_by('-record_date')
+        #     elif soil_sort_by == 'ph_asc':
+        #         fieldsoildata = fieldsoildata.order_by('ph')
+        #     elif soil_sort_by == 'ph_desc':
+        #         fieldsoildata = fieldsoildata.order_by('-ph')
+
+        # # Crop Data
+        # crop_filter_type = request.GET.get('crop_filter', '')
+        # crop_sort_by = request.GET.get('crop_sort', '')
+
+        # fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
+
+        # if crop_filter_type:
+        #     fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
+
+        # if crop_sort_by:
+        #     if crop_sort_by == 'planting_asc':
+        #         fieldcropdata = fieldcropdata.order_by('planting_date')
+        #     elif crop_sort_by == 'planting_desc':
+        #         fieldcropdata = fieldcropdata.order_by('-planting_date')
+        #     elif crop_sort_by == 'harvest_asc':
+        #         fieldcropdata = fieldcropdata.order_by('harvest_date')
+        #     elif crop_sort_by == 'harvest_desc':
+        #         fieldcropdata = fieldcropdata.order_by('-harvest_date')
+
+        # # Create form instance for adding soil data
+        # asdform = FieldSoilDataForm()
+        # acdform = FieldCropForm()
+
+        # # Create a dictionary of forms for each soil and crop data instance
+        # fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+        # fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
+
+        # # Pagination for fieldsoildata
+        # soil_paginator = Paginator(fieldsoildata, 3)
+        # soil_page_number = request.GET.get("soil_page")
+        # fsdpage_obj = soil_paginator.get_page(soil_page_number)
+
+        # # Pagination for fieldcropdata
+        # crop_paginator = Paginator(fieldcropdata, 3)
+        # crop_page_number = request.GET.get("crop_page")
+        # fcdpage_obj = crop_paginator.get_page(crop_page_number)
+
+        # context = {
+        #     "field": field,
+        #     "fieldsoildata": fieldsoildata,
+        #     "fieldcropdata": fieldcropdata,
+        #     "asdform": asdform,
+        #     "acdform": acdform,
+        #     "fsdforms": fsdforms,
+        #     "fcdforms": fcdforms,
+        #     "fsdpage_obj": fsdpage_obj,
+        #     "fcdpage_obj": fcdpage_obj,
+        #     "soil_filter_type": soil_filter_type,
+        #     "soil_sort_by": soil_sort_by,
+        #     "crop_filter_type": crop_filter_type,
+        #     "crop_sort_by": crop_sort_by,
+        #     "crops": Crop.objects.all(),
+        # }
+        # return render(request, "app_agrosavvy/manage_field.html", context)
+
+        field = get_object_or_404(Field, field_id=field_id)
+
+        # Soil Data
+        soil_filter_type = request.GET.get('soil_filter', '')
+        soil_sort_by = request.GET.get('soil_sort', '')
+
+        fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
+
+        if soil_filter_type:
+            if soil_filter_type == 'acidic':
+                fieldsoildata = fieldsoildata.filter(ph__lt=7)
+            elif soil_filter_type == 'neutral':
+                fieldsoildata = fieldsoildata.filter(ph=7)
+            elif soil_filter_type == 'alkaline':
+                fieldsoildata = fieldsoildata.filter(ph__gt=7)
+
+        if soil_sort_by:
+            if soil_sort_by == 'date_asc':
+                fieldsoildata = fieldsoildata.order_by('record_date')
+            elif soil_sort_by == 'date_desc':
+                fieldsoildata = fieldsoildata.order_by('-record_date')
+            elif soil_sort_by == 'ph_asc':
+                fieldsoildata = fieldsoildata.order_by('ph')
+            elif soil_sort_by == 'ph_desc':
+                fieldsoildata = fieldsoildata.order_by('-ph')
+
+        # Crop Data
+        crop_filter_type = request.GET.get('crop_filter', '')
+        crop_sort_by = request.GET.get('crop_sort', '')
+
+        fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
+
+        if crop_filter_type:
+            fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
+
+        if crop_sort_by:
+            if crop_sort_by == 'planting_asc':
+                fieldcropdata = fieldcropdata.order_by('planting_date')
+            elif crop_sort_by == 'planting_desc':
+                fieldcropdata = fieldcropdata.order_by('-planting_date')
+            # elif crop_sort_by == 'harvest_asc':
+            #     fieldcropdata = fieldcropdata.order_by('harvest_date')
+            # elif crop_sort_by == 'harvest_desc':
+            #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
 
         # Create form instance for adding soil data
-        asdform = FieldSoilDataForm()  # form for add soil data
+        asdform = FieldSoilDataForm()
         acdform = FieldCropForm()
 
         # Create a dictionary of forms for each soil and crop data instance
-        fsdforms = {
-            fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata
-        }
-        fcdforms = {
-            fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata
-        }
+        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+        fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
 
-        # paginator for fieldsoildata
-        paginator = Paginator(fieldsoildata, 3)  # 3 fields per page
-        page_number = request.GET.get(
-            "page"
-        )  # Get the current page number from the request
-        fsdpage_obj = paginator.get_page(
-            page_number
-        )  # Get the page object for the current page
+        # Pagination for fieldsoildata
+        soil_paginator = Paginator(fieldsoildata, 3)
+        soil_page_number = request.GET.get("soil_page")
+        fsdpage_obj = soil_paginator.get_page(soil_page_number)
 
-        # paginator for fieldcropdata
-        paginator = Paginator(fieldcropdata, 3)
-        page_number = request.GET.get("page")
-        fcdpage_obj = paginator.get_page(page_number)
+        # Pagination for fieldcropdata
+        crop_paginator = Paginator(fieldcropdata, 3)
+        crop_page_number = request.GET.get("crop_page")
+        fcdpage_obj = crop_paginator.get_page(crop_page_number)
 
-        # to make it accessible by the template
         context = {
             "field": field,
             "fieldsoildata": fieldsoildata,
@@ -995,6 +1200,11 @@ def manage_field(request, field_id):
             "fcdforms": fcdforms,
             "fsdpage_obj": fsdpage_obj,
             "fcdpage_obj": fcdpage_obj,
+            "soil_filter_type": soil_filter_type,
+            "soil_sort_by": soil_sort_by,
+            "crop_filter_type": crop_filter_type,
+            "crop_sort_by": crop_sort_by,
+            "crops": Crop.objects.all(),
         }
         return render(request, "app_agrosavvy/manage_field.html", context)
     else:
@@ -1017,6 +1227,7 @@ def update_field(request, field_id):
                 updated_field.owner = field.owner
                 updated_field.save()
                 updated_address = address_form.save()
+                messages.success(request, "Field updated successfully.")
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -1074,8 +1285,34 @@ def delete_field(request, field_id):
 
 def bofa_dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         owner = request.user
         fields = Field.objects.filter(owner=request.user, is_deleted=False)
+
+         # Search functionality
+        search_query = request.GET.get('search', '')
+        if search_query:
+            fields = fields.filter(
+                Q(field_name__icontains=search_query) |
+                Q(address__barangay__brgy_name__icontains=search_query)
+            )
+
+        # Filter functionality
+        filter_type = request.GET.get('filter', '')
+        if filter_type:
+            fields = fields.filter(address__barangay__brgy_name=filter_type)
+
+        # Sort functionality
+        sort_by = request.GET.get('sort', '')
+        if sort_by == 'name':
+            fields = fields.order_by('field_name')
+        elif sort_by == 'acres':
+            fields = fields.order_by('field_acres')
+        elif sort_by == 'location':
+            fields = fields.order_by('address__barangay__brgy_name')
+
+
+
         # crops = Crop.objects.all()
         total_acres = (
             Field.objects.filter(owner=request.user, is_deleted=False).aggregate(Sum("field_acres"))[
@@ -1104,11 +1341,8 @@ def bofa_dashboard(request):
         data = [entry["total_acres"] for entry in queryset]
 
 
-        # LINE CHART CODE HERE
-        
-
         # paginator for fieldcropdata
-        paginator = Paginator(fields, 3)  # 3 fields per page
+        paginator = Paginator(fields, 5)  # 5 fields per page
         page_number = request.GET.get(
             "page"
         )  # Get the current page number from the request
@@ -1119,12 +1353,18 @@ def bofa_dashboard(request):
 
 
         context = {
+            "notifications": notifications,
             "fields": fields,
             "field_count": fields.count(),
             "total_acres": total_acres,
             "labels": labels,
             "data": data,
             "bofa_page_obj": bofa_page_obj,
+            # search
+            "filter_type": filter_type,
+            "search_query": search_query,
+            "sort_by": sort_by,
+            "barangays": Barangay.objects.all(),
         }
         context.update(reviewwrating_context)
         return render(request, "bofa_pages/bofa_dashboard.html", context)
@@ -1494,37 +1734,41 @@ def bofa_tipsai(request):
 
 
 
-# no auth yet and filters
 def bofa_map(request):
-    fields_json = []
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        fields_json = []
 
-    # Fetch all field crop data
-    # field_crop_data = FieldCropData.objects.select_related("field", "crop_planted")
-    field_crop_data = (
-        FieldCropData.objects
-        .select_related("field", "crop_planted")
-        .filter(field__is_deleted=False)
-    )
+        # Subquery to get the latest crop data for each field
+        latest_crop = FieldCropData.objects.filter(
+            field=OuterRef('field_id'),
+            is_deleted=False
+        ).order_by('-planting_date')
 
+        # Fetch fields with their latest crop data
+        fields = Field.objects.filter(is_deleted=False).annotate(
+            latest_crop_id=Subquery(latest_crop.values('fieldcrop_id')[:1]),
+            latest_crop_type=Subquery(latest_crop.values('crop_planted__crop_type')[:1])
+        )
 
-    for data in field_crop_data:
-        if data.field.address:
-            fields_json.append(
-                {
-                    "name": data.field.field_name,
-                    "acres": data.field.field_acres,
-                    "latitude": data.field.address.latitude,
-                    "longitude": data.field.address.longitude,
-                    "crop": data.crop_planted.crop_type,
-                }
-            )
+        for field in fields:
+            if field.address:
+                fields_json.append({
+                    "name": field.field_name,
+                    "acres": field.field_acres,
+                    "latitude": field.address.latitude,
+                    "longitude": field.address.longitude,
+                    "crop": field.latest_crop_type or "No crop data",
+                })
 
-    context = {
-        "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
-        "crops": Crop.objects.all(),
-    }
-    return render(request, "bofa_pages/bofa_map.html", context)
-
+        context = {
+            "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
+            "crops": Crop.objects.all(),
+            "notifications": notifications,
+        }
+        return render(request, "bofa_pages/bofa_map.html", context)
+    else:
+        return redirect("forbidden")
 
 
 
@@ -1540,6 +1784,7 @@ def bofa_add_field(request):
                 field.address = address
                 field.owner = request.user
                 field.save()
+                messages.success(request, "Field saved successfully.")
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -1577,8 +1822,10 @@ def bofa_weather(request):
     return render(request, "bofa_pages/bofa_weather.html", context)
 
 
+
 def bofa_settings(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -1596,7 +1843,8 @@ def bofa_settings(request):
         else:
             updateprofileform = CustomUserUpdateForm(instance=user)
 
-        context = {"updateprofileform": updateprofileform}
+        context = {"updateprofileform": updateprofileform, 
+                   "notifications": notifications}
         return render(request, "bofa_pages/bofa_settings.html", context)
     else:
         return redirect("forbidden")
@@ -1606,13 +1854,15 @@ def bofa_settings(request):
 
 
 def bofa_view_profile(request):
-    if request.user.is_authenticated and request.user.roleuser.roleuser=='farmer':
+    if request.user.is_authenticated and request.user.roleuser.roleuser =='farmer':
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         owner=request.user
         fields = Field.objects.filter(owner = request.user, is_deleted=False)
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         context = {
             "field_count": fields.count(),
+            "notifications": notifications,
         }
         return render(request, "bofa_pages/bofa_view_profile.html", context)
     else:
@@ -1622,39 +1872,71 @@ def bofa_view_profile(request):
 
 
 
-
-
 # bofa manage fields/ farms
 def bofa_manage_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         field = get_object_or_404(Field, field_id=field_id)
+
+        # Soil Data
+        soil_filter_type = request.GET.get('soil_filter', '')
+        soil_sort_by = request.GET.get('soil_sort', '')
+
         fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
+
+        if soil_filter_type:
+            if soil_filter_type == 'acidic':
+                fieldsoildata = fieldsoildata.filter(ph__lt=7)
+            elif soil_filter_type == 'neutral':
+                fieldsoildata = fieldsoildata.filter(ph=7)
+            elif soil_filter_type == 'alkaline':
+                fieldsoildata = fieldsoildata.filter(ph__gt=7)
+
+        if soil_sort_by:
+            if soil_sort_by == 'date_asc':
+                fieldsoildata = fieldsoildata.order_by('record_date')
+            elif soil_sort_by == 'date_desc':
+                fieldsoildata = fieldsoildata.order_by('-record_date')
+            elif soil_sort_by == 'ph_asc':
+                fieldsoildata = fieldsoildata.order_by('ph')
+            elif soil_sort_by == 'ph_desc':
+                fieldsoildata = fieldsoildata.order_by('-ph')
+
+        # Crop Data
+        crop_filter_type = request.GET.get('crop_filter', '')
+        crop_sort_by = request.GET.get('crop_sort', '')
+
         fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
 
+        if crop_filter_type:
+            fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
+
+        if crop_sort_by:
+            if crop_sort_by == 'planting_asc':
+                fieldcropdata = fieldcropdata.order_by('planting_date')
+            elif crop_sort_by == 'planting_desc':
+                fieldcropdata = fieldcropdata.order_by('-planting_date')
+            # elif crop_sort_by == 'harvest_asc':
+            #     fieldcropdata = fieldcropdata.order_by('harvest_date')
+            # elif crop_sort_by == 'harvest_desc':
+            #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
+
+        # Create form instance for adding soil data
         asdform = FieldSoilDataForm()
         acdform = FieldCropForm()
 
         # Create a dictionary of forms for each soil and crop data instance
-        fsdforms = {
-            fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata
-        }
-        fcdforms = {
-            fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata
-        }
+        fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+        fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
 
-        # paginator for fieldsoildata
-        paginator = Paginator(fieldsoildata, 2)  # 3 fields per page
-        page_number = request.GET.get(
-            "page"
-        )  # Get the current page number from the request
-        fsdpage_obj = paginator.get_page(
-            page_number
-        )  # Get the page object for the current page
+        # Pagination for fieldsoildata
+        soil_paginator = Paginator(fieldsoildata, 3)
+        soil_page_number = request.GET.get("soil_page")
+        fsdpage_obj = soil_paginator.get_page(soil_page_number)
 
-        # paginator for fieldcropdata
-        paginator = Paginator(fieldcropdata, 2)
-        page_number = request.GET.get("page")
-        fcdpage_obj = paginator.get_page(page_number)
+        # Pagination for fieldcropdata
+        crop_paginator = Paginator(fieldcropdata, 3)
+        crop_page_number = request.GET.get("crop_page")
+        fcdpage_obj = crop_paginator.get_page(crop_page_number)
 
         context = {
             "field": field,
@@ -1666,6 +1948,11 @@ def bofa_manage_field(request, field_id):
             "fcdforms": fcdforms,
             "fsdpage_obj": fsdpage_obj,
             "fcdpage_obj": fcdpage_obj,
+            "soil_filter_type": soil_filter_type,
+            "soil_sort_by": soil_sort_by,
+            "crop_filter_type": crop_filter_type,
+            "crop_sort_by": crop_sort_by,
+            "crops": Crop.objects.all(),
         }
         return render(request, "bofa_pages/bofa_manage_field.html", context)
     else:
@@ -1688,6 +1975,7 @@ def bofa_update_field(request, field_id):
                 updated_field.owner = field.owner
                 updated_field.save()
                 updated_address = address_form.save()
+                messages.success(request, "Field updated successfully.")
                 return JsonResponse({"status": "success"})
             else:
                 return JsonResponse(
@@ -1772,6 +2060,21 @@ def reviewrating(request):
         rform = ReviewratingForm()
 
     return {"rform": rform}
+
+
+def get_nutrient_data(request):
+    field_id = request.GET.get('field_id')
+    nutrient = request.GET.get('nutrient')
+    
+    data = FieldSoilData.objects.filter(field_id=field_id).order_by('record_date')
+    
+    labels = [d.record_date.strftime('%Y-%m-%d') for d in data]
+    values = [getattr(d, nutrient) for d in data]
+    
+    return JsonResponse({'labels': labels, 'values': values})
+
+
+
 
 
 def add_soil_data(request, field_id):
@@ -2090,13 +2393,14 @@ def my_logout(request):
     if request.user.is_authenticated:
         logout(request)
         messages.success(request, "Account logged out successfully")
-        return redirect("landing_page")
+        return redirect("my_login")
     else:
         return redirect("forbidden")
 
 
 def password_change(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -2116,7 +2420,7 @@ def password_change(request):
         else:
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
-        context = {"passwordchangeform": passwordchangeform}
+        context = {"passwordchangeform": passwordchangeform, "notifications": notifications}
         return render(
             request, "app_agrosavvy/settings_section/password_change.html", context
         )
@@ -2141,6 +2445,7 @@ def deactivate_account(request):
 
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -2160,7 +2465,8 @@ def bofa_password_change(request):
         else:
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
-        context = {"passwordchangeform": passwordchangeform}
+        context = {"passwordchangeform": passwordchangeform,
+                   "notifications": notifications}
         return render(
             request,
             "bofa_pages/bofa_settings_section/bofa_password_change.html",
@@ -2185,3 +2491,10 @@ def bofa_deactivate_account(request):
 # error pages
 def forbidden(request):
     return render(request, "error_pages/forbidden.html")
+
+
+
+
+
+
+

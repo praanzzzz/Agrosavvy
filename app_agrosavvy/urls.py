@@ -34,6 +34,7 @@ urlpatterns = [
 
     # main pages for da admin
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('api/nutrient-data/', views.get_nutrient_data, name='get_nutrient_data'),
 
     # ai
     path('chat/', views.chat, name='chat'),
@@ -58,6 +59,7 @@ urlpatterns = [
     path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
     path('admin_activate_account/<int:user_id>', views.admin_activate_account, name='admin_activate_account'),
     path('admin_approve_user/<int:user_id>', views.admin_approve_user, name='admin_approve_user'),
+    path('admin_disapprove_user/<int:user_id>', views.admin_disapprove_user, name='admin_disapprove_user'),
 
 
     #settings section urls

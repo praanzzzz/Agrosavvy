@@ -31,13 +31,13 @@
                         </div>
                     </div>
 
-                    <!-- Total Number of Acres -->
+                    <!-- Total Number of Hectares -->
                     <div class="col-md-3 col-12 mb-3">
                         <div class="card shadow-sm border-0 rounded h-100">
                             <div class="card-body position-relative">
                                 <div class="position-absolute top-0 start-0 h-100 bg-success" style="width: 5px;"></div>
                                 <div class="d-flex flex-column ps-3">
-                                    <h5 class="text-start mb-1">Total Acres</h5>
+                                    <h5 class="text-start mb-1">Total Hectares</h5>
                                     <span class="display-4 font-weight-bold">{{ total_acres }}</span>
                                 </div>
                                 <div class="position-absolute top-0 end-0 p-3">
@@ -70,7 +70,7 @@
                                 <div class="position-absolute top-0 start-0 h-100 bg-info" style="width: 5px;"></div>
                                 <div class="d-flex flex-column ps-3">
                                     <h5 class="text-start mb-1">Average Field Size</h5>
-                                    <span class="display-4 font-weight-bold">{{ average_acres }}</span> acres
+                                    <span class="display-4 font-weight-bold">{{ average_acres }}</span> ha
                                 </div>
                                 <div class="position-absolute top-0 end-0 p-3">
                                     <i class="fas fa-ruler fa-2x text-info"></i>
@@ -96,13 +96,35 @@
                         </div>
                     </div>
 
-                    <!-- Line Chart for Field Registration -->
-                    <div class="col-md-6 mb-4">
+
+
+
+                     <!-- Nutrient Levels Over Time Chart (Replacing Field Registration Trends) -->
+                     <div class="col-md-6 mb-4">
                         <div class="card shadow-sm border-0">
                             <div class="card-body">
-                                <h5 class="card-title">Field Registration Trends</h5>
-                                <div class="chart-containerline">
-                                    <canvas id="fieldRegistrationChart"></canvas>
+                                <h5 class="card-title">Nutrient Levels Over Time</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="fieldSelect" class="form-label">Select Field:</label>
+                                        <select id="fieldSelect" class="form-select">
+                                            {% for field in fields %}
+                                                <option value="{{ field.field_id }}">{{ field.field_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="nutrientSelect" class="form-label">Select Nutrient:</label>
+                                        <select id="nutrientSelect" class="form-select">
+                                            <option value="nitrogen">Nitrogen</option>
+                                            <option value="phosphorous">Phosphorous</option>
+                                            <option value="potassium">Potassium</option>
+                                            <option value="ph">pH</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="chart-containernutrient">
+                                    <canvas id="nutrientChart"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -110,90 +132,100 @@
                 </div>
             </div>
 
-            <!-- Field List Section -->
-            <div class="container mt-5">
-                <div class="row">
-                    <div class="col-md-9 mx-auto">
-                        <h3 class="mb-4">List of Fields</h3>
 
-                        <!-- Table for Fields -->
-                        <div class="table-responsive mb-4">
-                            <table class="table table-striped table-bordered table-hover">
-                                <thead class="thead-dark">
-                                    <tr>
-                                        <th>Field ID</th>
-                                        <th>Usertype</th>
-                                        <th>Owner</th>
-                                        <th>Name</th>
-                                        <th>Acres</th>
-                                        <th>Location</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for field in bofa_page_obj %}
-                                    <tr>
-                                        <td>{{ field.field_id }}</td>
-                                        <td>
-                                            {% if field.owner.roleuser.roleuser == "farmer" %}
-                                            Farmer
-                                            {% elif field.owner.roleuser.roleuser == "brgy_officer" %}
-                                            Barangay Officer
-                                            {% elif field.owner.roleuser.roleuser == "da_admin" %}
-                                            CAD Admin
-                                            {% else %}
-                                            Unknown
-                                            {% endif %}
-                                        </td>
-                                        <td>{{ field.owner }}</td>
-                                        <td>{{ field.field_name }}</td>
-                                        <td>{{ field.field_acres }}</td>
-                                        <td>
-                                            {{ field.address.barangay }},
-                                            {{ field.address.city_municipality }},
-                                            {{ field.address.country }}
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <a href="{% url 'bofa_manage_field' field.field_id %}"
-                                                    class="btn btn-success btn-sm">Manage</a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
 
-                            <!-- Pagination -->
-                            <nav aria-label="Page navigation" class="mt-3">
-                                <ul class="pagination justify-content-center">
-                                    {% if bofa_page_obj.has_previous %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ bofa_page_obj.previous_page_number }}"
-                                            aria-label="Previous">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    {% for num in bofa_page_obj.paginator.page_range %}
-                                    <li class="page-item {% if bofa_page_obj.number == num %}active{% endif %}">
-                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                                    </li>
-                                    {% endfor %}
-                                    {% if bofa_page_obj.has_next %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page={{ bofa_page_obj.next_page_number }}"
-                                            aria-label="Next">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </nav>
-                    </div>
+
+
                 </div>
             </div>
+
+           <!-- Field List Section -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-9 mx-auto">
+            <h3 class="mb-4">List of Fields</h3>
+
+            <!-- Search, Filter, and Sort Form -->
+            <form method="get" action="{% url 'bofa_dashboard' %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" placeholder="Search field name" value="{{ search_query }}" class="form-control">
+                    <select name="filter" class="form-select">
+                        <option value="">All Barangays</option>
+                        {% for barangay in barangays %}
+                        <option value="{{ barangay.brgy_name }}" {% if filter_type == barangay.brgy_name %}selected{% endif %}>{{ barangay.brgy_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <select name="sort" class="form-select">
+                        <option value="">Sort by</option>
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="acres" {% if sort_by == 'acres' %}selected{% endif %}>Hectares</option>
+                        <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Location</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+
+            <!-- Table for Fields -->
+            <div class="table-responsive mb-4">
+                <table class="table table-striped table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Field ID</th>
+                            <th>Name</th>
+                            <th>Hectares</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in bofa_page_obj %}
+                        <tr>
+                            <td>{{ field.field_id }}</td>
+                            <td>{{ field.field_name }}</td>
+                            <td>{{ field.field_acres }}</td>
+                            <td>
+                                {{ field.address.barangay }},
+                                {{ field.address.city_municipality }},
+                                {{ field.address.country }}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'bofa_manage_field' field.field_id %}"
+                                        class="btn btn-success btn-sm">Manage</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" class="mt-3">
+                <ul class="pagination justify-content-center">
+                    {% if bofa_page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bofa_page_obj.previous_page_number }}&search={{ search_query }}&filter={{ filter_type }}&sort={{ sort_by }}"
+                            aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in bofa_page_obj.paginator.page_range %}
+                    <li class="page-item {% if bofa_page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}&search={{ search_query }}&filter={{ filter_type }}&sort={{ sort_by }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if bofa_page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ bofa_page_obj.next_page_number }}&search={{ search_query }}&filter={{ filter_type }}&sort={{ sort_by }}"
+                            aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -220,7 +252,7 @@
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Total Acres',
+                    label: 'Total Hectares',
                     data: data,
                     backgroundColor: [
                         '#FF6384', // Red
@@ -253,7 +285,7 @@
                             label: function (context) {
                                 let label = context.label || '';
                                 let value = context.raw || 0;
-                                return `${label}: ${value} acres`;
+                                return `${label}: ${value} hectares`;
                             }
                         }
                     }
@@ -262,6 +294,10 @@
         });
     });
 </script>
+
+
+
+
 
 <!-- Line Chart JS -->
 <script>
@@ -331,6 +367,76 @@
                 }
             }
         });
+    });
+</script>
+
+<!-- Nutrient Chart JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const nutrientCtx = document.getElementById('nutrientChart').getContext('2d');
+        let nutrientChart;
+
+        function updateNutrientChart() {
+            const fieldId = document.getElementById('fieldSelect').value;
+            const nutrient = document.getElementById('nutrientSelect').value;
+
+            // Fetch data from your Django backend
+            fetch(`/api/nutrient-data/?field_id=${fieldId}&nutrient=${nutrient}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (nutrientChart) {
+                        nutrientChart.destroy();
+                    }
+
+                    nutrientChart = new Chart(nutrientCtx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: nutrient.charAt(0).toUpperCase() + nutrient.slice(1),
+                                data: data.values,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.1,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Nutrient Levels Over Time'
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Level'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Date'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+        }
+
+        document.getElementById('fieldSelect').addEventListener('change', updateNutrientChart);
+        document.getElementById('nutrientSelect').addEventListener('change', updateNutrientChart);
+
+        // Initial chart update
+        updateNutrientChart();
     });
 </script>
 
