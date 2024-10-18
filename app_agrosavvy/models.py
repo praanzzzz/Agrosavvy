@@ -418,8 +418,8 @@ class Chat(models.Model):
 
 class ImageAnalysis(models.Model):
     analysis_id = models.AutoField(primary_key=True)
+    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="imageanalysis", null=True)
     image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
-    # image_url = models.URLField(null=True, blank=True) 
     analysis_output = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

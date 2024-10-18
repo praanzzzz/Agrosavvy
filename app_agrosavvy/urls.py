@@ -51,9 +51,11 @@ urlpatterns = [
     path('settings/', views.settings, name='settings'), # update profile
     path('user_management', views.user_management, name='user_management'),
 
-
+    # notifications
     path('create_notification', views.create_notification, name='create_notification'),
     path('view_notification', views.view_notification, name='view_notification'),
+    path('mark_as_read/', views.mark_notifications_as_read, name='mark_notifications_as_read'),
+    path('bofa_view_notification', views.bofa_view_notification, name='bofa_view_notification'),
 
     # user management
     path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
@@ -91,14 +93,11 @@ urlpatterns = [
 
 
 
-
-
-
     #barangay officers and farmers page
     path('bofa_dashboard/', views.bofa_dashboard, name='bofa_dashboard'),
 
 
-    # ai
+    # bofa ai
     path('bofa_chat/', views.bofa_chat, name='bofa_chat'),
     path('bofa_chat/group/<int:group_id>/', views.bofa_chat, name='bofa_chat_group'),
     path('bofa_chat/delete_group/<int:group_id>/', views.bofa_delete_chat_group, name='bofa_delete_chat_group'),
@@ -112,10 +111,6 @@ urlpatterns = [
     path('bofa_add_field', views.bofa_add_field, name='bofa_add_field'),
     path('bofa_weather', views.bofa_weather, name='bofa_weather'),
     path('bofa_settings/', views.bofa_settings, name='bofa_settings'),
-
-    # new
-    path('bofa_view_notification', views.bofa_view_notification, name='bofa_view_notification'),
-
 
 
     #settings section urls
