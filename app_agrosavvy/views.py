@@ -11,6 +11,8 @@ from .models import (
     ChatGroup,
     Notification,
     Barangay,
+    ImageAnalysis,
+    ChatGroup,
 )
 
 from .forms import (
@@ -42,8 +44,7 @@ from django.contrib.auth.hashers import check_password
 import requests
 from django.urls import reverse
 from django.core.paginator import Paginator
-from django.db.models import Q
-from django.db.models import Sum, Count, Avg, Max, Subquery, OuterRef
+from django.db.models import Sum, Count, Avg, Max, Subquery, OuterRef, Q
 from django.utils import timezone
 from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
@@ -70,6 +71,7 @@ OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         # Search, Filter, and Sort
         search_query = request.GET.get('search', '')
         filter_type = request.GET.get('filter', '')
@@ -104,10 +106,26 @@ def dashboard(request):
         # Pie Chart Data
         labels = []
         data = []
-        queryset = FieldCropData.objects.filter(field__is_deleted=False, is_deleted=False
+
+        # queryset = FieldCropData.objects.filter(field__is_deleted=False, is_deleted=False
+        #     ).values("crop_planted__crop_type").annotate(
+        #     total_acres=Sum("field__field_acres")
+        # )
+
+        # latest field crop data per field only
+        queryset =  FieldCropData.objects.filter(
+                planting_date=Subquery(
+                    FieldCropData.objects.filter(
+                        field=OuterRef('field'),
+                        field__is_deleted=False,
+                        is_deleted=False
+                    ).order_by('-planting_date').values('planting_date')[:1]
+                )
             ).values("crop_planted__crop_type").annotate(
-            total_acres=Sum("field__field_acres")
-        )
+                total_acres=Sum("field__field_acres")
+            )
+
+
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
 
@@ -134,6 +152,7 @@ def dashboard(request):
 
         context = {
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
             "fields": fields,
             "crops": crops,
             "field_count": fields.count(),
@@ -160,16 +179,22 @@ def dashboard(request):
     #  for brgy officers
     elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
-        
-
-
-         # Search, Filter, and Sort
+        notifications_unread_count = notifications.filter(is_read=False).count()
+        # Search, Filter, and Sort
         search_query = request.GET.get('search', '')
         filter_type = request.GET.get('filter', '')
         sort_by = request.GET.get('sort', '')
 
-        fields = Field.objects.filter(is_deleted=False)
+        # Retrieve user's barangay information
+        user_address = request.user.useraddress.useraddress
+        user_barangay = user_address.split(",")[0].strip()
 
+        # Initial queryset to include fields from the user's barangays
+        fields = Field.objects.filter(
+            Q(address__barangay__brgy_name=user_barangay, is_deleted=False)
+        )
+
+        # Apply search filter if a search query is provided
         if search_query:
             fields = fields.filter(
                 Q(field_name__icontains=search_query) |
@@ -177,22 +202,16 @@ def dashboard(request):
                 Q(address__barangay__brgy_name__icontains=search_query)
             )
 
+        # Apply additional filtering if a filter type is provided
         if filter_type:
             fields = fields.filter(owner__roleuser__roleuser=filter_type)
 
+        # Apply sorting if a sort option is provided
         if sort_by == 'name':
             fields = fields.order_by('field_name')
         elif sort_by == 'acres':
             fields = fields.order_by('field_acres')
 
-
-
-        # retrieve data: it only shows fields registered to the same address of the brgy officer
-        user_address = request.user.useraddress.useraddress
-        user_barangay = user_address.split(",")[0].strip() 
-        fields = Field.objects.filter(
-            Q(address__barangay__brgy_name=user_barangay, is_deleted=False)
-        )
 
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         active_users = CustomUser.objects.filter(
@@ -205,24 +224,40 @@ def dashboard(request):
 
         reviewrating_context = reviewrating(request)
 
-
-
-
         # pie chart
         # Filter FieldCropData by fields in the same barangay
+        # queryset = FieldCropData.objects.filter(
+        #     field__is_deleted=False, 
+        #     is_deleted=False, 
+        #     field__address__barangay__brgy_name=user_barangay  
+        # ).values("crop_planted__crop_type").annotate(
+        #     total_acres=Sum("field__field_acres") 
+        # )
+
+        # pie chart
+        # retrieves the latest field crop data for each crop type from non-deleted fields
+        #  in a specified barangay, aggregating the total acres for each crop type.
         queryset = FieldCropData.objects.filter(
-            field__is_deleted=False,  # Soft deletion check for Field
-            is_deleted=False,  # Soft deletion check for FieldCropData
-            field__address__barangay__brgy_name=user_barangay  # Filter fields by the user's barangay
+            field__is_deleted=False, 
+            is_deleted=False,
+            field__address__barangay__brgy_name=user_barangay
+        ).filter(
+            planting_date=Subquery(
+                FieldCropData.objects.filter(
+                    field=OuterRef('field'),
+                    field__is_deleted=False,
+                    is_deleted=False,
+                    field__address__barangay__brgy_name=user_barangay  # Ensure the same barangay filter is applied
+                ).order_by('-planting_date').values('planting_date')[:1]
+            )
         ).values("crop_planted__crop_type").annotate(
-            total_acres=Sum("field__field_acres")  # Sum the acres for each crop type
+            total_acres=Sum("field__field_acres")
         )
+
 
         # Prepare data for the pie chart
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
-
-
 
 
         # line chart
@@ -244,7 +279,8 @@ def dashboard(request):
         labelsfield = [data["month"] for data in field_data]
         datafield = [data["count"] for data in field_data]
 
-
+        # print(labelsfield)
+        # print(datafield)
 
 
 
@@ -259,6 +295,7 @@ def dashboard(request):
 
         brgy_officer_context={
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
             "fields": fields,
             "field_count": fields.count(),
             "total_acres": total_acres,
@@ -637,6 +674,7 @@ def tipsai(request):
 def map(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         fields_json = []
 
         # Subquery to get the latest crop data for each field
@@ -663,6 +701,7 @@ def map(request):
 
         context = {
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
             "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
             "crops": Crop.objects.all(),
         }
@@ -672,7 +711,7 @@ def map(request):
 
 
 def add_field(request):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
@@ -702,8 +741,50 @@ def add_field(request):
             "address_form": address_form,
         }
         return render(request, "app_agrosavvy/add_field.html", context)
+    
+
+    elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer": 
+        if request.method == "POST":
+            # Retrieve user's barangay information
+            bo_user_address = request.user.useraddress.useraddress
+            bo_user_barangay = bo_user_address.split(",")[0].strip()
+
+
+            field_form = FieldForm(request.POST)
+            address_form = AddressForm(request.POST)
+            if field_form.is_valid() and address_form.is_valid():
+                address = address_form.save()
+                field = field_form.save(commit=False)
+                field.address = address
+                field.owner = request.user
+                field.save()
+                messages.success(request, "Field saved successfully.")
+                return JsonResponse({"status": "success"})
+            else:
+                return JsonResponse(    
+                    {
+                        "status": "error",
+                        "errors": {
+                            "field_form": field_form.errors,
+                            "address_form": address_form.errors,
+                        },
+                    }
+                )
+        else:
+            # Retrieve user's barangay information
+            bo_user_address = request.user.useraddress.useraddress
+            bo_user_barangay = bo_user_address.split(",")[0].strip()
+            field_form = FieldForm()
+            address_form = AddressForm()
+        context = {
+            "field_form": field_form,
+            "address_form": address_form,
+            "bo_user_barangay": bo_user_barangay,
+        }
+        return render(request, "app_agrosavvy/brgy_add_field.html", context)
     else:
         return redirect("forbidden")
+    
     
 
 
@@ -729,6 +810,7 @@ def weather(request):
 def settings(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -746,7 +828,10 @@ def settings(request):
         else:
             updateprofileform = CustomUserUpdateForm(instance=user)
 
-        context = {"updateprofileform": updateprofileform, "notifications":  notifications}
+        context = {"updateprofileform": updateprofileform,
+                    "notifications":  notifications,
+                    "notifications_unread_count": notifications_unread_count,
+                    }
         return render(request, "app_agrosavvy/settings.html", context)
     else:
         return redirect("forbidden")
@@ -754,10 +839,10 @@ def settings(request):
 
 
 
-#view profile
 def view_profile(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser=='da_admin' or request.user.roleuser.roleuser=='brgy_officer'):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         owner=request.user
         fields = Field.objects.filter(owner = request.user, is_deleted=False)
         user = get_object_or_404(CustomUser, pk=request.user.pk)
@@ -765,6 +850,7 @@ def view_profile(request):
         context = {
             "field_count": fields.count(),
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
         }
         return render(request, "app_agrosavvy/view_profile.html", context)
     else:
@@ -891,6 +977,7 @@ def user_management(request):
 def create_notification(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         if request.method == 'POST':
             form = CreateNotificationForm(request.POST)
             if form.is_valid():
@@ -932,24 +1019,66 @@ def create_notification(request):
         context = {
             "form": form,
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
         }
         return render(request, "app_agrosavvy/create_notification.html", context)
     return redirect("forbidden")
 
 
 
-# for all - as long as authenticated
+
+def mark_notifications_as_read(request):
+    # Mark all unread notifications as read for the current user
+    Notification.objects.filter(user_receiver = request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'status': 'success'})
+
+
+
 def view_notification(request):
-    if request.user.is_authenticated:
-        # Fetch notifications for the currently logged-in user
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
+
+        paginator = Paginator(notifications, 4)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
 
         context = {
             'notifications': notifications,
+            'page_obj': page_obj,
+            'notifications_unread_count': notifications_unread_count,  # Pass unread notification count
         }
         return render(request, 'app_agrosavvy/view_notification.html', context)
     else:
         return redirect("forbidden")
+    
+
+
+
+def bofa_view_notification(request):
+    print("bofa_view_notification called")
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
+
+        paginator = Paginator(notifications, 4)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'notifications': notifications,
+            'page_obj': page_obj,
+            'notifications_unread_count': notifications_unread_count,  
+        }
+        return render(request, 'bofa_pages/bofa_view_notification.html', context)
+    else:
+        return redirect("forbidden")
+    
+
+
+    
+
+
 
 
 
@@ -1046,87 +1175,6 @@ def manage_field(request, field_id):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
         request.user.roleuser.roleuser == "brgy_officer"                                  
         ):
-        # field = get_object_or_404(Field, field_id=field_id)
-
-        # # Soil Data
-        # soil_filter_type = request.GET.get('soil_filter', '')
-        # soil_sort_by = request.GET.get('soil_sort', '')
-
-        # fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
-
-        # if soil_filter_type:
-        #     if soil_filter_type == 'acidic':
-        #         fieldsoildata = fieldsoildata.filter(ph__lt=7)
-        #     elif soil_filter_type == 'neutral':
-        #         fieldsoildata = fieldsoildata.filter(ph=7)
-        #     elif soil_filter_type == 'alkaline':
-        #         fieldsoildata = fieldsoildata.filter(ph__gt=7)
-
-        # if soil_sort_by:
-        #     if soil_sort_by == 'date_asc':
-        #         fieldsoildata = fieldsoildata.order_by('record_date')
-        #     elif soil_sort_by == 'date_desc':
-        #         fieldsoildata = fieldsoildata.order_by('-record_date')
-        #     elif soil_sort_by == 'ph_asc':
-        #         fieldsoildata = fieldsoildata.order_by('ph')
-        #     elif soil_sort_by == 'ph_desc':
-        #         fieldsoildata = fieldsoildata.order_by('-ph')
-
-        # # Crop Data
-        # crop_filter_type = request.GET.get('crop_filter', '')
-        # crop_sort_by = request.GET.get('crop_sort', '')
-
-        # fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
-
-        # if crop_filter_type:
-        #     fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
-
-        # if crop_sort_by:
-        #     if crop_sort_by == 'planting_asc':
-        #         fieldcropdata = fieldcropdata.order_by('planting_date')
-        #     elif crop_sort_by == 'planting_desc':
-        #         fieldcropdata = fieldcropdata.order_by('-planting_date')
-        #     elif crop_sort_by == 'harvest_asc':
-        #         fieldcropdata = fieldcropdata.order_by('harvest_date')
-        #     elif crop_sort_by == 'harvest_desc':
-        #         fieldcropdata = fieldcropdata.order_by('-harvest_date')
-
-        # # Create form instance for adding soil data
-        # asdform = FieldSoilDataForm()
-        # acdform = FieldCropForm()
-
-        # # Create a dictionary of forms for each soil and crop data instance
-        # fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
-        # fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
-
-        # # Pagination for fieldsoildata
-        # soil_paginator = Paginator(fieldsoildata, 3)
-        # soil_page_number = request.GET.get("soil_page")
-        # fsdpage_obj = soil_paginator.get_page(soil_page_number)
-
-        # # Pagination for fieldcropdata
-        # crop_paginator = Paginator(fieldcropdata, 3)
-        # crop_page_number = request.GET.get("crop_page")
-        # fcdpage_obj = crop_paginator.get_page(crop_page_number)
-
-        # context = {
-        #     "field": field,
-        #     "fieldsoildata": fieldsoildata,
-        #     "fieldcropdata": fieldcropdata,
-        #     "asdform": asdform,
-        #     "acdform": acdform,
-        #     "fsdforms": fsdforms,
-        #     "fcdforms": fcdforms,
-        #     "fsdpage_obj": fsdpage_obj,
-        #     "fcdpage_obj": fcdpage_obj,
-        #     "soil_filter_type": soil_filter_type,
-        #     "soil_sort_by": soil_sort_by,
-        #     "crop_filter_type": crop_filter_type,
-        #     "crop_sort_by": crop_sort_by,
-        #     "crops": Crop.objects.all(),
-        # }
-        # return render(request, "app_agrosavvy/manage_field.html", context)
-
         field = get_object_or_404(Field, field_id=field_id)
 
         # Soil Data
@@ -1214,9 +1262,7 @@ def manage_field(request, field_id):
 
 
 def update_field(request, field_id):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
-        request.user.roleuser.roleuser =="brgy_officer"
-    ):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, field_id=field_id)
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
@@ -1248,6 +1294,49 @@ def update_field(request, field_id):
             "address_form": address_form,
         }
         return render(request, "app_agrosavvy/update_field.html", context)
+    
+
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
+        field = get_object_or_404(Field, field_id=field_id)
+        if request.method == "POST":
+            # Retrieve user's barangay information
+            bo_user_address = request.user.useraddress.useraddress
+            bo_user_barangay = bo_user_address.split(",")[0].strip()
+            field_form = FieldForm(request.POST, instance=field)
+            address_instance = field.address
+            address_form = AddressForm(request.POST, instance=address_instance)
+            if field_form.is_valid() and address_form.is_valid():
+                updated_field = field_form.save(commit=False)
+                updated_field.owner = field.owner
+                updated_field.save()
+                updated_address = address_form.save()
+                messages.success(request, "Field updated successfully.")
+                return JsonResponse({"status": "success"})
+            else:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "errors": {
+                            "field_form": field_form.errors,
+                            "address_form": address_form.errors,
+                        },
+                    }
+                )
+        # GET request (opening the page only)
+        else:
+            # Retrieve user's barangay information
+            bo_user_address = request.user.useraddress.useraddress
+            bo_user_barangay = bo_user_address.split(",")[0].strip()
+            field_form = FieldForm(instance=field)
+            address_form = AddressForm(instance=field.address)
+        context = {
+            "field_form": field_form,
+            "address_form": address_form,
+            "bo_user_barangay": bo_user_barangay,
+        }
+        return render(request, "app_agrosavvy/brgy_update_field.html", context)
+    
+
     else:
         return redirect("forbidden")
 
@@ -1286,6 +1375,7 @@ def delete_field(request, field_id):
 def bofa_dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         owner = request.user
         fields = Field.objects.filter(owner=request.user, is_deleted=False)
 
@@ -1313,7 +1403,6 @@ def bofa_dashboard(request):
 
 
 
-        # crops = Crop.objects.all()
         total_acres = (
             Field.objects.filter(owner=request.user, is_deleted=False).aggregate(Sum("field_acres"))[
                 "field_acres__sum"
@@ -1321,6 +1410,14 @@ def bofa_dashboard(request):
             or 0
         )
         reviewwrating_context = reviewrating(request)
+
+        numberOfRecommendations = (
+            ImageAnalysis.objects.filter(owner=request.user)
+        )
+
+        numberOfChatGroups = (
+            ChatGroup.objects.filter(user=request.user, is_deleted=False)
+        )
         
 
         # pie chart for the crops distribution
@@ -1354,6 +1451,7 @@ def bofa_dashboard(request):
 
         context = {
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
             "fields": fields,
             "field_count": fields.count(),
             "total_acres": total_acres,
@@ -1365,6 +1463,8 @@ def bofa_dashboard(request):
             "search_query": search_query,
             "sort_by": sort_by,
             "barangays": Barangay.objects.all(),
+            "numberOfRecommendations": numberOfRecommendations.count(),
+            "numberOfChatGroups" : numberOfChatGroups.count(),
         }
         context.update(reviewwrating_context)
         return render(request, "bofa_pages/bofa_dashboard.html", context)
@@ -1512,6 +1612,7 @@ def bofa_image_analysis(request):
                         # Save analysis result and image
                         analysis.image = image
                         analysis.analysis_output = mark_safe(cleaned_content)
+                        analysis.owner = request.user
                         analysis.save()
                         messages.success(request, 'Analysis saved.')
                     else:
@@ -1737,6 +1838,7 @@ def bofa_tipsai(request):
 def bofa_map(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         fields_json = []
 
         # Subquery to get the latest crop data for each field
@@ -1765,6 +1867,7 @@ def bofa_map(request):
             "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
             "crops": Crop.objects.all(),
             "notifications": notifications,
+            "notifications_unread_count": notifications_unread_count,
         }
         return render(request, "bofa_pages/bofa_map.html", context)
     else:
@@ -1826,6 +1929,7 @@ def bofa_weather(request):
 def bofa_settings(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -1844,7 +1948,9 @@ def bofa_settings(request):
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform, 
-                   "notifications": notifications}
+                   "notifications": notifications,
+                   'notifications_unread_count': notifications_unread_count,
+                   }
         return render(request, "bofa_pages/bofa_settings.html", context)
     else:
         return redirect("forbidden")
@@ -1856,6 +1962,7 @@ def bofa_settings(request):
 def bofa_view_profile(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser =='farmer':
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         owner=request.user
         fields = Field.objects.filter(owner = request.user, is_deleted=False)
         user = get_object_or_404(CustomUser, pk=request.user.pk)
@@ -1863,6 +1970,7 @@ def bofa_view_profile(request):
         context = {
             "field_count": fields.count(),
             "notifications": notifications,
+            'notifications_unread_count': notifications_unread_count,
         }
         return render(request, "bofa_pages/bofa_view_profile.html", context)
     else:
@@ -2011,18 +2119,6 @@ def bofa_delete_field(request, field_id):
         return redirect("bofa_dashboard")
     else:
         return redirect("forbidden")
-
-
-
-
-def bofa_view_notification(request):
-    # Fetch notifications for the currently logged-in user
-    notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
-    context = {
-        'notifications': notifications,
-    }
-    return render(request, 'bofa_pages/bofa_view_notification.html', context)
-
 
 
 
@@ -2401,6 +2497,7 @@ def my_logout(request):
 def password_change(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -2420,7 +2517,10 @@ def password_change(request):
         else:
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
-        context = {"passwordchangeform": passwordchangeform, "notifications": notifications}
+        context = {"passwordchangeform": passwordchangeform,
+                   "notifications": notifications,
+                   "notifications_unread_count": notifications_unread_count,
+                   }
         return render(
             request, "app_agrosavvy/settings_section/password_change.html", context
         )
@@ -2446,6 +2546,7 @@ def deactivate_account(request):
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
         user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         if request.method == "POST":
@@ -2466,7 +2567,9 @@ def bofa_password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user)
 
         context = {"passwordchangeform": passwordchangeform,
-                   "notifications": notifications}
+                   "notifications": notifications,
+                   "notifications_unread_count": notifications_unread_count,
+                   }
         return render(
             request,
             "bofa_pages/bofa_settings_section/bofa_password_change.html",

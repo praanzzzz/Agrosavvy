@@ -1,26 +1,41 @@
-{% extends 'bofa_base.html' %}
-
+{% extends 'base.html' %}
+{% block header %}
+{% endblock %}
 {% block content %}
-<div class="container mt-4">
+
+
+
+
+<div class="container mt-5">
+
     <div class="row">
-        <div class="col-md-6 ml-1">
-            <div class="card shadow p-4">
-                <h5 class="mb-4"><strong>Add Field Details</strong></h5>
-                <form id="fieldForm" method="POST">
-                    {% csrf_token %}
-                    {{ field_form.as_p }}
-                    <h5><strong>Address Details</strong> (cebu city only)</h5>
-                    {{ address_form.as_p }}
-                    <div class="form-group">
-                        <button type="button" id="geocodeButton" class="btn btn-primary">Show on Map</button>
-                        <button type="submit" class="btn btn-success">Submit</button>
-                    </div>
-                </form>
+        <!-- Field and Address Details Section -->
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-3">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-4 text-primary"><strong>Add Field Details</strong></h4>
+                    <form id="fieldForm" method="POST">
+                        {% csrf_token %}
+                        {{ field_form.as_p }}
+
+                        <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small>
+                        </h5>
+                        {{ address_form.as_p }}
+
+                        <div class="form-group mt-4">
+                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on
+                                Map</button>
+                            <button type="submit" class="btn btn-success btn-block mb-2">Submit</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
+
+        <!-- Map Section -->
         <div class="col-md-6">
-            <div class="card shadow">
-                <div id="map" style="height: 680px;"></div>
+            <div class="card shadow-lg border-0 rounded-3">
+                <div id="map" style="height: 680px; border-radius: 0.375rem;"></div>
             </div>
         </div>
     </div>
@@ -29,23 +44,49 @@
 
 
 
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-
-
-
         function submitForm() {
             document.getElementById('fieldForm').addEventListener('submit', function (e) {
                 e.preventDefault();
 
+                // Validate if the city is Cebu City
                 var cityField = document.getElementById('id_city_municipality').value;
                 if (cityField.trim().toLowerCase() !== 'cebu city') {
-                    alert('The address must be in Cebu City.');
+                    showToast('The address must be in Cebu City.', 'warning');
                     return;
                 }
 
+
+
+                // Get user's address for comparison (assuming userAddress is available in the context)
+                var bo_user_barangay = "{{bo_user_barangay }}".toLowerCase(); // Ensure userAddress is in lowercase
+
+                // Validate if the inputted barangay matches the user's address barangay
+                var brgyField = document.getElementById('id_barangay').selectedOptions[0].text; ;  
+
+                if (brgyField.trim().toLowerCase() !== bo_user_barangay) {
+                    showToast('The entered barangay must match your registered barangay', 'warning');
+                    return;
+                }
+
+
+
+                
+                // Check if latitude and longitude fields are filled
+                var latitude = document.getElementById('id_latitude').value;
+                var longitude = document.getElementById('id_longitude').value;
+                if (!latitude || !longitude) {
+                    showToast('Please click "Show on map" to get coordinates.', 'warning');
+                    return;
+                }
+
+
+
+                // use fetch api
                 var formData = new FormData(this);
-                var url = '{% url "bofa_add_field" %}';
+                var url = '{% url "add_field" %}';
                 var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 
                 fetch(url, {
@@ -55,13 +96,14 @@
                         'X-CSRFToken': csrfToken,
                     }
                 })
+
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            alert('Field saved successfully!');
-                            window.location.href = '{% url "bofa_dashboard" %}';
+                            showToast('Field saved successfully!', 'success');
+                            window.location.href = '{% url "dashboard" %}';
                         } else {
-                            alert('Error saving field.');
+                            showToast('Error saving field.' , 'error');
                         }
                     })
                     .catch(error => {
@@ -74,20 +116,25 @@
 
 
 
-
-
+ 
 
         function initializeMap() {
-            // Set the Mapbox access token
             mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
-            // Create and initialize the Mapbox map
+            var cebucityBounds = [
+                [123.7500, 10.2500], // Southwest coordinates
+                [123.9500, 10.4500]  // Northeast coordinates
+            ];
+
             var map = new mapboxgl.Map({
-                container: 'map', // The ID of the container where the map will be displayed
-                style: 'mapbox://styles/mapbox/satellite-streets-v11', // The style of the map
-                center: [123.876705, 10.308258], // Initial map center coordinates
-                zoom: 12 // Initial zoom level
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-streets-v11',
+                center: [123.80833, 10.34629],
+                zoom: 11,
+                minZoom: 11, // Set the minimum zoom level
+                maxBounds: cebucityBounds // Restrict the view to Cebu City
             });
+
 
             // Create a draggable marker and add it to the map
             var marker = new mapboxgl.Marker({ draggable: true })
@@ -103,6 +150,11 @@
             }
 
             marker.on('dragend', onDragEnd); // Attach event listener to marker drag end
+
+
+
+
+
 
             // Fetch address details based on coordinates and update form fields
             function getAddress(lng, lat) {
@@ -136,6 +188,7 @@
                                 }
                             }
 
+
                             // Update form fields with fetched address details
                             document.getElementById('id_city_municipality').value = city_municipality;
                             document.getElementById('id_country').value = country;
@@ -167,7 +220,7 @@
                             document.getElementById('id_longitude').value = lngLat[0]; // Update longitude field
                             getAddress(lngLat[0], lngLat[1]); // Fetch and update address details for the new coordinates
                         } else {
-                            alert('Address not found'); // Alert if the address could not be geocoded
+                            showToast('Address not found', 'warning'); // Alert if the address could not be geocoded
                         }
                     })
                     .catch(error => {
@@ -177,9 +230,14 @@
         }
 
 
+
+
+
         submitForm();
         initializeMap();
     });
+
+
 </script>
 
 {% endblock %}

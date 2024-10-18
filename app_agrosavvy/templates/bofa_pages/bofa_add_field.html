@@ -36,20 +36,23 @@
 
 
 
-
-
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-
-
-
         function submitForm() {
             document.getElementById('fieldForm').addEventListener('submit', function (e) {
                 e.preventDefault();
 
                 var cityField = document.getElementById('id_city_municipality').value;
                 if (cityField.trim().toLowerCase() !== 'cebu city') {
-                    alert('The address must be in Cebu City.');
+                    showToast('The address must be in Cebu City.','warning');
+                    return;
+                }
+
+                 // Check if latitude and longitude fields are filled
+                var latitude = document.getElementById('id_latitude').value;
+                var longitude = document.getElementById('id_longitude').value;
+                if (!latitude || !longitude) {
+                    showToast('Please click "Show on map" to get coordinates.', 'warning');
                     return;
                 }
 
@@ -67,10 +70,10 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.status === 'success') {
-                            alert('Field saved successfully!');
+                            showToast('Field saved successfully!','success');
                             window.location.href = '{% url "bofa_dashboard" %}';
                         } else {
-                            alert('Error saving field.');
+                            showToast('Error saving field.', 'error');
                         }
                     })
                     .catch(error => {
@@ -183,14 +186,17 @@
                             document.getElementById('id_longitude').value = lngLat[0]; // Update longitude field
                             getAddress(lngLat[0], lngLat[1]); // Fetch and update address details for the new coordinates
                         } else {
-                            alert('Address not found'); // Alert if the address could not be geocoded
+                            showToast('Address not found', 'error'); // Alert if the address could not be geocoded
                         }
                     })
                     .catch(error => {
-                        console.error('Error geocoding address:', error); // Log any errors that occur
+                        showToast('Error geocoding address:', 'error'); // Log any errors that occur
                     });
             });
         }
+
+
+
 
 
         submitForm();

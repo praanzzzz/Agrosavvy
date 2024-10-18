@@ -2,24 +2,28 @@
 {% load static %}
 
 {% block content %}
-
-
-
-
-
 <div class="container mt-5">
     <h4 class="text-center mb-4 text-primary font-weight-bold">📬 Your Notifications</h4>
 
+    
     <div class="row justify-content-center">
-        {% if notifications %}
-        <div class="col-md-8">
-            {% for notification in notifications %}
-            <div class="card mb-3 shadow-lg border-0 rounded" style="background-color: #f8f9fa;">
-                <div class="card-body">
-                    <h5 class="card-title font-weight-bold text-dark">
-                        <i class="fas fa-bell text-warning"></i> {{ notification.subject }}
+        {% if page_obj %}
+        <div class="col-lg-8 col-md-10 col-sm-12">
+            {% for notification in page_obj %}
+            <div class="card mb-3 shadow-lg border-0 rounded notification-card" style="background-color: #f8f9fa;">
+                <div class="card-body" onclick="toggleNotification(this)">
+                    <!-- Notification Title Clickable to Expand/Collapse Content -->
+                    <h5 class="card-title font-weight-bold text-dark d-flex justify-content-between align-items-center" style="cursor: pointer;">
+                        <span>
+                            <i class="fas fa-bell text-warning"></i> {{ notification.subject }}
+                        </span>
+                        <i class="fas fa-chevron-down toggle-icon"></i> <!-- Chevron icon for visual indicator -->
                     </h5>
-                    <p class="card-text text-secondary">{{ notification.message }}</p>
+
+                    <!-- Collapsible Notification Content -->
+                    <div class="notification-content mt-2" style="display: none;">
+                        <p class="card-text text-secondary">{{ notification.message }}</p>
+                    </div>
                 </div>
                 <div class="card-footer bg-white text-muted d-flex justify-content-between align-items-center">
                     <span>
@@ -32,6 +36,59 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- Pagination Controls -->
+        <div class="col-lg-8 col-md-10 col-sm-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-4">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <!-- Show ellipsis for large gaps in page numbers -->
+                    {% if page_obj.number|add:-3 < num < page_obj.number|add:3 %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% elif num == page_obj.number|add:-3 or num == page_obj.number|add:3 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+
         {% else %}
         <div class="col-md-8 text-center">
             <p class="text-muted display-4">✨ No Notifications ✨</p>
@@ -39,4 +96,114 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Responsive Design CSS -->
+<style>
+    .notification-card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+
+    .notification-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-icon {
+        transition: transform 0.3s;
+    }
+
+    .notification-content {
+        border-top: 1px solid #dee2e6;
+        padding-top: 10px;
+    }
+
+    .pagination {
+        margin-top: 20px;
+    }
+
+    .pagination .page-item {
+        margin: 0 5px;
+        transition: transform 0.2s;
+    }
+
+    .pagination .page-link {
+        border: none;
+        border-radius: 50%;
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        color: #007bff;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .pagination .page-link:hover {
+        background-color: #007bff;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .pagination .page-item.active .page-link:hover {
+        background-color: #0056b3;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        background-color: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .pagination .page-item:hover {
+        transform: translateY(-3px);
+    }
+
+    .pagination .page-link span {
+        display: block;
+    }
+
+    @media (max-width: 768px) {
+        .card-title {
+            font-size: 1.2rem;
+        }
+        .card-footer {
+            font-size: 0.9rem;
+        }
+        .container {
+            padding: 0 15px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .card-title {
+            font-size: 1rem;
+        }
+        .card-footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .card-footer span {
+            margin-bottom: 5px;
+        }
+    }
+</style>
+
+<script>
+    function toggleNotification(element) {
+        let content = element.querySelector('.notification-content');
+        let icon = element.querySelector('.toggle-icon');
+        
+        if (content.style.display === "none" || content.style.display === "") {
+            content.style.display = "block";
+            icon.style.transform = "rotate(180deg)";
+        } else {
+            content.style.display = "none";
+            icon.style.transform = "rotate(0deg)";
+        }
+    }
+</script>
 {% endblock %}
