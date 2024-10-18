@@ -87,12 +87,18 @@
         </div>
     </div>
 
-    <!-- Add Soil Data Button and Modal -->
+
+
     <div class="d-flex justify-content-end mb-4">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addSoilDataModal">
+        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addSoilDataModal">
             Add Soil Data
         </button>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropDataModal">
+            Add Crop Data
+        </button>
     </div>
+    
+    <!-- Add Soil Data Modal -->
     <div class="modal fade" id="addSoilDataModal" tabindex="-1" aria-labelledby="addSoilDataModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -110,13 +116,8 @@
             </div>
         </div>
     </div>
-
-    <!-- Add Crop Data Button and Modal -->
-    <div class="d-flex justify-content-end mb-4">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCropDataModal">
-            Add Crop Data
-        </button>
-    </div>
+    
+    <!-- Add Crop Data Modal -->
     <div class="modal fade" id="addCropDataModal" tabindex="-1" aria-labelledby="addCropDataModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -134,6 +135,10 @@
             </div>
         </div>
     </div>
+    
+
+
+
 
     <!-- Soil Data Display -->
     <div class="card mt-4">
@@ -415,4 +420,8 @@
         </div>
     </div>
 </div>
+
+
+
+
 {% endblock %}
