@@ -107,51 +107,73 @@
     </div>
     
     <div class="d-flex align-items-center">
-                   <!-- Notification Icon with Dropdown -->
-                   <div class="dropdown me-3 position-relative">
-                    <button class="btn btn-outline-secondary position-relative" type="button" id="notificationDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-bell"></i>
-                        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">{{ notifications|length }}</span>
-                    </button>
-    
-                    <!-- Notification Dropdown Menu with Scrollable Box -->
-                    <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="notificationDropdown" 
-                        style="width: 300px; max-height: 400px; overflow-y: auto;">
-                        <h6 class="dropdown-header">Notifications <span class="badge bg-danger">{{ notifications|length }}</span></h6>
-    
-                        {% if notifications %}
-                            {% for notification in notifications %}
-                            <li class="dropdown-item d-flex align-items-start mb-2" style="white-space: normal;">
-                                <div class="me-3">
-                                    <i class="fas fa-bell text-warning"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <strong class="d-block text-truncate" style="max-width: 200px;">{{ notification.subject }}</strong>
-                                    <small class="text-secondary d-block text-truncate" style="max-width: 200px;">{{ notification.message }}</small>
-                                    <div class="d-flex justify-content-between text-muted small mt-1">
-                                        <span class="text-truncate">
-                                            <i class="fas fa-user-circle"></i> {{ notification.user_sender }}: 
-                                            {{ notification.user_sender.roleuser.roleuser }}
-                                        </span>
-                                        <span class="ms-2">
-                                            <i class="fas fa-calendar-alt"></i> {{ notification.created_at|date:"Y-m-d H:i" }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </li>
-                            <hr class="dropdown-divider">
-                            {% endfor %}
-                        {% else %}
-                            <li class="dropdown-item text-center text-muted">✨ No Notifications ✨</li>
-                        {% endif %}
-                        <a>
-                            <li class="dropdown-item text-center">
-                                <a href="{% url 'view_notification' %}" class="text-decoration-underline d-block text-center">View All Notifications</a>
-                            </li>                    
-                        </a>
-                    </ul>
+
+
+        <div class="dropdown me-3 position-relative">
+            <button class="btn btn-outline-secondary position-relative" type="button" id="notificationDropdown"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-bell"></i>
+                <!-- Show badge only if there are unread notifications -->
+                {% if notifications_unread_count > 0 %}
+                <span id="unreadBadge" class="badge bg-danger position-absolute top-0 start-100 translate-middle">
+                    {{ notifications_unread_count }}
+                </span>
+                {% endif %}
+            </button>
+        
+            <!-- Notification Dropdown Menu with Scrollable Box -->
+            <ul class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="notificationDropdown"
+                style="width: 400px; max-height: 500px;">  <!-- Increased width and max-height -->
+                
+                <h6 class="dropdown-header">
+                    Notifications
+                    {% if notifications_unread_count > 0 %}
+                    <span class="badge bg-danger">{{ notifications_unread_count }}</span>
+                    {% endif %}
+                </h6>
+        
+                <!-- Scrollable Container for Notifications -->
+                <div style="max-height: 400px; overflow-y: auto;">  <!-- Adjusted max-height for content -->
+                    {% if notifications %}
+                    {% for notification in notifications %}
+                    <li class="dropdown-item d-flex align-items-start mb-2" style="white-space: normal;">
+                        <div class="me-3">
+                            <i class="fas fa-bell text-warning"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong class="d-block text-truncate" style="max-width: 250px;">
+                                {{ notification.subject }}
+                            </strong>
+                            <small class="text-secondary d-block text-truncate" style="max-width: 250px;">
+                                {{ notification.message }}
+                            </small>
+                            <div class="d-flex justify-content-between text-muted small mt-1">
+                                <span class="text-truncate">
+                                    <i class="fas fa-user-circle"></i> {{ notification.user_sender }}:
+                                    {{ notification.user_sender.roleuser.roleuser }}
+                                </span>
+                                <span class="ms-2">
+                                    <i class="fas fa-calendar-alt"></i> {{ notification.created_at|date:"Y-m-d H:i" }}
+                                </span>
+                            </div>
+                        </div>
+                    </li>
+                    <hr class="dropdown-divider">
+                    {% endfor %}
+                    {% else %}
+                    <li class="dropdown-item text-center text-muted">✨ No Notifications ✨</li>
+                    {% endif %}
                 </div>
+        
+                <!-- View All Notifications Button -->
+                <li class="dropdown-item text-center">
+                    <a href="{% url 'view_notification' %}" class="btn"
+                       style="background-color: blue; color: white; width: 100%; padding: 5px 0; border-radius: 2px;">
+                        View All Notifications
+                    </a>
+                </li>
+            </ul>
+        </div>
 
         <div class="dropdown d-flex align-items-center user-info">
             <a class="btn dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
@@ -270,7 +292,7 @@
                                 navigateButton.classList.add('btn-danger');
                             }
                         } else {
-                            alert("Please set your current location first.");
+                            showToast("Please set your current location first.", 'warning');
                         }
                     });
                 }
@@ -365,10 +387,10 @@
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 position => updateUserLocation([position.coords.longitude, position.coords.latitude]),
-                () => alert("Error: The Geolocation service failed.")
+                () => showToast("Error: The Geolocation service failed.", 'error')
             );
         } else {
-            alert("Error: Your browser doesn't support geolocation.");
+            showToast("Error: Your browser doesn't support geolocation.", 'error');
         }
     });
 
@@ -380,17 +402,45 @@
                 if (data.features && data.features.length > 0) {
                     updateUserLocation(data.features[0].center);
                 } else {
-                    alert("Location not found within Cebu City.");
+                    showToast("Location not found within Cebu City.", 'warning');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("An error occurred while searching for the location.");
+                showToast("An error occurred while searching for the location.", 'error');
             });
     });
 
     document.getElementById('minimize-nav').addEventListener('click', toggleNavigationControls);
 
     map.fitBounds(cebucityBounds, { padding: 20 });
+</script>
+
+
+<!-- JavaScript to mark notifications as read -->
+<script>
+    // Add an event listener to the "View All Notifications" link
+    document.querySelector("a[href='{% url 'view_notification' %}']").addEventListener('click', function (event) {
+        event.preventDefault(); // Prevent the default link behavior
+
+        // Fetch request to mark notifications as read
+        fetch("{% url 'mark_notifications_as_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',  // Ensure CSRF token is included
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                // Successfully marked notifications as read
+                // Redirect to the notifications page
+                window.location.href = "{% url 'view_notification' %}";
+            } else {
+                console.error('Error marking notifications as read:', response.statusText);
+            }
+        }).catch(error => {
+            console.error('Error marking notifications as read:', error);
+        });
+    });
 </script>
 {% endblock %}

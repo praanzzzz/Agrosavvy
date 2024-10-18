@@ -1,9 +1,9 @@
-{% extends 'bofa_base.html' %}
+{% extends 'base.html' %}
 {% block header %}
 {% endblock %}
-
-
 {% block content %}
+
+
 <div class="container mt-4">
     <div class="row">
         <!-- Form section -->
@@ -36,12 +36,6 @@
 </div>
 
 
-
-
-
-
-
-
 <script>
     // Ensure that the DOM is fully loaded before executing JavaScript code
     document.addEventListener('DOMContentLoaded', function () {
@@ -54,10 +48,21 @@
             // Client-side validation to ensure city is Cebu City
             var cityField = document.getElementById('id_city_municipality').value;
             if (cityField.trim().toLowerCase() !== 'cebu city') {
-                showToast('The address must be in Cebu City.','warning');
+                showToast('The address must be in Cebu City.', 'warning');
                 return;
             }
 
+
+            // Get user's address for comparison (assuming userAddress is available in the context)
+            var bo_user_barangay = "{{bo_user_barangay }}".toLowerCase(); // Ensure userAddress is in lowercase
+
+            // Validate if the inputted barangay matches the user's address barangay
+            var brgyField = document.getElementById('id_barangay').selectedOptions[0].text; ;  
+
+            if (brgyField.trim().toLowerCase() !== bo_user_barangay) {
+                showToast('The entered barangay must match your registered barangay', 'warning');
+                return;
+            }
 
             // Check if latitude and longitude fields are filled
             var latitude = document.getElementById('id_latitude').value;
@@ -67,10 +72,9 @@
                 return;
             }
 
+
             var formData = new FormData(this);
-
             var url = this.action; // Use the form's action attribute for the URL
-
             var csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 
             fetch(url, {
@@ -84,7 +88,7 @@
             .then(data => {
                 if (data.status === 'success') {
                     showToast('Field updated successfully!', 'success');
-                    window.location.href = '{% url "bofa_dashboard" %}';
+                    window.location.href = '{% url "dashboard" %}';
                 } else {
                     showToast('Error updating field.', 'error');
                 }
@@ -111,12 +115,19 @@ function initializeMap() {
         initialLng = 123.876705;  // Default longitude (Cebu City)
     }
 
+    var cebucityBounds = [
+        [123.7500, 10.2500], // Southwest coordinates
+        [123.9500, 10.4500]  // Northeast coordinates
+    ];
+
     // Create the map and set it to either the database coordinates or default
     var map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/satellite-streets-v11',
         center: [initialLng, initialLat],
-        zoom: 12  // Adjust zoom level based on your preference
+        zoom: 12, // Adjust zoom level based on your preference
+        minZoom: 11, // Set the minimum zoom level
+        maxBounds: cebucityBounds // Restrict the view to Cebu City
     });
 
     // Initialize the marker at the provided coordinates (either from database or default)
@@ -191,17 +202,14 @@ function initializeMap() {
                 document.getElementById('id_longitude').value = lngLat[0];
                 getAddress(lngLat[0], lngLat[1]);
             } else {
-                showToast('Address not found', 'error');
+                showToast('Address not found', 'warning');
             }
         })
         .catch(error => {
-            console.error('Error geocoding address:', error);
+            showToast('Error geocoding address:', error);
         });
     });
 }
-
-
-
 
 
 
@@ -211,5 +219,12 @@ function initializeMap() {
 
     });
 </script>
+
+
+
+
+
+
+
 
 {% endblock %}

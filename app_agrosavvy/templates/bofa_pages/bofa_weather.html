@@ -7,7 +7,7 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h1>Weather for {{ location }}</h1>
+            <!-- <h1>Weather for {{ location }}</h1>
             {% if weather_data %}
             <ul class="list-group">
                 <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -33,7 +33,14 @@
                     <input type="text" name="location" id="location" class="form-control">
                 </div><br>
                 <button type="submit" class="btn btn-primary">Get Weather</button>
-            </form>
+            </form> -->
+            <h1>8 days weather Forecast</h1>
+            <br><br>
+            <!-- secure api key : appid -->
+            <div id="openweathermap-widget-11"></div>
+            <script src='//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/d3.min.js'></script>
+            <script>window.myWidgetParam ? window.myWidgetParam : window.myWidgetParam = []; window.myWidgetParam.push({ id: 11, cityid: '1717512', appid: 'ef4d05d95dcd14c6ea7dfeecdd7ca03e', units: 'metric', containerid: 'openweathermap-widget-11', }); (function () { var script = document.createElement('script'); script.async = true; script.charset = "utf-8"; script.src = "//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/weather-widget-generator.js"; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s); })();</script>
+            <br>
         </div>
     </div>
 </div>

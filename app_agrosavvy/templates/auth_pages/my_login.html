@@ -15,87 +15,51 @@
     <link rel="stylesheet" href="/static/css/myloginstyle.css">
     <title>AgroSavvy</title>
     <style>
-        /* django messages styles */
-        .alert-container {
+        .toast {
             position: fixed;
-            top: 10px; /* Adjust the distance from the top */
-            left: 50%;
+            top: 20px;
+            left: 40%;
             transform: translateX(-50%);
-            width: 90%; /* Adjust the width as needed */
-            max-width: 400px; /* Set a smaller max width */
-            z-index: 1050; /* Ensure it is above other content */
-            display: flex;
-            justify-content: center;
+            margin-bottom: 1rem;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+            z-index: 1050;
+
         }
 
-        .alert {
-            position: relative;
-            width: 100%;
-            padding: 0.75rem 1rem; /* Smaller padding */
-            margin-bottom: 0.5rem; /* Smaller margin */
-            border-radius: 0.25rem; /* Smaller border radius */
-            font-size: 0.875rem; /* Smaller font size */
-            animation: fadeInOut 4s ease forwards;
-        }
-
-        .alert-success {
-            color: #155724;
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-        }
-
-        .alert-error {
-            color: #721c24;
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-        }
-
-        .alert-warning {
-            color: #856404;
-            background-color: #fff3cd;
-            border-color: #ffeeba;
-        }
-
-        .alert-info {
-            color: #0c5460;
-            background-color: #d1ecf1;
-            border-color: #bee5eb;
-        }
-
-        .alert-dismissible {
-            padding-right: 2.5rem; /* Adjust padding to fit the smaller size */
-        }
-
-        .alert-dismissible .btn-close {
-            position: absolute;
-            top: 0.25rem; /* Adjust position for smaller button */
-            right: 0.25rem;
-            padding: 0;
-            color: inherit;
-        }
-
-        @keyframes fadeInOut {
-            0% {
+        /* Fade-in animation keyframes */
+        @keyframes fadeIn {
+            from {
                 opacity: 0;
                 transform: translateY(-10px);
             }
 
-            10% {
+            to {
                 opacity: 1;
                 transform: translateY(0);
-            }
-
-            90% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-
-            100% {
-                opacity: 0;
-                transform: translateY(10px);
             }
         }
 
+
+
+        .alert-success {
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            border-left: 4px solid #dc3545;
+
+        }
+
+        .alert-warning {
+            border-left: 4px solid #ffc107;
+
+        }
+
+        .alert-info {
+            border-left: 4px solid #17a2b8;
+
+        }
 
         #spinnerContainer {
             position: fixed;
@@ -103,32 +67,39 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(255, 255, 255, 0.8); /* semi-transparent white background */
-            z-index: 9999; /* Highest z-index to make sure it's on top */
+            background-color: rgba(255, 255, 255, 0.8);
+            /* semi-transparent white background */
+            z-index: 9999;
+            /* Highest z-index to make sure it's on top */
             display: flex;
             justify-content: center;
             align-items: center;
         }
-
     </style>
 </head>
 
 <body>
-    <!-- Django Messages -->
-    <div class="alert-container">
-        {% for message in messages %}
-        <div id="django-message-{{ forloop.counter }}"
-            class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+
+
+    <!-- Django Messages w/ Bootstrap Toasts-->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            {% for message in messages %}
+            <div id="django-message-{{ forloop.counter }}" class="toast alert-{{ message.tags }}" role="alert"
+                aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+                <div class="toast-header">
+                    <i class='bx bx-bell me-4'></i>
+                    <strong class="me-auto">{{ message.tags|capfirst }}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    {{ message }}
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        <script>
-            setTimeout(function () {
-                document.getElementById("django-message-{{ forloop.counter }}").remove();
-            }, 3000); // Remove after 3 seconds
-        </script>
-        {% endfor %}
     </div>
+
 
 
     <div id="spinnerContainer" style="display: none;">
@@ -191,7 +162,59 @@
             </div>
         </div>
     </div>
-    
+
+
+
+
+
+
+
+
+
+    <script>
+        // function to show toasts for server side validation
+        document.addEventListener("DOMContentLoaded", function () {
+            const toastElements = document.querySelectorAll('.toast');
+            toastElements.forEach(function (toastEl) {
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            });
+        });
+
+        // Function to show a toast for client-side validation errors
+        function showToast(message, type) {
+            const toastHtml = `
+            <div class="toast alert-${type}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+              <div class="toast-header">
+                <i class='bx bx-bell me-4'></i>
+                <strong class="me-auto">${type.charAt(0).toUpperCase() + type.slice(1)}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+              <div class="toast-body">
+                ${message}
+              </div>
+            </div>
+          `;
+
+            // Append the toast HTML to the container
+            document.getElementById('django-messages').querySelector('.col-md-6').insertAdjacentHTML('beforeend', toastHtml);
+
+            // Initialize and show the toast
+            const toastElement = document.querySelector('.toast:last-child'); // Get the last added toast
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+
+            // Set a timeout to hide the toast after 3 seconds
+            setTimeout(() => {
+                toast.hide(); // Hide the toast
+            }, 3000);
+
+        }
+    </script>
+
+
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
         integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
         crossorigin="anonymous"></script>
@@ -215,8 +238,8 @@
 
     <!-- spinner -->
     <script>
-        document.getElementById('formLogin').onsubmit = function() {
-            document.getElementById('spinnerContainer').style.display = 'flex'; 
+        document.getElementById('formLogin').onsubmit = function () {
+            document.getElementById('spinnerContainer').style.display = 'flex';
         };
     </script>
 

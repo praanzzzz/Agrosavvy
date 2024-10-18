@@ -124,7 +124,7 @@
                         <option value="">All</option>
                         <option value="farmer" {% if filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
                         <option value="brgy_officer" {% if filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
-                        <option value="da_admin" {% if filter_type == 'da_admin' %}selected{% endif %}>DA Admin</option>
+                        <option value="da_admin" {% if filter_type == 'da_admin' %}selected{% endif %}>CAD Admin</option>
                     </select>
                     <select name="sort" class="form-select">
                         <option value="">Sort by</option>
@@ -140,37 +140,37 @@
                 <table class="table table-striped table-bordered table-hover">
                     <thead class="thead-dark">
                         <tr>
-                            <th>Field ID</th>
-                            <th>Usertype</th>
-                            <th>Owner</th>
-                            <th>Name</th>
+                            <!-- <th>Field ID</th> -->
+                            <th>Field Name</th>
                             <th>Hectares</th>
-                            <th>Location</th>
+                            <th>Location</th>            
+                            <th>Owner</th>
+                            <th>Role</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for field in page_obj %}
                         <tr>
-                            <td>{{ field.field_id }}</td>
-                            <td>
-                                {% if field.owner.roleuser.roleuser == "farmer" %}
-                                Farmer
-                                {% elif field.owner.roleuser.roleuser == "brgy_officer" %}
-                                Barangay Officer
-                                {% elif field.owner.roleuser.roleuser == "da_admin" %}
-                                DA Admin
-                                {% else %}
-                                Unknown
-                                {% endif %}
-                            </td>
-                            <td>{{ field.owner }}</td>
+                            <!-- <td>{{ field.field_id }}</td> -->
                             <td>{{ field.field_name }}</td>
                             <td>{{ field.field_acres }}</td>
                             <td>
                                 {{ field.address.barangay }},
                                 {{ field.address.city_municipality }},
                                 {{ field.address.country }}
+                            </td>
+                            <td>{{ field.owner }}</td>
+                            <td>
+                                {% if field.owner.roleuser.roleuser == "farmer" %}
+                                Farmer
+                                {% elif field.owner.roleuser.roleuser == "brgy_officer" %}
+                                Barangay Officer
+                                {% elif field.owner.roleuser.roleuser == "da_admin" %}
+                                CAD Admin
+                                {% else %}
+                                Unknown
+                                {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
