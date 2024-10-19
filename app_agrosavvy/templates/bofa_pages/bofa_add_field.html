@@ -2,12 +2,13 @@
 {% block header %}
 {% endblock %}
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row">
         <!-- Field and Address Details Section -->
         <div class="col-md-6">
             <div class="card shadow-lg border-0 rounded-3">
                 <div class="card-body p-4">
+                    <a href="{% url 'bofa_dashboard' %}" class="btn btn-outline-secondary btn-sm mb-3">Go back <i class='bx bx-chevrons-left'></i></a>
                     <h4 class="card-title mb-4 text-primary"><strong>Add Field Details</strong></h4>
                     <form id="fieldForm" method="POST">
                         {% csrf_token %}
@@ -28,7 +29,7 @@
         <!-- Map Section -->
         <div class="col-md-6">
             <div class="card shadow-lg border-0 rounded-3">
-                <div id="map" style="height: 680px; border-radius: 0.375rem;"></div>
+                <div id="map" style="height: 700px; border-radius: 0.375rem;"></div>
             </div>
         </div>
     </div>
@@ -94,10 +95,10 @@
             mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
             // Create and initialize the Mapbox map
-            var cebucityBounds = [
-                [123.7500, 10.2500], // Southwest coordinates
-                [123.9500, 10.4500]  // Northeast coordinates
-             ];
+            const cebucityBounds = [
+                [123.4000, 10.0000], // Further southwest
+                [124.2000, 10.7500]  // Further northeast
+            ];
 
             var map = new mapboxgl.Map({
                 container: 'map',
