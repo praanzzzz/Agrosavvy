@@ -33,7 +33,7 @@
                 <table class="table table-borderless shadow-sm rounded">
                     <thead class="bg-dark text-white">
                         <tr>
-                            <th>Official User ID</th>
+                            <th>User ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
@@ -45,7 +45,7 @@
                     <tbody>
                         {% for registered_user in registered_users_page_obj %}
                         <tr>
-                            <td>{{ registered_user.official_user_id }}</td>
+                            <td>{{ registered_user.id }}</td>
                             <td>{{ registered_user.firstname }} {{ registered_user.lastname }}</td>
                             <td>{{ registered_user.email }}</td>
                             <td>
@@ -180,7 +180,7 @@
                 <table class="table table-borderless shadow-sm rounded">
                     <thead class="bg-dark text-white">
                         <tr>
-                            <th>Official User ID</th>
+                            <th>User ID</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
@@ -192,7 +192,7 @@
                     <tbody>
                         {% for pending_user in pending_users_page_obj %}
                         <tr>
-                            <td>{{ pending_user.official_user_id }}</td>
+                            <td>{{ pending_user.id }}</td>
                             <td>{{ pending_user.firstname }} {{ pending_user.lastname }}</td>
                             <td>{{ pending_user.email }}</td>
                             <td>
