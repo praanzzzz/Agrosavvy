@@ -1137,6 +1137,7 @@ def admin_approve_user(request, user_id):
     if request.user.is_authenticated:
         if request.method == "POST":
             CustomUser.objects.create(
+                official_user_id= pending_user.official_user_id,
                 username=pending_user.username,
                 password=pending_user.password,
                 email=pending_user.email,
@@ -2436,6 +2437,7 @@ def register_farmer(request):
     )
 
 
+
 def my_login(request):
     form = LoginForm(request.POST or None)
     if request.method == "POST":
@@ -2458,23 +2460,27 @@ def my_login(request):
                 pass
 
             user = authenticate(username=username, password=password)
+            # if user exist in the custom user
             if user is not None:
-                if user.active_status:
-                    if user.roleuser.roleuser == "da_admin" or  user.roleuser.roleuser == "brgy_officer":
-                        login(request, user)
-                        messages.success(request, "Account logged in successfully")
-                        return redirect("dashboard")
-                    elif (
-                        user.roleuser.roleuser == "farmer"
-                    ):
-                        login(request, user)
-                        messages.success(request, "Account logged in successfully")
-                        return redirect("bofa_dashboard")
+                if user.is_subscribed:
+                    if user.active_status:
+                        if user.roleuser.roleuser == "da_admin" or  user.roleuser.roleuser == "brgy_officer":
+                            login(request, user)
+                            messages.success(request, "Account logged in successfully")
+                            return redirect("dashboard")
+                        elif (
+                            user.roleuser.roleuser == "farmer"
+                        ):
+                            login(request, user)
+                            messages.success(request, "Account logged in successfully")
+                            return redirect("bofa_dashboard")
+                        else:
+                            messages.error(request, "Invalid credentials")
                     else:
-                        messages.error(request, "Invalid credentials")
+                        messages.error(request, "Account is deactivated")
+                        # redirect to a page that handles account reactivation request
                 else:
-                    messages.error(request, "Account is deactivated")
-                    # redirect to a page that handles account reactivation request
+                    messages.error(request, "Organization is unsubscribed.")
             else:
                 messages.error(
                     request,
@@ -2483,6 +2489,59 @@ def my_login(request):
         else:
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})
+
+
+
+
+
+# def my_login(request):
+#     form = LoginForm(request.POST or None)
+#     if request.method == "POST":
+#         if form.is_valid():
+#             official_user_id = form.cleaned_data.get("official_user_id")
+#             password = form.cleaned_data.get("password")
+
+#             # Check if the user is in the PendingUser table
+#             try:
+#                 pending_user = PendingUser.objects.get(official_user_id=official_user_id)
+#                 if check_password(password, pending_user.password):
+#                     messages.info(
+#                         request, "Your registration request is awaiting approval."
+#                     )
+#                     return render(request, "auth_pages/my_login.html", {"form": form})
+#                 else:
+#                     messages.error(request, "Invalid username or password")
+#                     return render(request, "auth_pages/my_login.html", {"form": form})
+#             except PendingUser.DoesNotExist:
+#                 pass
+
+#             user = authenticate(official_user_id=official_user_id, password=password)
+
+#             if user is not None:
+#                 if user.active_status:
+#                     if user.roleuser.roleuser == "da_admin" or  user.roleuser.roleuser == "brgy_officer":
+#                         login(request, user)
+#                         messages.success(request, "Account logged in successfully")
+#                         return redirect("dashboard")
+#                     elif (
+#                         user.roleuser.roleuser == "farmer"
+#                     ):
+#                         login(request, user)
+#                         messages.success(request, "Account logged in successfully")
+#                         return redirect("bofa_dashboard")
+#                     else:
+#                         messages.error(request, "Invalid credentials")
+#                 else:
+#                     messages.error(request, "Account is deactivated")
+#                     # redirect to a page that handles account reactivation request
+#             else:
+#                 messages.error(
+#                     request,
+#                     "Invalid username or password",
+#                 )
+#         else:
+#             messages.error(request, "Error validating form")
+#     return render(request, "auth_pages/my_login.html", {"form": form})
 
 
 def my_logout(request):
@@ -2543,6 +2602,24 @@ def deactivate_account(request):
         return redirect("forbidden")
 
 
+
+
+def billing(request):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+        return render(request, 'app_agrosavvy/settings_section/billing.html')
+    else:
+        return redirect("forbidden")
+
+def bofa_billing(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer" :
+        return render(request, 'bofa_pages/bofa_settings_section/bofa_billing.html')
+    else:
+        return redirect("forbidden")
+
+
+
+
+
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -2589,6 +2666,9 @@ def bofa_deactivate_account(request):
             messages.success(request, "Your account has been deactivated.")
             return redirect("landing_page")
         return redirect("bofa_settings")
+
+
+
 
 
 # error pages

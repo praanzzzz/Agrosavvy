@@ -24,11 +24,31 @@ from .models import (
 )
 
 
+
+
+
+@admin.action(description="Unsubscribe users")
+def unsubscribe_users(modeladmin, request, queryset):
+    queryset.update(is_subscribed=False)
+
+
+
+@admin.action(description="Subscribe users")
+def subscribe_users(modeladmin, request, queryset):
+    queryset.update(is_subscribed=True)
+
+
+
+
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
+    actions = [unsubscribe_users, subscribe_users]
+
+
+
     fieldsets = (
-        (None, {"fields": ("username", "password", "profile_picture")}),
+        (None, {"fields": ("official_user_id", "username", "password", "profile_picture")}),
         (
             "Personal info",
             {"fields": ("firstname", "lastname", "email", "date_of_birth", "gender", "useraddress",)}, 
@@ -43,6 +63,7 @@ class CustomUserAdmin(UserAdmin):
                     "approved_date",
                     "approved_by",
                     "active_status",
+                    "is_subscribed",
                 )
             },
         ),
@@ -65,6 +86,7 @@ class CustomUserAdmin(UserAdmin):
             {
                 "classes": ("wide",),
                 "fields": (
+                    "official_user_id",
                     "username",
                     "password1",
                     "password2",
@@ -85,14 +107,16 @@ class CustomUserAdmin(UserAdmin):
     )
 
     list_display = (
+        "official_user_id",
         "username",
         "email",
         "active_status",
-        "is_approved",
+        "is_subscribed",
         "roleuser",
     )
 
     search_fields = (
+        "official_user_id",
         "username",
         "email",
         "firstname",
@@ -106,6 +130,7 @@ class CustomUserAdmin(UserAdmin):
 def approve_users(modeladmin, request, queryset):
     for pending_user in queryset: # to add filter to da admin only
         CustomUser.objects.create(
+            official_user_id = pending_user.official_user_id,
             username=pending_user.username,
             password=pending_user.password,
             email=pending_user.email,
@@ -122,8 +147,15 @@ def approve_users(modeladmin, request, queryset):
         pending_user.delete()
 
 
+
+
+
+
+
+
 class PendingUserAdmin(admin.ModelAdmin):
     list_display = (
+        "official_user_id",
         "username",
         "email",
         "roleuser",
@@ -134,6 +166,7 @@ class PendingUserAdmin(admin.ModelAdmin):
     actions = [approve_users]
 
     readonly_fields = (
+        "official_user_id",
         "request_date",
         "username",
         "email",
@@ -143,6 +176,14 @@ class PendingUserAdmin(admin.ModelAdmin):
         "date_of_birth",
         "useraddress",
         "roleuser",
+    )
+
+    search_fields = (
+        "official_user_id",
+        "username",
+        "email",
+        "firstname",
+        "lastname",
     )
 
     # Prevent deletion of pending users directly from admin

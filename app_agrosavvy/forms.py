@@ -43,6 +43,26 @@ class LoginForm(forms.Form):
     )
 
 
+# uses official user id
+# class LoginForm(forms.Form):
+#     official_user_id = forms.CharField(
+#         label="",
+#         widget=forms.TextInput(
+#             attrs={
+#                 "class": "form-control",
+#                 "placeholder": "Official User ID",
+#                 "autofocus": True,
+#             }
+#         ),
+#     )
+#     password = forms.CharField(
+#         label="",
+#         widget=forms.PasswordInput(
+#             attrs={"class": "form-control", "placeholder": "Password"}
+#         ),
+#     )
+
+
 # # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
 # # validate the logic, other variables may not work or it lack variables
 # class SignUpForm(UserCreationForm):
@@ -88,6 +108,7 @@ class PendingUserForm(forms.ModelForm):
     class Meta:
         model = PendingUser
         fields = [
+            "official_user_id",
             "firstname",
             "lastname",
             "username",
@@ -99,6 +120,7 @@ class PendingUserForm(forms.ModelForm):
 
         ]
         widgets = {
+            "official_user_id": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "firstname": forms.TextInput(attrs={"class": "form-control"}),
             "lastname": forms.TextInput(attrs={"class": "form-control"}),
@@ -114,6 +136,18 @@ class PendingUserForm(forms.ModelForm):
             "useraddress": forms.Select(attrs={"class": "form-control"}),
         }
 
+
+    def clean_official_user_id(self):
+        official_user_id = self.cleaned_data.get("official_user_id")
+        
+        if CustomUser.objects.filter(official_user_id=official_user_id).exists():
+            raise forms.ValidationError("The user ID is already in use.")
+            
+        if PendingUser.objects.filter(official_user_id=official_user_id).exists():
+            raise forms.ValidationError("ID is already in use and is waiting for approval.")
+            
+        return official_user_id
+
     def clean_username(self):
         username = self.cleaned_data.get("username")
         if CustomUser.objects.filter(username=username).exists():
@@ -122,16 +156,13 @@ class PendingUserForm(forms.ModelForm):
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
+        
         if CustomUser.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already in use")
-        return email
-
-    def clean_pending_email(self):
-        email = self.cleaned_data.get("email")
+            raise forms.ValidationError("Email already in use.")
+            
         if PendingUser.objects.filter(email=email).exists():
-            raise forms.ValidationError(
-                "Email is already in use and is waiting for approval"
-            )
+            raise forms.ValidationError("Email is already in use and is waiting for approval.")
+            
         return email
 
     def clean_password(self):
@@ -149,7 +180,9 @@ class PendingUserForm(forms.ModelForm):
 
         if password != password_confirmation:
             self.add_error("password_confirmation", "Passwords do not match.")
+            
         return cleaned_data
+
 
 
 class CustomUserUpdateForm(UserChangeForm):
@@ -412,18 +445,6 @@ class TipsAIForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(TipsAIForm, self).__init__(*args, **kwargs)
         self.fields['field'].queryset = Field.objects.filter(is_deleted=False)
-
-
-
-# class CreateNotificationForm(forms.ModelForm):
-#     class Meta:
-#         model = Notification
-#         fields =['user_receiver', 'subject', 'message']
-#         widgets = {
-#             "user_receiver": forms.Select(attrs={'class':'form-control'}),
-#             "subject": forms.TextInput(attrs={'class':'form-control'}),
-#             "message": forms.TextInput(attrs={'class':'form-control'}),
-#         }
 
 
 

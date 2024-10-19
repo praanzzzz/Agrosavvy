@@ -67,6 +67,7 @@ urlpatterns = [
     #settings section urls
     path('view_profile', views.view_profile, name='view_profile'),
     path('settings/password_change', views.password_change, name='password_change'),
+    path('settings/billing', views.billing, name='billing'),
     path('deactivate_account/', views.deactivate_account, name='deactivate_account'),
   
 
@@ -117,6 +118,7 @@ urlpatterns = [
     path('bofa_view_profile', views.bofa_view_profile, name='bofa_view_profile'),
     path('bofa_settings/bofa_password_change', views.bofa_password_change, name='bofa_password_change'),
     path('bofa_deactivate_account/', views.bofa_deactivate_account, name='bofa_deactivate_account'),
+    path('bofa_settings/bofa_billing', views.bofa_billing, name='bofa_billing'),
 
     #field management for Brgy officers and farmers
     path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),

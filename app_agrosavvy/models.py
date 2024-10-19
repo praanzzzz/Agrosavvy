@@ -35,77 +35,32 @@ class Barangay(models.Model):
     BRGY_CHOICES = [
         ("Adlaon", "Adlaon"),
         ("Agsungot", "Agsungot"),
-        ("Apas", "Apas"),
         ("Babag", "Babag"),
-        ("Bacayan", "Bacayan"),
-        ("Banilad", "Banilad"),
-        ("Basak Pardo", "Basak Pardo"),
+        ("Binaliw", "Binaliw"),
+        ("Bonbon", "Bonbon"),
+        ("Budlaan", "Budlaan"),
+        ("Buhisan", "Buhisan"),
+        ("Buot-Taup", "Buot-Taup"),
         ("Busay", "Busay"),
-        ("Calamba", "Calamba"),
         ("Cambinocot", "Cambinocot"),
-        ("Camputhaw", "Camputhaw"),
-        ("Capitol Site", "Capitol Site"),
-        ("Carreta", "Carreta"),
-        ("Central", "Central"),
-        ("Cogon Pardo", "Cogon Pardo"),
-        ("Cogon Ramos", "Cogon Ramos"),
-        ("Day-as", "Day-as"),
-        ("Duljo", "Duljo"),
-        ("Ermita", "Ermita"),
-        ("Guadalupe", "Guadalupe"),
         ("Guba", "Guba"),
-        ("Hippodromo", "Hippodromo"),
-        ("Inayawan", "Inayawan"),
-        ("Kalubihan", "Kalubihan"),
         ("Kalunasan", "Kalunasan"),
-        ("Kamagayan", "Kamagayan"),
-        ("Kasambagan", "Kasambagan"),
-        ("Kinasang-an Pardo", "Kinasang-an Pardo"),
-        ("Labangon", "Labangon"),
-        ("Lahug", "Lahug"),
-        ("Lorega (Lorega San Miguel)", "Lorega (Lorega San Miguel)"),
         ("Lusaran", "Lusaran"),
-        ("Luz", "Luz"),
         ("Mabini", "Mabini"),
-        ("Mabolo", "Mabolo"),
         ("Malubog", "Malubog"),
-        ("Mambaling", "Mambaling"),
-        ("Pahina Central", "Pahina Central"),
-        ("Pahina San Nicolas", "Pahina San Nicolas"),
         ("Pamutan", "Pamutan"),
-        ("Pardo", "Pardo"),
-        ("Pari-an", "Pari-an"),
         ("Paril", "Paril"),
-        ("Pasil", "Pasil"),
-        ("Pit-os", "Pit-os"),
+        ("Pung-ol Sibugay", "Pung-ol Sibugay"),
         ("Pulangbato", "Pulangbato"),
-        ("Pung-ol-Sibugay", "Pung-ol-Sibugay"),
-        ("Punta Princesa", "Punta Princesa"),
-        ("Quiot Pardo", "Quiot Pardo"),
-        ("Sambag I", "Sambag I"),
-        ("Sambag II", "Sambag II"),
-        ("San Antonio", "San Antonio"),
-        ("San Jose", "San Jose"),
-        ("San Nicolas Central", "San Nicolas Central"),
-        ("San Roque (Ciudad)", "San Roque (Ciudad)"),
-        ("Santa Cruz", "Santa Cruz"),
         ("Sapangdaku", "Sapangdaku"),
-        ("Sawang Calero", "Sawang Calero"),
         ("Sinsin", "Sinsin"),
         ("Sirao", "Sirao"),
-        ("Suba Poblacion (Suba San Nicolas)", "Suba Poblacion (Suba San Nicolas)"),
-        ("Sudlon I", "Sudlon I"),
-        ("Sudlon II", "Sudlon II"),
+        ("Sudlon 1", "Sudlon 1"),
+        ("Sudlon 2", "Sudlon 2"),
         ("Tabunan", "Tabunan"),
         ("Tagbao", "Tagbao"),
-        ("Talamban", "Talamban"),
         ("Taptap", "Taptap"),
-        ("Tejero (Villa Gonzalo)", "Tejero (Villa Gonzalo)"),
-        ("Tinago", "Tinago"),
-        ("Tisa", "Tisa"),
-        ("To-ong Pardo", "To-ong Pardo"),
-        ("T. Padilla", "T. Padilla"),
-        ("Zapatera", "Zapatera")
+        ("Toong", "Toong"),
     ]
     brgy_id = models.AutoField(primary_key=True)
     brgy_name = models.CharField(max_length=50, choices=BRGY_CHOICES)
@@ -123,7 +78,7 @@ class Address(models.Model):
     barangay = models.ForeignKey(Barangay, on_delete=models.SET_NULL, blank=True, null=True)
     city_municipality = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
-    latitude = models.FloatField(blank=True, null=True) # change this
+    latitude = models.FloatField(blank=True, null=True) 
     longitude = models.FloatField(blank=True, null=True)
 
     def __str__(self):
@@ -141,6 +96,11 @@ class UserAddress(models.Model):
         ("Bacayan, Cebu City", "Bacayan, Cebu City"),
         ("Banilad, Cebu City", "Banilad, Cebu City"),
         ("Basak Pardo, Cebu City", "Basak Pardo, Cebu City"),
+        ("Binaliw, Cebu City", "Binaliw, Cebu City"),  
+        ("Bonbon, Cebu City", "Bonbon, Cebu City"),    
+        ("Budlaan, Cebu City", "Budlaan, Cebu City"),  
+        ("Buhisan, Cebu City", "Buhisan, Cebu City"),  
+        ("Buot-Taup, Cebu City", "Buot-Taup, Cebu City"), 
         ("Busay, Cebu City", "Busay, Cebu City"),
         ("Calamba, Cebu City", "Calamba, Cebu City"),
         ("Cambinocot, Cebu City", "Cambinocot, Cebu City"),
@@ -195,8 +155,8 @@ class UserAddress(models.Model):
         ("Sinsin, Cebu City", "Sinsin, Cebu City"),
         ("Sirao, Cebu City", "Sirao, Cebu City"),
         ("Suba Poblacion (Suba San Nicolas), Cebu City", "Suba Poblacion (Suba San Nicolas), Cebu City"),
-        ("Sudlon I, Cebu City", "Sudlon I, Cebu City"),
-        ("Sudlon II, Cebu City", "Sudlon II, Cebu City"),
+        ("Sudlon 1, Cebu City", "Sudlon 1, Cebu City"),  
+        ("Sudlon 2, Cebu City", "Sudlon 2, Cebu City"),  
         ("Tabunan, Cebu City", "Tabunan, Cebu City"),
         ("Tagbao, Cebu City", "Tagbao, Cebu City"),
         ("Talamban, Cebu City", "Talamban, Cebu City"),
@@ -204,7 +164,7 @@ class UserAddress(models.Model):
         ("Tejero (Villa Gonzalo), Cebu City", "Tejero (Villa Gonzalo), Cebu City"),
         ("Tinago, Cebu City", "Tinago, Cebu City"),
         ("Tisa, Cebu City", "Tisa, Cebu City"),
-        ("To-ong Pardo, Cebu City", "To-ong Pardo, Cebu City"),
+        ("Toong, Cebu City", "Toong, Cebu City"),  
         ("T. Padilla, Cebu City", "T. Padilla, Cebu City"),
         ("Zapatera, Cebu City", "Zapatera, Cebu City")
     ]
@@ -221,6 +181,7 @@ class UserAddress(models.Model):
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
 class CustomUser(AbstractUser):
+    official_user_id = models.CharField(max_length= 30, unique=True)
     email = models.EmailField(unique=True)
     firstname = models.CharField(max_length=30, blank=True)
     lastname = models.CharField(max_length=30, blank=True)
@@ -234,6 +195,7 @@ class CustomUser(AbstractUser):
     request_date = models.DateTimeField(auto_now_add=True)
     approved_date = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
+    is_subscribed = models.BooleanField(default=True)
     
     def __str__(self):
         return self.username
@@ -243,6 +205,7 @@ class CustomUser(AbstractUser):
     
 
 class PendingUser(models.Model):
+    official_user_id = models.CharField(max_length= 30, unique=True)
     username = models.CharField(max_length=150, unique=False)
     password = models.CharField(max_length=128)
     email = models.EmailField(unique=True)
@@ -326,11 +289,12 @@ class Crop(models.Model):
     CROP_CHOICES = [
         ("Carrots", "Carrots"),
         ("Potato", "Potato"),
-        ("Garlic", "Garlic"),
+        ("Pechay", "Pechay"),
         ("Eggplant", "Eggplant"),
+        ("Rice", "Rice"),
         ("Tomato", "Tomato"),
         ("Squash", "Squash"),
-        ("Bitter Gourd", "Bitter Gourd"),
+        ("Ampalaya", "Ampalaya"),
         ("Cabbage", "Cabbage"),
         ("Onion", "Onion"),
     ]
