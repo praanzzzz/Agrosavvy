@@ -12,7 +12,7 @@
     <!-- Field Details Table -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">Go back</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm mb-3">Go back <i class='bx bx-chevrons-left'></i></a>
             <h3 class="mb-0">Field Details</h3>
         </div>
         <div class="card-body">
@@ -352,7 +352,7 @@
                             </td> -->
                             <td class="text-center">
                                 <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                                    data-bs-target="#updateCropModal-{{ fcd.crop_id }}">Update</button>
+                                    data-bs-target="#updateCropModal-{{ fcd.fieldcrop_id }}">Update</button>
                                 <!-- Delete button (trigger the modal) -->
                                 <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
                                     data-bs-target="#confirmDeleteCropDataModal">
