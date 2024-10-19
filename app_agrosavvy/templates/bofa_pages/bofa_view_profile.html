@@ -24,13 +24,7 @@
                         <a href="{% url 'bofa_password_change' %}" class="nav-link">Change Password</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link">Security</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">Billing</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">Connected Apps</a>
+                        <a href="{% url 'bofa_billing' %}" class="nav-link">Billing</a>
                     </li>
                 </ul>
             </div>
@@ -72,18 +66,19 @@
                             <ul class="list-group shadow-none">
                                 <li class="list-group-item">
                                     <div class="list-icon">
-                                        <i class="fa fa-phone-square"></i>
+                                        <i class='bx bxs-id-card'>
+                                            <small class="ms-3">{{user.official_user_id}}</small>
+                                        </i>
                                     </div>
                                     <div class="list-details">
-                                        <!-- <span>{{user.mobiel_number}}</span> -->
-                                        <!-- this will be the number of the user -->
-                                        <small>Mobile Number</small>
+
+                                        
                                     </div>
                                 </li>
                                 <li class="list-group-item">
                                     <div class="list-icon">
                                         <i class="fa fa-envelope">
-                                            <a>{{user.email}}</a>
+                                            <small class="ms-3">{{user.email}}</small>
                                         </i>
                                     </div>
                                 </li>
@@ -108,7 +103,6 @@
                             <div class="tab-pane active show" id="profile">
                                 <div class="row">
                                     <div class="col-md-12">
-
                                         <p>First Name: <strong>{{user.firstname}}</strong></p>
                                         <p>Last Name: <strong>{{user.lastname}}</strong></p>
                                         <p>Role:
