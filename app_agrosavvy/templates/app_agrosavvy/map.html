@@ -221,10 +221,13 @@
 <script>
     mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
+
     const cebucityBounds = [
-        [123.7500, 10.2500],
-        [123.9500, 10.4500]
-    ];
+    [123.4000, 10.0000], // Further southwest
+    [124.2000, 10.7500]  // Further northeast
+];
+
+
 
     const map = new mapboxgl.Map({
         container: 'map',
