@@ -1,0 +1,43 @@
+
+
+
+
+    api keys shown in github:
+        mapbox access token:  add_field, pdate_field, bofa_add_field, bofa_update_field html, map, bofa_map
+        weather api: weather.html (widgets) and views      
+
+
+
+
+    TO DO:
+        fix dashboard for farmers - zey
+        reactivation  request page for deactivated account - create new page
+        notification feature - 50%  bryan
+        billing feature - bryan
+        text message notifications and update - in dashboard set permission toggle to allow receive updates
+        contact number for farmers
+        brgy need id for verification
+        while chat to ai- if ai notice a topic is always talked, ai will notif user to ask permission to give notif about that topic everyday 
+        confirm soil data if mou ra ba na data ang sa soil
+        print on paper or something map with marks
+        
+
+
+        bryan - Account management
+            notifications, billing, reactivation requests.
+        zey - AI
+            fine tuning, improvee UI and UX, 
+        louis - Dashboard and analytics
+            viewing, show charts in all roles, reports, print functionality, export to excel, 
+        franz - GIS 
+            add limits, add button to click address and generate crop recommendation button, validations
+
+
+
+        
+
+        add in superadmin admin not to delete permission
+       
+       add go back button to add and update fields.
+
+       add limit zoom to update field. add the limit to bigger since its using upland
