@@ -1,46 +1,99 @@
 {% extends 'bofa_base.html' %}
-{% block header %}
-{% endblock %}
-{% block content %}
 
+{% block content %}
+<style>
+    .weather-card {
+        max-width: 800px;
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .temperature {
+        font-size: 3rem;
+        color: #007bff;
+    }
+    .weather-icon {
+        width: 80px;
+    }
+</style>
 
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <!-- <h1>Weather for {{ location }}</h1>
-            {% if weather_data %}
-            <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Temperature: {{ weather_data.main.temp }}°C
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Feels Like: {{ weather_data.main.feels_like }}°C
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Wind Speed: {{ weather_data.wind.speed }} m/s
-                </li>
-            </ul>
-            {% else %}
-            <p class="alert alert-warning" role="alert">
-                No weather data found for "{{ location }}".
-            </p>
-            {% endif %}
+        <div class="col-lg-8">
+            <div class="weather-card bg-white p-4 rounded-4 shadow-sm">
+                <div class="text-center">
+                    <h2 class="text-primary">Weather in Cebu City</h2>
+                    {% if weather_data %}
+                        <div class="text-muted">{{ weather_data.current.dt|date:"Y-m-d H:i" }} (Local time)</div>
+                        <div class="temperature mb-3">{{ weather_data.current.temp }}°C</div>
+                        <div class="weather-description text-capitalize mb-3">{{ weather_data.current.weather.0.description }}</div>
+                        <img src="https://openweathermap.org/img/wn/{{ weather_data.current.weather.0.icon }}@2x.png" alt="Weather Icon" class="weather-icon">
+                        <div>Feels Like: {{ weather_data.current.feels_like }}°C</div>
+                        <div>Cloudiness: {{ weather_data.current.clouds }}%</div>
+                        <div>UV Index: {{ weather_data.current.uvi }}</div>
+                        <div>Visibility: {{ weather_data.current.visibility }} m</div>
+                        <div>Sunrise: {{ weather_data.current.sunrise|date:"H:i" }} | Sunset: {{ weather_data.current.sunset|date:"H:i" }}</div>
+                    {% else %}
+                        <p class="text-danger">Unable to fetch weather data.</p>
+                    {% endif %}
+                </div>
 
-            <form method="POST" class="mt-4">
-                <div class="form-group">
-                    {% csrf_token %}
-                    <label for="location">Enter Location:</label>
-                    <input type="text" name="location" id="location" class="form-control">
-                </div><br>
-                <button type="submit" class="btn btn-primary">Get Weather</button>
-            </form> -->
-            <h1>8 days weather Forecast</h1>
-            <br><br>
-            <!-- secure api key : appid -->
-            <div id="openweathermap-widget-11"></div>
-            <script src='//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/d3.min.js'></script>
-            <script>window.myWidgetParam ? window.myWidgetParam : window.myWidgetParam = []; window.myWidgetParam.push({ id: 11, cityid: '1717512', appid: 'ef4d05d95dcd14c6ea7dfeecdd7ca03e', units: 'metric', containerid: 'openweathermap-widget-11', }); (function () { var script = document.createElement('script'); script.async = true; script.charset = "utf-8"; script.src = "//openweathermap.org/themes/openweathermap/assets/vendor/owm/js/weather-widget-generator.js"; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s); })();</script>
-            <br>
+                {% if weather_data %}
+                    <div class="row text-center mt-4">
+                        <div class="col">
+                            <h6 class="mb-0">Humidity</h6>
+                            <span>{{ weather_data.current.humidity }}%</span>
+                        </div>
+                        <div class="col">
+                            <h6 class="mb-0">Wind Speed</h6>
+                            <span>{{ weather_data.current.wind_speed }} m/s ({{ weather_data.current.wind_deg }}°)</span>
+                        </div>
+                        <div class="col">
+                            <h6 class="mb-0">Pressure</h6>
+                            <span>{{ weather_data.current.pressure }} hPa</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5 class="text-center">8-Day Forecast</h5>
+                        <div class="list-group">
+                            {% for day in weather_data.daily %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ day.dt|date:"l, M d" }}</strong> - {{ day.summary }}
+                                        </div>
+                                        <div>
+                                            <img src="https://openweathermap.org/img/wn/{{ day.weather.0.icon }}@2x.png" alt="Weather Icon" class="weather-icon">
+                                            {{ day.temp.day }}°C
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 d-flex justify-content-between">
+                                        <span>🌞 Sunrise: {{ day.sunrise|date:"H:i" }} | Sunset: {{ day.sunset|date:"H:i" }}</span>
+                                        <span>🌙 Moonrise: {{ day.moonrise|date:"H:i" }} | Moonset: {{ day.moonset|date:"H:i" }}</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <strong>Temperature:</strong> Morning: {{ day.temp.morn }}°C, Day: {{ day.temp.day }}°C, Evening: {{ day.temp.eve }}°C, Night: {{ day.temp.night }}°C
+                                    </div>
+                                    <div class="mt-2">
+                                        <strong>Feels Like:</strong> Morning: {{ day.feels_like.morn }}°C, Day: {{ day.feels_like.day }}°C, Evening: {{ day.feels_like.eve }}°C, Night: {{ day.feels_like.night }}°C
+                                    </div>
+                                    <div class="mt-2">
+                                        <span><strong>Humidity:</strong> {{ day.humidity }}%</span> |
+                                        <span><strong>Wind Speed:</strong> {{ day.wind_speed }} m/s, {{ day.wind_deg }}°</span> |
+                                        <span><strong>Pressure:</strong> {{ day.pressure }} hPa</span>
+                                    </div>
+                                    <div class="mt-2">
+                                        <span><strong>Rain:</strong> {{ day.rain|default:"0" }} mm</span> |
+                                        <span><strong>Pop:</strong> {{ day.pop|floatformat:0 }}%</span> |
+                                        <span><strong>UV Index:</strong> {{ day.uvi }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

@@ -52,6 +52,15 @@
         document.getElementById('fieldForm').addEventListener('submit', function (e) {
             e.preventDefault();
 
+
+
+            // Validate if barangay (brgy) field has content
+                var brgyField = document.getElementById('id_barangay').value;
+                if (!brgyField.trim()) {
+                    showToast('Please select or enter a Barangay.', 'warning');
+                    return;
+                }
+
             // Client-side validation to ensure city is Cebu City
             var cityField = document.getElementById('id_city_municipality').value;
             if (cityField.trim().toLowerCase() !== 'cebu city') {
@@ -158,12 +167,30 @@ function initializeMap() {
                 });
 
                 // Update form fields based on fetched address
+                // var barangaySelect = document.getElementById('id_barangay');
+                // for (var i = 0; i < barangaySelect.options.length; i++) {
+                //     if (barangaySelect.options[i].text === barangay) {
+                //         barangaySelect.selectedIndex = i;
+                //         break;
+                //     }
+                // }
+
+
                 var barangaySelect = document.getElementById('id_barangay');
+                var matchedBarangay = false;
+
+                // Auto-select barangay if matched, otherwise reset to no selection
                 for (var i = 0; i < barangaySelect.options.length; i++) {
                     if (barangaySelect.options[i].text === barangay) {
                         barangaySelect.selectedIndex = i;
+                        matchedBarangay = true;
                         break;
                     }
+                }
+
+                if (!matchedBarangay) {
+                    barangaySelect.selectedIndex = -1;  // Reset selection
+                    showToast('Marker is placed outside of selected barangay. Please adjust.', 'warning');
                 }
 
                 document.getElementById('id_city_municipality').value = city_municipality;

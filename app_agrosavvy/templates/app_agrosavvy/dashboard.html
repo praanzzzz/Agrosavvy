@@ -119,7 +119,7 @@
             <h3 class="mb-4">List of Fields</h3>
             <form method="get" action="{% url 'dashboard' %}" class="mb-4">
                 <div class="input-group">
-                    <input type="text" name="search" placeholder="Search fields..." value="{{ search_query }}" class="form-control">
+                    <input type="text" name="search" placeholder="Search fields, owner or brgy" value="{{ search_query }}" class="form-control">
                     <select name="filter" class="form-select">
                         <option value="">All</option>
                         <option value="farmer" {% if filter_type == 'farmer' %}selected{% endif %}>Farmer</option>

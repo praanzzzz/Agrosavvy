@@ -148,7 +148,7 @@
             <!-- Search, Filter, and Sort Form -->
             <form method="get" action="{% url 'bofa_dashboard' %}" class="mb-4">
                 <div class="input-group">
-                    <input type="text" name="search" placeholder="Search field name" value="{{ search_query }}" class="form-control">
+                    <input type="text" name="search" placeholder="Search fields, owner or brgy" value="{{ search_query }}" class="form-control">
                     <select name="filter" class="form-select">
                         <option value="">All Barangays</option>
                         {% for barangay in barangays %}
