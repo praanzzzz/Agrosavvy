@@ -4,10 +4,13 @@ import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
+import time
+
 
 
 class RoleUser(models.Model):
     ROLEUSER_CHOICES = [
+        ("super_admin", "super_admin"),
         ("da_admin", "da_admin"),
         ("brgy_officer", "brgy_officer"),
         ("farmer", "farmer")
@@ -71,6 +74,7 @@ class Barangay(models.Model):
     class Meta:
         ordering = ['brgy_name']
 
+
     
 
 class Address(models.Model):
@@ -83,6 +87,13 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.barangay}, {self.city_municipality}, {self.country}"
+
+
+
+
+
+
+
 
 
 
@@ -313,8 +324,6 @@ class FieldCropData(models.Model):
     fieldcrop_id = models.AutoField(primary_key=True)
     crop_planted = models.ForeignKey(Crop, on_delete=models.CASCADE)
     planting_date = models.DateField()
-    # # maybe remove this
-    # harvest_date = models.DateField()
     is_deleted = models.BooleanField(default = False)
 
     def delete(self, *args, **kwargs):
@@ -354,6 +363,7 @@ class FieldSoilData(models.Model):
 
 class ChatGroup(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255, blank=False, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default = False)
 
@@ -373,6 +383,7 @@ class Chat(models.Model):
     chat_group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='chats') 
     message = models.TextField()
     response = models.TextField()
+    ai_context = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -386,39 +397,16 @@ class ImageAnalysis(models.Model):
     image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
     analysis_output = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default = False)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return self.analysis_output[:50]
     
 
-    
-
-class PredictionAI(models.Model):
-    predictionai_id = models.AutoField(primary_key=True)
-    field = models.ForeignKey(Field, on_delete=models.SET_NULL, null=True, blank=True)
-    # general prediction for yield, disease risk, planting harvest
-    prediction = models.TextField(blank=True, null=True) 
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Prediction for {self.field}. Date: {self.created_at}"
-    
-    class Meta:
-        ordering = ['-created_at']
-
-
-class TipsAI(models.Model):
-    tipsai_id = models.AutoField(primary_key=True)
-    field = models.ForeignKey(Field, on_delete=models.SET_NULL, null=True, blank=True)
-    # general tips on soil tips and pest management tips
-    tips = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Tips for {self.field}. Date: {self.created_at}"
-    
-    class Meta:
-        ordering = ['-created_at']
 
 
 
@@ -429,25 +417,141 @@ class Notification(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default = False)
 
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
         return f"Notification to {self.user_receiver} - {self.subject[:20]}"
 
 
-# this function just gets data from openweathermap, it does not really interact with the database so no need for migrations for now
-def get_weather_data(location):
-    api_key = settings.WEATHER_API_KEY
-    base_url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {"q": location, "appid": api_key, "units": "metric"}  # metric or imperial
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DataRSBSA(models.Model):
+    barangay = models.CharField(max_length=50)
+    reference_number = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=50)
+    middle_name = models.CharField(max_length=50, blank=True)
+    crops_planted = models.TextField()  
+    total_area = models.FloatField()
+
+    def __str__(self):
+        return f"{self.reference_number}: {self.first_name} {self.last_name} {self.barangay}"
+    
+    class Meta:
+        ordering = ['-reference_number']
+
+
+    
+
+
+
+class SoilDataSFM(models.Model):
+    NITROGEN_LEVELS = [
+        ('L', 'Low (0 - 2)'),
+        ('ML', 'Moderately Low (2.1 - 3.5)'),
+        ('MH', 'Moderately High (3.6 - 4.5)'),
+        ('H', 'High (4.6 - 5.5)'),
+        ('VH', 'Very High (5.5+)'),
+    ]
+    
+    PHOSPHORUS_LEVELS = [
+        ('L', 'Low (0-6)'),
+        ('ML', 'Moderately Low (6.1-10)'),
+        ('MH', 'Moderately High (10.1-15)'),
+        ('H', 'High (15.1-20)'),
+        ('VH', 'Very High (20+)'),
+    ]
+
+    POTASSIUM_LEVELS = [
+        ('L', 'Low (0-75)'),
+        ('ML', 'Sufficient(76-113)'),
+        ('MH', 'Sufficient+ (114-150)'),
+        ('H', 'Sufficient++ (151-200)'),
+        ('VH', 'Sufficient+++ (200+)'),
+    ]
+
+    PH_LEVELS = [
+        ('L', 'Extremely Acid (below 4.4)'),
+        ('ML', 'Strongly Acid (4.5-5.5)'),
+        ('MH', 'Moderately to Slightly Acid (5.6 - 6.6)'),
+        ('H', 'Near Neutral to Slightly Alkaline (6.7 - 7.8)'),
+        ('VH', 'Moderately, Strongly to Extremely Alkaline (7.8+)'),
+    ]
+
+
+    barangay = models.CharField(max_length=50)
+    sitio = models.CharField(max_length=50)
+    ph_level = models.CharField(max_length=2, choices=PH_LEVELS)
+    nitrogen_level = models.CharField(max_length=2, choices=NITROGEN_LEVELS)
+    phosphorus_level = models.CharField(max_length=2, choices=PHOSPHORUS_LEVELS)
+    potassium_level = models.CharField(max_length=2, choices=POTASSIUM_LEVELS)
+    # crops planted
+
+    def __str__(self):
+        return f"Soil Data for {self.sitio} , {self.barangay}"
+
+    class Meta:
+        ordering = ['barangay']
+
+
+
+        
+
+
+def get_weather_data(location):
+    api_key = settings.ONECALL_API_KEY
+    
+    # First, get latitude and longitude from the city name (using the Geocoding API)
+    geocode_url = "http://api.openweathermap.org/geo/1.0/direct"
+    geocode_params = {"q": location, "appid": api_key, "limit": 1}
+    
     try:
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()  # Raise an exception for error codes
-        return response.json()
+        geocode_response = requests.get(geocode_url, params=geocode_params)
+        geocode_response.raise_for_status()  # Check if the request was successful
+        location_data = geocode_response.json()
+
+        if location_data:
+            lat = location_data[0]['lat']
+            lon = location_data[0]['lon']
+            
+            # Now, get the weather data for the lat/lon
+            weather_url = "https://api.openweathermap.org/data/3.0/onecall"  # Update to version 3.0
+            weather_params = {
+                "lat": lat,
+                "lon": lon,
+                "appid": api_key,
+                "units": "metric",  # Use metric units
+                "exclude": "minutely,hourly"  # Exclude minutely and hourly data for simplicity
+            }
+            
+            weather_response = requests.get(weather_url, params=weather_params)
+            weather_response.raise_for_status()  # Check if the request was successful
+            return weather_response.json()
+
+        else:
+            print(f"Location not found: {location}")
+            return None
+
     except requests.exceptions.RequestException as e:
         print(f"Error getting weather data: {e}")
         return None
-
-
-

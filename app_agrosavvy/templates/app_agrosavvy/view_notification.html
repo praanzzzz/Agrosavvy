@@ -17,9 +17,10 @@
                         <span>
                             <i class="fas fa-bell text-warning"></i> {{ notification.subject }}
                         </span>
-                        <i class="fas fa-chevron-down toggle-icon"></i> <!-- Chevron icon for visual indicator -->
+                        <i class="fas fa-chevron-down toggle-icon"></i> 
                     </h5>
 
+               
                     <!-- Collapsible Notification Content -->
                     <div class="notification-content mt-2" style="display: none;">
                         <p class="card-text text-secondary">{{ notification.message }}</p>
@@ -36,6 +37,9 @@
             </div>
             {% endfor %}
         </div>
+
+
+      
 
         <!-- Pagination Controls -->
         <div class="col-lg-8 col-md-10 col-sm-12">
@@ -206,4 +210,7 @@
         }
     }
 </script>
+
+
+
 {% endblock %}

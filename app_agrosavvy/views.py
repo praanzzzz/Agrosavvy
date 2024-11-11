@@ -13,6 +13,7 @@ from .models import (
     Barangay,
     ImageAnalysis,
     ChatGroup,
+    DataRSBSA,
 )
 
 from .forms import (
@@ -25,8 +26,6 @@ from .forms import (
     CustomPasswordChangeForm,
     PendingUserForm,
     ReviewratingForm,
-    PredictionAIForm,
-    TipsAIForm,
     ImageAnalysisForm,
     CreateNotificationForm,
 )
@@ -50,7 +49,10 @@ from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
 from django.utils.safestring import mark_safe
 import re, base64
-
+from collections import Counter
+from django.conf import settings
+from datetime import datetime
+from django.core.serializers import serialize
 
 # AI
 from PIL import Image
@@ -62,6 +64,17 @@ OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
 #  Password:                PRAgab19-5158-794 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -97,7 +110,7 @@ def dashboard(request):
 
         # retrieve data
         crops = Crop.objects.all()
-        active_users = CustomUser.objects.filter(active_status=True)
+        active_users = CustomUser.objects.filter(active_status=True).exclude(roleuser__roleuser="super_admin")
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
@@ -106,11 +119,6 @@ def dashboard(request):
         # Pie Chart Data
         labels = []
         data = []
-
-        # queryset = FieldCropData.objects.filter(field__is_deleted=False, is_deleted=False
-        #     ).values("crop_planted__crop_type").annotate(
-        #     total_acres=Sum("field__field_acres")
-        # )
 
         # latest field crop data per field only
         queryset =  FieldCropData.objects.filter(
@@ -225,16 +233,6 @@ def dashboard(request):
         reviewrating_context = reviewrating(request)
 
         # pie chart
-        # Filter FieldCropData by fields in the same barangay
-        # queryset = FieldCropData.objects.filter(
-        #     field__is_deleted=False, 
-        #     is_deleted=False, 
-        #     field__address__barangay__brgy_name=user_barangay  
-        # ).values("crop_planted__crop_type").annotate(
-        #     total_acres=Sum("field__field_acres") 
-        # )
-
-        # pie chart
         # retrieves the latest field crop data for each crop type from non-deleted fields
         #  in a specified barangay, aggregating the total acres for each crop type.
         queryset = FieldCropData.objects.filter(
@@ -320,55 +318,228 @@ def dashboard(request):
 
 
 
-def ask_openai(message):
-    response = client.chat.completions.create(
-        model = "gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are an helpful assistant."},
-            {"role": "user", "content": message},
-        ]
-    )
-    answer = response.choices[0].message.content.strip()
-    return answer
 
 
 
 
-# chat and creation of chatgroup
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+THIS_MODEL = "gpt-4o-mini"
+
+
+
 def chat(request, group_id=None):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer" ):
+    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         chat_group = None
         if group_id:
             chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user, is_deleted=False)
-
         chats = Chat.objects.filter(user=request.user, chat_group=chat_group)
 
         if request.method == 'POST':
             message = request.POST.get('message', '').strip()
-
-            # If the message is empty, create a new chat group without sending a message
             if not message:
-                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group
+                chat_group = ChatGroup.objects.create(user=request.user)
                 return JsonResponse({'group_id': chat_group.id, 'status': 'new_group_created'})
 
-            # If a message is present, send it to the existing or newly created chat group
             if not chat_group:
-                chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group if none exists
+                chat_group = ChatGroup.objects.create(user=request.user)
 
-            response = ask_openai(message)
-            chat = Chat(user=request.user, chat_group=chat_group, message=message, response=response, created_at=timezone.now())
+            if not chat_group.title:
+                title = chatgroup_title_generator(message)
+                chat_group.title = title
+                chat_group.save()
+
+            previous_messages = chats.order_by('-created_at')[:10]
+            conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
+            full_conversation = conversation_history + f"\nUser: {message}\nAI:"
+            intents = classify_intent(message)
+
+            processed_intents = []
+
+            for intent in intents:
+                processed_intents.append(intent)  # Add the intent to the list
+
+                # contexts and data from DATABASE (specific data)
+
+                if intent == "ask_top_crops":
+                    top_crops = (
+                        DataRSBSA.objects.values('crops_planted')
+                        .annotate(total_planted=Count('reference_number'))
+                        .order_by('-total_planted')[:10]
+                    )
+                    crops_context = f"The top 10 crops are: {', '.join([crop['crops_planted'] for crop in top_crops])}"
+
+                elif intent == "ask_area_by_barangay":
+                    barangay = extract_brgy_name_with_openai(message).capitalize()
+                    total_area_by_barangay = DataRSBSA.objects.filter(barangay__iexact=barangay).aggregate(total_area=Sum('total_area'))['total_area']
+                    area_by_barangay_context = f"The total farming area in {barangay} is {total_area_by_barangay} hectares."
+
+                # to improve
+                elif intent == "ask_crops_by_barangay":
+                    barangay = extract_brgy_name_with_openai(message)
+                    crops_in_barangay = DataRSBSA.objects.filter(barangay__iexact=barangay).values_list('crops_planted', flat=True)
+                    crops_by_barangay_context = f"Crops planted in {barangay}: {', '.join(crops_in_barangay)}"
+
+                # bug: it gives total farmers of a brgy (9000) even its in cebu city
+                elif intent == "ask_total_farmers":
+                    total_farmers = DataRSBSA.objects.count()
+                    total_farmers_context = f"There are {total_farmers} farmers in Cebu City."
+
+
+                elif intent == "ask_barangay_list":
+                    barangays = Barangay.objects.values_list('brgy_name', flat=True)
+                    barangay_list_context = "Here are the barangays in the system:\n" + ", ".join(barangays)
+
+                # query only the direct answer and not all the data -  to improve, cannot get this intent if word dont have distribution
+                # cannot get brgy anf crops
+                elif intent == "ask_crop_distribution":
+                    barangay = extract_brgy_name_with_openai(message)
+                    specific_crop = extract_crop_name_with_openai(message)
+
+                    crop_distribution_query = DataRSBSA.objects.values('barangay', 'crops_planted').annotate(count=Count('reference_number'))
+                    if barangay:
+                        crop_distribution_query = crop_distribution_query.filter(barangay=barangay)
+
+                    if specific_crop:
+                        crop_distribution_query = crop_distribution_query.filter(crops_planted__icontains=specific_crop)
+                    
+                    # Generate the response context with only the filtered data
+                    if crop_distribution_query.exists():
+                        crop_distribution_context = "Crop distribution by barangay:\n" + "\n".join([
+                            f"{data['barangay']}: {data['crops_planted']} ({data['count']} farmers)" for data in crop_distribution_query
+                        ])
+                    else:
+                        crop_distribution_context = "No data found for the specified query."
+
+                elif intent == "ask_crop_supply":
+                    crop_supply_info = get_crop_supply_info()
+                    supply_context = f"Current supply for crops:\n{crop_supply_info}"
+
+
+
+
+
+                # openweathermap api
+                elif intent == "weather":
+                    location = extract_location_with_openai(message)
+                    if location:
+                        weather_data = get_weather_data(location)
+                        weather_context = f"weather forecast for {location}:\n{weather_data}" if weather_data else "Sorry, I couldn't retrieve the weather data right now."
+                    else:
+                        weather_context = "Can you please specify the location for the weather forecast?"
+
+
+
+                # general knowledge from openai
+                elif intent == "ask_crop_management":
+                    crop_management_context = "Here is some information on crop management."
+
+                elif intent == "ask_help":
+                    help_context = "Sure! I can help you with crop recommendations, farmers' info, and more."
+
+                # restrictions
+                elif intent == "market demand and pricing":
+                    market_pricing_context = "Unfortunately, I do not have data on current market demand and pricing."
+                        
+                elif intent == "ask_farmers_info":
+                    farmers_info_context =  "Not allowed to provide personal information."
+
+                elif intent == "ask_farmers_by_barangay":
+                    farmers_by_barangay_context_str = "Not allowed to provide personal information."
+
+                elif intent == "ask_farmer_details_by_reference":
+                    farmer_details_context = "Not allowed to provide personal information."
+
+            ai_context = ""
+            if 'weather_context' in locals():
+                ai_context += weather_context + "\n"
+            if 'crops_context' in locals():
+                ai_context += crops_context + "\n"
+            if 'farmers_info_context' in locals():
+                ai_context += farmers_info_context + "\n"
+            if 'farmers_by_barangay_context_str' in locals():
+                ai_context += farmers_by_barangay_context_str + "\n"
+            if 'area_by_barangay_context' in locals():
+                ai_context += area_by_barangay_context + "\n"
+            if 'crops_by_barangay_context' in locals():
+                ai_context += crops_by_barangay_context + "\n"
+            if 'total_farmers_context' in locals():
+                ai_context += total_farmers_context + "\n"
+            if 'farmer_details_context' in locals():
+                ai_context += farmer_details_context + "\n"
+            if 'barangay_list_context' in locals():
+                ai_context += barangay_list_context + "\n"
+            if 'crop_distribution_context' in locals():
+                ai_context += crop_distribution_context + "\n"
+            if 'supply_context' in locals():
+                ai_context += supply_context + "\n"
+            if 'market_pricing_context' in locals():
+                ai_context += market_pricing_context + "\n"
+            if 'crop_management_context' in locals():
+                ai_context += crop_management_context + "\n"
+            if 'help_context' in locals():
+                ai_context += help_context + "\n"
+
+            full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
+            openai_response = ask_openai(full_conversation_with_context)
+
+            cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', openai_response)
+            cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
+            cleaned_content = cleaned_content.replace('\n', '<br>')
+            final_response = cleaned_content
+
+
+            # debugging
+            print("Processed Intents:", processed_intents)
+            print("AI Context:", ai_context)
+
+
+
+
+            chat = Chat(
+                user=request.user, 
+                chat_group=chat_group, 
+                message=message, 
+                response=final_response, 
+                ai_context=ai_context,
+                created_at=timezone.now()
+            )
             chat.save()
-            return JsonResponse({'message': message, 'response': response, 'group_id': chat_group.id, 'status': 'message_sent'})
-        
+
+            return JsonResponse({
+                'message': message, 
+                'response': final_response, 
+                'group_id': chat_group.id, 
+                'status': 'message_sent',
+                'title': chat_group.title,
+            })
+
         context = {
             "chats": chats,
             "chat_group": chat_group,
             "chat_groups": ChatGroup.objects.filter(user=request.user, is_deleted=False),
         }
-
         return render(request, 'app_agrosavvy/ai/chatai.html', context)
     else:
         return redirect("forbidden")
+
+
+
 
 
 
@@ -392,17 +563,18 @@ def delete_chat_group(request, group_id):
 
 
 
-THIS_MODEL = "gpt-4o-mini"
+
 
 
 def encode_image(image_file):
-    # with open(image_path, "rb") as image_file:
     return base64.b64encode(image_file.read()).decode('utf-8')
 
-# Main image analysis view
+
 def image_analysis(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         analysis = None  # Initialize variable to store analysis
+        history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
+        history_json = json.loads(serialize('json', history))
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -421,10 +593,11 @@ def image_analysis(request):
                                 {
                                     "role": "system",
                                     "content": [
-                                        {"type": "text",
-                                        "text": "As an AI field analyst, your task is to analyze the attached image. Focus on identifying the health condition of the crops, and suggest possible improvements. Highlight any visible issues (e.g., diseases, pests) or potential growth opportunities based on the image."
+                                        {
+                                            "type": "text",
+                                            "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
                                         }
-                                    ],
+                                    ]
                                 },
                                 {
                                     "role": "user",
@@ -443,7 +616,7 @@ def image_analysis(request):
                                     ]
                                 }
                             ],
-                            max_tokens=300
+                            max_tokens=100
                     )
 
                     if response.choices:
@@ -457,8 +630,10 @@ def image_analysis(request):
                         # Save analysis result and image
                         analysis.image = image
                         analysis.analysis_output = mark_safe(cleaned_content)
+                        analysis.owner = request.user
                         analysis.save()
                         messages.success(request, "Analysis saved.")
+                        return redirect("image_analysis")
                     else:
                         messages.error(request, "AI did not respond. Please try again later")
                 else:
@@ -471,6 +646,8 @@ def image_analysis(request):
         context = {
             "form": form,
             "analysis_output": analysis.analysis_output if analysis else None,
+            "history": history,
+            "history_json": json.dumps(history_json),
         }
         return render(request, "app_agrosavvy/ai/analysisai.html", context)
     else:
@@ -478,197 +655,19 @@ def image_analysis(request):
 
 
 
-
-
-
-
-
-
-    
-
-def predictionai(request):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        prediction = None  
-
-        if request.method == 'POST':
-            form = PredictionAIForm(request.POST)
-            if form.is_valid():
-                prediction = form.save(commit=False)
-
-                selected_field = form.cleaned_data.get('field')
-
-                latest_fieldsoildata = FieldSoilData.objects.filter(
-                    field=selected_field, is_deleted=False
-                    ).order_by('-record_date').first()
-                
-                if latest_fieldsoildata:
-                    prompt = (f"As an AI field analyst, your task is to provide accurate predictions in the following areas: "
-                        f"Crop Yield Prediction, Disease Risk Prediction, and Planting/Harvesting Prediction. "
-                        f"Your analysis should be concise and actionable, tailored to the current field conditions.\n\n"
-                        
-                        f"Field Summary:\n"
-                        f"  Role: Agriculturist\n"
-                        f"  Task: Provide predictions and recommendations based on the field and soil data.\n\n"
-                        
-                        f"Field Details:\n"
-                        f"  Field Name: {selected_field.field_name}\n"
-                        f"  Field Acres: {selected_field.field_acres}\n"
-                        f"  Location: {selected_field.address}\n\n"
-
-                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
-                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
-                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
-                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
-                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
-
-                        f"Task: Based on the field and soil data provided, predict the following:\n"
-                        
-                        f"1. **Crop Yield Prediction**: Estimate the expected yield for the crops best suited to these conditions "
-                        f"(e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
-                        f"Consider soil nutrient levels, pH balance, and field size in your prediction.\n"
-                        
-                        f"2. **Disease Risk Prediction**: Evaluate the risk of crop diseases based on soil health, environmental factors, and any vulnerabilities "
-                        f"you observe. Identify potential disease risks and suggest preventive measures or treatments.\n"
-                        
-                        f"3. **Planting/Harvesting Prediction**: Provide recommendations on optimal planting and harvesting times for the suggested crops, "
-                        f"considering field characteristics, soil conditions, and the region's climate.\n\n"
-
-                        f"Ensure that your predictions and recommendations are practical, easy to understand, and provide clear action points to help the farmer "
-                        f"improve yield, manage disease risks, and optimize planting and harvesting schedules."
-                    )
-
-                    messages = [
-                        {"role": "user", "content": prompt}
-                    ]
-
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages,
-                        temperature=1,
-                        max_tokens=500,
-                        top_p=1,
-                        frequency_penalty= 0,
-                        presence_penalty= 0,
-                        stream = False ,
-                    )
-
-                    if response.choices:
-                        response = response.choices[0].message.content
-                        # prediction.prediction = response
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
-                        # Replace headers (adjust for different levels if necessary)
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
-                        # Replace newlines with <br>
-                        cleaned_content = cleaned_content.replace('\n', '<br>')
-                        prediction.prediction = mark_safe(cleaned_content)
-                        prediction.save()
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later.")
-                else:
-                    messages.error(request, 'No soil data available for the selected field.')
+def delete_image_analysis(request, id):
+    if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
+        if request.method == "POST":
+            analyzed_image = get_object_or_404(ImageAnalysis, pk=id, owner=request.user)
+            if analyzed_image.owner == request.user:
+                analyzed_image.delete()
+                messages.success(request, "Image analysis successfully deleted.")
+                return redirect("image_analysis"    )
             else:
-                messages.error(request, "Form is invalid.")
-        else:
-            form = PredictionAIForm()
-        context = {
-            "form":form,
-            "prediction":prediction.prediction if form.is_valid() else None,
-        }
-        return render(request, "app_agrosavvy/ai/predictionai.html", context)
+                messages.error(request, "You do not have permission to delete this analysis.")
+        return render(request, "app_agrosavvy/ai/analysisai.html")
     else:
         return redirect("forbidden")
-
-
-
-
-
-def tipsai(request):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        tips = None  
-        if request.method == 'POST':
-            form = TipsAIForm(request.POST)
-
-            if form.is_valid():
-                tips = form.save(commit=False)
-
-                selected_field = form.cleaned_data.get('field')
-
-                latest_fieldsoildata = FieldSoilData.objects.filter(
-                    field=selected_field, is_deleted=False
-                    ).order_by('-record_date').first()
-                
-                if latest_fieldsoildata:
-                    prompt = (
-                        f"As an AI field analyst, your task is to provide detailed and actionable tips specifically on soil health and pest management. "
-                        f"Your recommendations should be practical and tailored to the current field conditions.\n\n"
-                        
-                        f"Field Summary:\n"
-                        f"  Role: Agriculturist\n"
-                        f"  Task: Provide insights and strategies based on the field and soil data.\n\n"
-                        
-                        f"Field Details:\n"
-                        f"  Field Name: {selected_field.field_name}\n"
-                        f"  Field Acres: {selected_field.field_acres}\n"
-                        f"  Location: {selected_field.address}\n\n"
-
-                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
-                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
-                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
-                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
-                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
-
-                        f"Task: Based on the provided soil data, generate tips on the following:\n"
-                        
-                        f"1. **Soil Health Tips**: Provide actionable recommendations for improving soil quality based on the nutrient levels and pH balance. "
-                        f"Consider practices such as crop rotation, organic amendments, and soil conservation techniques.\n"
-                        
-                        f"2. **Pest Management Strategies**: Offer effective pest management tips tailored to the crops best suited to these conditions (e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
-                        f"Identify common pests in the region and suggest prevention, monitoring, and control measures that are environmentally friendly and sustainable.\n\n"
-
-                        f"Ensure that your tips are easy to understand and provide clear action points to help the farmer enhance soil health and effectively manage pests."
-                    )
-                    messages = [
-                        {"role": "user", "content": prompt}
-                    ]
-
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages,
-                        temperature=1,
-                        max_tokens=500,
-                        top_p=1,
-                        frequency_penalty= 0,
-                        presence_penalty= 0,
-                        stream = False ,
-                    )
-
-                    if response.choices:
-                        response = response.choices[0].message.content
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
-                        # Replace headers (adjust for different levels if necessary)
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
-                        # Replace newlines with <br>
-                        cleaned_content = cleaned_content.replace('\n', '<br>')
-                        tips.tips = mark_safe(cleaned_content)
-                        tips.save()
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later")
-                else:
-                    messages.error(request, "No soil data available for the selected field.")
-            else:
-                messages.error(request, "Form is invalid")
-        else:
-            form = TipsAIForm()
-        context = {
-            "form":form,
-            "tips":tips.tips if form.is_valid() else None,
-        }
-        return render(request, "app_agrosavvy/ai/tipsai.html", context)
-    else:
-        return redirect("forbidden")
-
-
-
 
 
 def map(request):
@@ -791,14 +790,9 @@ def add_field(request):
 
 def weather(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        if request.method == "POST":
-            location = request.POST.get("location")
-            weather_data = get_weather_data(location)
-        else:
-            location = ""
-            weather_data = None
+        weather_data = get_weather_data("Cebu City")
         context = {
-            "location": location,
+            
             "weather_data": weather_data,
         }
         return render(request, "app_agrosavvy/weather.html", context)
@@ -1036,7 +1030,7 @@ def mark_notifications_as_read(request):
 
 def view_notification(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications = Notification.objects.filter(user_receiver=request.user, is_deleted=False).order_by('-created_at')
         notifications_unread_count = notifications.filter(is_read=False).count()
 
         paginator = Paginator(notifications, 4)
@@ -1055,8 +1049,26 @@ def view_notification(request):
 
 
 
+
+# def delete_notification(request, notif_id):
+#     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+#         if request.method == 'POST':
+#             notification = get_object_or_404(Notification, id=notif_id, user_receiver=request.user)
+            
+#             if notification.user_receiver == request.user:
+#                 notification.delete()
+#                 messages.success(request, 'Notification deleted successfully.')
+#                 return redirect("view_notofication")
+#             else:
+#                 messages.error(request, 'You do not have permission to delete this chat group.')
+#         return redirect('view_notification')
+#     else:
+#         return redirect("forbidden")
+
+
+
+
 def bofa_view_notification(request):
-    print("bofa_view_notification called")
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         notifications_unread_count = notifications.filter(is_read=False).count()
@@ -1370,6 +1382,16 @@ def delete_field(request, field_id):
 
 
 
+
+
+
+
+
+
+
+
+
+
 # farmers pages
 # main pages
 
@@ -1481,43 +1503,195 @@ def bofa_dashboard(request):
 
 
 
-def bofa_ask_openai(message):
-    response = client.chat.completions.create(
-        model = "gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are an helpful assistant."},
-            {"role": "user", "content": message},
-        ]
-    )
-    answer = response.choices[0].message.content.strip()
-    return answer
-
-
 
 def bofa_chat(request, group_id=None):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         chat_group = None
         if group_id:
             chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user, is_deleted=False)
-
         chats = Chat.objects.filter(user=request.user, chat_group=chat_group)
-
         if request.method == 'POST':
             message = request.POST.get('message', '').strip()
-
             # If the message is empty, create a new chat group without sending a message
             if not message:
                 chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group
                 return JsonResponse({'group_id': chat_group.id, 'status': 'new_group_created'})
-
             # If a message is present, send it to the existing or newly created chat group
             if not chat_group:
                 chat_group = ChatGroup.objects.create(user=request.user)  # Create a new chat group if none exists
 
-            response = bofa_ask_openai(message)
-            chat = Chat(user=request.user, chat_group=chat_group, message=message, response=response, created_at=timezone.now())
+           # Generate title only if it does not already exist
+            if not chat_group.title:
+                title = chatgroup_title_generator(message)  # Generate title based on the message
+                chat_group.title = title  # Assign the generated title
+                chat_group.save()  # Save the updated chat group
+
+
+
+            # Get the previous messages from the chat group (limit to the last 10 messages)
+            previous_messages = chats.order_by('-created_at')[:10]
+            # Format the messages into a single string for context
+            conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
+            # Combine history with the new message
+            full_conversation = conversation_history + f"\nUser: {message}\nAI:"
+
+            # Classify the intent of the message
+            intents = classify_intent(message)
+
+            # Initialize response
+            # response = ""
+
+            for intent in intents:
+                if intent == "weather":
+                    # location = extract_location(message)
+                    location = extract_location_with_openai(message)
+
+                    if location:
+                        weather_data = get_weather_data(location)
+                        print(weather_data)
+                        if weather_data:
+                            # Store the weather response in a context string
+                            weather_context = f"weather forecast for {location}:\n{weather_data}"
+                        else:
+                            weather_context = "Sorry, I couldn't retrieve the weather data right now."
+                    else:
+                        weather_context = "Can you please specify the location for the weather forecast?"
+
+
+                elif intent == "ask_crop_supply":
+                    crop_supply_info = get_crop_supply_info()
+                    supply_context = f"Current supply for crops:\n{crop_supply_info}"
+
+
+                # Handle the response based on the intent
+                elif intent == "ask_top_crops":
+                    top_crops = (
+                        DataRSBSA.objects.values('crops_planted')
+                        .annotate(total_planted=Count('reference_number'))
+                        .order_by('-total_planted')[:5]
+                    )
+                    crops_context = f"The top 5 crops are: {', '.join([crop['crops_planted'] for crop in top_crops])}"
+
+
+                elif intent == "ask_farmers_info":
+                    farmers_info_context =  "I cannot give you personal information of people."
+            
+                elif intent == "ask_farmers_by_barangay":
+                    farmers_by_barangay_context_str = "I cannot give you personal information of people."
+
+                elif intent == "ask_area_by_barangay":
+                    barangay = message.split()[-1]
+                    total_area_by_barangay = DataRSBSA.objects.filter(barangay__brgy_name=barangay).aggregate(total_area=Sum('total_area'))['total_area']
+                    area_by_barangay_context = f"The total farming area in {barangay} is {total_area_by_barangay} hectares."
+
+                elif intent == "ask_crops_by_barangay":
+                    barangay = message.split()[-1]
+                    crops_in_barangay = DataRSBSA.objects.filter(barangay__brgy_name=barangay).values_list('crops_planted', flat=True)
+                    crops_by_barangay_context = f"Crops planted in {barangay}: {', '.join(crops_in_barangay)}"
+
+                elif intent == "ask_total_farmers":
+                    total_farmers = DataRSBSA.objects.count()
+                    total_farmers_context = f"There are {total_farmers} farmers in total."
+
+                elif intent == "ask_farmer_details_by_reference":
+                        farmer_details_context = "I cannot give you persomal information of people."
+
+                elif intent == "ask_barangay_list":
+                    barangays = Barangay.objects.values_list('brgy_name', flat=True)
+                    barangay_list_context = "Here are the barangays in the system:\n" + ", ".join(barangays)
+
+                elif intent == "ask_crop_distribution":
+                    crop_distribution = DataRSBSA.objects.values('barangay__brgy_name', 'crops_planted').annotate(count=Count('reference_number'))
+                    crop_distribution_context = "Crop distribution by barangay:\n" + "\n".join([f"{data['barangay__brgy_name']}: {data['crops_planted']} ({data['count']} farmers)" for data in crop_distribution])
+
+
+                # for more general answers
+                elif intent == "ask_crop_management":
+                    # Add crop management logic here
+                    crop_management_context = "Here is some information on crop management."
+
+                elif intent == "ask_help":
+                    # Respond with help information
+                    help_context = "Sure! I can help you with crop recommendations, farmers' info, and more."
+
+                elif intent == "market demand and pricing":
+                    market_pricing_context = "Say this phrase: Unfortunately, I do not have data on current market demand and pricing. "
+
+
+            # Create a context string for OpenAI using collected data
+            ai_context = ""
+
+            # Add all context parts to the AI context string
+            if 'weather_context' in locals():
+                ai_context += weather_context + "\n"
+            if 'crops_context' in locals():
+                ai_context += crops_context + "\n"
+            if 'farmers_info_context' in locals():
+                ai_context += farmers_info_context + "\n"
+            if 'farmers_by_barangay_context_str' in locals():
+                ai_context += farmers_by_barangay_context_str + "\n"
+            if 'area_by_barangay_context' in locals():
+                ai_context += area_by_barangay_context + "\n"
+            if 'crops_by_barangay_context' in locals():
+                ai_context += crops_by_barangay_context + "\n"
+            if 'total_farmers_context' in locals():
+                ai_context += total_farmers_context + "\n"
+            if 'farmer_details_context' in locals():
+                ai_context += farmer_details_context + "\n"
+            if 'barangay_list_context' in locals():
+                ai_context += barangay_list_context + "\n"
+            if 'crop_distribution_context' in locals():
+                ai_context += crop_distribution_context + "\n"
+            if 'supply_context' in locals():
+                ai_context += supply_context + "\n"
+            if 'market_pricing_context' in locals():
+                ai_context += market_pricing_context + "\n"
+            if 'crop_management_context' in locals():
+                ai_context += crop_management_context + "\n"
+            if 'help_context' in locals():
+                ai_context += help_context + "\n"
+
+           
+
+            # Regardless of intent, continue to enhance the response with OpenAI
+            full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
+            openai_response = ask_openai(full_conversation_with_context)
+
+
+         
+            # Clean and format AI output for display
+            cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', openai_response)  # Bold
+            cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
+            cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+
+            # Combine both the context and OpenAI's general response
+            final_response = cleaned_content
+
+
+            print ("intent:    ", intents)
+            print("ai_context:   "+ai_context) # passed data from database
+            # print(full_conversation_with_context)
+            # print(openai_response)  # full convo + ai contect = openai_response
+            
+
+            # Save the chat and response
+            chat = Chat(
+                user=request.user, 
+                chat_group=chat_group, 
+                message=message, 
+                response=final_response, 
+                ai_context=ai_context,
+                created_at=timezone.now()
+            )
             chat.save()
-            return JsonResponse({'message': message, 'response': response, 'group_id': chat_group.id, 'status': 'message_sent'})
+
+            return JsonResponse({
+                'message': message, 
+                'response': final_response, 
+                'group_id': chat_group.id, 
+                'status': 'message_sent',
+                'title': chat_group.title,
+            })
 
         context = {
             "chats": chats,
@@ -1527,7 +1701,9 @@ def bofa_chat(request, group_id=None):
 
         return render(request, 'bofa_pages/ai/bofa_chatai.html', context)
     else:
-        return redirect('forbidden')
+        return redirect("forbidden")
+
+
 
 
 
@@ -1549,7 +1725,8 @@ def bofa_delete_chat_group(request, group_id):
 
 
 
-THIS_MODEL = "gpt-4o-mini"
+
+
 
 
 def bofa_encode_image(image_file):
@@ -1560,6 +1737,8 @@ def bofa_encode_image(image_file):
 def bofa_image_analysis(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         analysis = None 
+        history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
+        history_json = json.loads(serialize('json', history))
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -1578,7 +1757,7 @@ def bofa_image_analysis(request):
                                     "role": "system",
                                     "content": [
                                         {"type": "text",
-                                        "text": "As an AI field analyst, your task is to analyze the attached image. Focus on identifying the health condition of the crops, and suggest possible improvements. Highlight any visible issues (e.g., diseases, pests) or potential growth opportunities based on the image."
+                                        "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
                                         }
                                     ],
                                 },
@@ -1616,6 +1795,7 @@ def bofa_image_analysis(request):
                         analysis.owner = request.user
                         analysis.save()
                         messages.success(request, 'Analysis saved.')
+                        return redirect("bofa_image_analysis")
                     else:
                         messages.error(request, "AI did not respond. Please try again later.")                
                 else:
@@ -1628,6 +1808,8 @@ def bofa_image_analysis(request):
         context = {
             "form": form,
             "analysis_output": analysis.analysis_output if analysis else None,
+            "history": history,
+            "history_json": json.dumps(history_json),
         }
         return render(request, "bofa_pages/ai/bofa_analysisai.html", context)
     else:
@@ -1636,208 +1818,24 @@ def bofa_image_analysis(request):
 
 
 
-
-
-
-
-
-    
-
-def bofa_predictionai(request):
+def bofa_delete_image_analysis(request, id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        prediction = None  
-
-        if request.method == 'POST':
-            form = PredictionAIForm(request.POST)
-            if form.is_valid():
-                prediction = form.save(commit=False)
-
-                selected_field = form.cleaned_data.get('field')
-
-                latest_fieldsoildata = FieldSoilData.objects.filter(
-                    field=selected_field, is_deleted=False
-                    ).order_by('-record_date').first()
-                
-                if latest_fieldsoildata:
-                    prompt = (f"As an AI field analyst, your task is to provide accurate predictions in the following areas: "
-                        f"Crop Yield Prediction, Disease Risk Prediction, and Planting/Harvesting Prediction. "
-                        f"Your analysis should be concise and actionable, tailored to the current field conditions.\n\n"
-                        
-                        f"Field Summary:\n"
-                        f"  Role: Agriculturist\n"
-                        f"  Task: Provide predictions and recommendations based on the field and soil data.\n\n"
-                        
-                        f"Field Details:\n"
-                        f"  Field Name: {selected_field.field_name}\n"
-                        f"  Field Acres: {selected_field.field_acres}\n"
-                        f"  Location: {selected_field.address}\n\n"
-
-                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
-                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
-                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
-                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
-                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
-
-                        f"Task: Based on the field and soil data provided, predict the following:\n"
-                        
-                        f"1. **Crop Yield Prediction**: Estimate the expected yield for the crops best suited to these conditions "
-                        f"(e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
-                        f"Consider soil nutrient levels, pH balance, and field size in your prediction.\n"
-                        
-                        f"2. **Disease Risk Prediction**: Evaluate the risk of crop diseases based on soil health, environmental factors, and any vulnerabilities "
-                        f"you observe. Identify potential disease risks and suggest preventive measures or treatments.\n"
-                        
-                        f"3. **Planting/Harvesting Prediction**: Provide recommendations on optimal planting and harvesting times for the suggested crops, "
-                        f"considering field characteristics, soil conditions, and the region's climate.\n\n"
-
-                        f"Ensure that your predictions and recommendations are practical, easy to understand, and provide clear action points to help the farmer "
-                        f"improve yield, manage disease risks, and optimize planting and harvesting schedules."
-                    )
-
-                    messages = [
-                        {"role": "user", "content": prompt}
-                    ]
-
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages,
-                        temperature=1,
-                        max_tokens=500,
-                        top_p=1,
-                        frequency_penalty= 0,
-                        presence_penalty= 0,
-                        stream = False ,
-                    )
-
-                    if response.choices:
-                        response = response.choices[0].message.content
-                        # prediction.prediction = response
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
-                        # Replace headers (adjust for different levels if necessary)
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
-                        # Replace newlines with <br>
-                        cleaned_content = cleaned_content.replace('\n', '<br>')
-                        prediction.prediction = mark_safe(cleaned_content)
-                        prediction.save()
-                        messages.success(request, "Output saved.")
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later.")
-                else:
-                    messages.error(request, "No soil data available for the selected field.")
+        if request.method == "POST":
+            analyzed_image = get_object_or_404(ImageAnalysis, pk=id, owner=request.user)
+            if analyzed_image.owner == request.user:
+                analyzed_image.delete()
+                messages.success(request, "Image analysis successfully deleted.")
+                return redirect("bofa_image_analysis")
             else:
-                messages.error(request, "Form is invalid.")
-        else:
-            form = PredictionAIForm()
-
-        context = {
-            "form":form,
-            "prediction":prediction.prediction if form.is_valid() else None,
-        }
-        return render(request, "bofa_pages/ai/bofa_predictionai.html", context)
+                messages.error(request, "You do not have permission to delete this analysis.")
+        return render(request, "bofa_pages/ai/bofa_analysisai.html")
     else:
         return redirect("forbidden")
-
-
-
-
-
-def bofa_tipsai(request):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        tips = None  
-        if request.method == 'POST':
-            form = TipsAIForm(request.POST)
-
-            if form.is_valid():
-                tips = form.save(commit=False)
-
-                selected_field = form.cleaned_data.get('field')
-
-                latest_fieldsoildata = FieldSoilData.objects.filter(
-                    field=selected_field, is_deleted=False
-                    ).order_by('-record_date').first()
-                
-                if latest_fieldsoildata:
-                    prompt = (
-                        f"As an AI field analyst, your task is to provide detailed and actionable tips specifically on soil health and pest management. "
-                        f"Your recommendations should be practical and tailored to the current field conditions.\n\n"
-                        
-                        f"Field Summary:\n"
-                        f"  Role: Agriculturist\n"
-                        f"  Task: Provide insights and strategies based on the field and soil data.\n\n"
-                        
-                        f"Field Details:\n"
-                        f"  Field Name: {selected_field.field_name}\n"
-                        f"  Field Acres: {selected_field.field_acres}\n"
-                        f"  Location: {selected_field.address}\n\n"
-
-                        f"Latest Soil Data (recorded on {latest_fieldsoildata.record_date}):\n"
-                        f"  Nitrogen (N): {latest_fieldsoildata.nitrogen}\n"
-                        f"  Phosphorous (P): {latest_fieldsoildata.phosphorous}\n"
-                        f"  Potassium (K): {latest_fieldsoildata.potassium}\n"
-                        f"  Soil pH: {latest_fieldsoildata.ph}\n\n"
-
-                        f"Task: Based on the provided soil data, generate tips on the following:\n"
-                        
-                        f"1. **Soil Health Tips**: Provide actionable recommendations for improving soil quality based on the nutrient levels and pH balance. "
-                        f"Consider practices such as crop rotation, organic amendments, and soil conservation techniques.\n"
-                        
-                        f"2. **Pest Management Strategies**: Offer effective pest management tips tailored to the crops best suited to these conditions (e.g., Carrots, Potato, Garlic, Eggplant, Tomato, Squash, Bitter Gourd, Cabbage, Onion). "
-                        f"Identify common pests in the region and suggest prevention, monitoring, and control measures that are environmentally friendly and sustainable.\n\n"
-
-                        f"Ensure that your tips are easy to understand and provide clear action points to help the farmer enhance soil health and effectively manage pests."
-                    )
-
-
-                    messages = [
-                        {"role": "user", "content": prompt}
-                    ]
-
-                    response = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages,
-                        temperature=1,
-                        max_tokens=500,
-                        top_p=1,
-                        frequency_penalty= 0,
-                        presence_penalty= 0,
-                        stream = False ,
-                    )
-
-                    if response.choices:
-                        response = response.choices[0].message.content
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', response)  # Bold
-                        # Replace headers (adjust for different levels if necessary)
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
-                        # Replace newlines with <br>
-                        cleaned_content = cleaned_content.replace('\n', '<br>')
-                        tips.tips = mark_safe(cleaned_content)
-                        tips.save()
-                        messages.successs(request, "Tip saved.")
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later.")
-                else:
-                    messages.error(request, "No soil data available for the selected field.")
-            else:
-                messages.error(request, "Form is invalid.")
-        else:
-            form = TipsAIForm()
-
-        context = {
-            "form":form,
-            "tips":tips.tips if form.is_valid() else None,
-        }
-        return render(request, "bofa_pages/ai/bofa_tipsai.html", context)
-    else:
-        return redirect("forbidden")
-
-
-
-
 
 
 
 def bofa_map(request):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+    if request.user.is_authenticated and request.user.roleuser.roleuser == 'farmer':
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         notifications_unread_count = notifications.filter(is_read=False).count()
         fields_json = []
@@ -1871,6 +1869,7 @@ def bofa_map(request):
             "notifications_unread_count": notifications_unread_count,
         }
         return render(request, "bofa_pages/bofa_map.html", context)
+
     else:
         return redirect("forbidden")
 
@@ -1915,14 +1914,10 @@ def bofa_add_field(request):
 
 # no auth yet
 def bofa_weather(request):
-    if request.method == "POST":
-        location = request.POST.get("location")
-        weather_data = get_weather_data(location)
-    else:
-        location = ""
-        weather_data = None
-
-    context = {"location": location, "weather_data": weather_data}
+    weather_data = get_weather_data("Cebu City")
+    context = {
+        "weather_data": weather_data,
+    }
     return render(request, "bofa_pages/bofa_weather.html", context)
 
 
@@ -2152,7 +2147,7 @@ def reviewrating(request):
             elif request.user.roleuser.roleuser == "farmer":
                 return redirect("bofa_dashboard")
         else:
-            print("Please correct the errors below.")
+            messages.error(request, "Please check the errors below.")
     else:
         rform = ReviewratingForm()
 
@@ -2332,6 +2327,204 @@ def delete_crop_data(request, fieldcrop_id):
 
     else:
         return redirect("forbidden")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# AI CALLABLE FUNCTIONS FOR ALL ROLESUSER
+
+def get_crop_supply_info():
+    # Get all records
+    records = DataRSBSA.objects.all()
+    
+    crop_counter = Counter()
+    
+    # Count occurrences of each crop
+    for record in records:
+        # Split crops planted by a delimiter, assuming comma for example
+        crops = record.crops_planted.split(',')
+        for crop in crops:
+            crop_name = crop.strip()  # Clean whitespace
+            crop_counter[crop_name] += 1
+
+    # Define thresholds for shortage and oversupply
+    shortage_threshold = 5  # Example threshold for shortage
+    oversupply_threshold = 20  # Example threshold for oversupply
+
+    supply_info = []
+
+    # Analyze supply
+    for crop, count in crop_counter.items():
+        if count < shortage_threshold:
+            status = "Shortage"
+        elif count > oversupply_threshold:
+            status = "Oversupply"
+        else:
+            status = "Balanced"
+        
+        supply_info.append(f"{crop}: {status} (Count: {count})")
+
+    return "\n".join(supply_info)
+
+
+
+
+
+
+def extract_location_with_openai(message):
+    prompt = (
+        f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. If there is no location, set Cebu City as default location:\n\n"
+        f"Message: '{message}'\n\n"
+        f"Location:"
+    )
+    response = ask_openai(prompt)
+    location = response.strip() if response else None
+    if not location:
+        return None
+    
+    return location
+
+
+
+
+
+def extract_brgy_name_with_openai(message):
+    prompt = (
+        f"Extract and return only the barangay name if there is any in the message below."
+        f"Message: '{message}'\n\n"
+    )
+    response = ask_openai(prompt)
+    barangay_name = response.strip() if response else None
+    if not barangay_name:
+        return None
+    
+    return barangay_name
+
+
+def extract_crop_name_with_openai(message):
+    prompt = (
+        f"Extract and return only the crop name if there is any in the message below."
+        f"Message: '{message}'\n\n"
+    )
+    response = ask_openai(prompt)
+    crop_name = response.strip() if response else None
+    if not crop_name:
+        return None
+    
+    return crop_name
+
+
+
+
+def classify_intent(message):
+    prompt = f"""
+    You are an AI that classifies user intents. 
+    Here are the possible intents:
+    1. ask_top_crops
+    2. ask_farmers_info
+    3. ask_crop_management
+    4. ask_help
+    5. ask_farmers_by_barangay
+    6. ask_area_by_barangay
+    7. ask_crops_by_barangay
+    8. ask_total_farmers
+    9. ask_farmer_details_by_reference
+    10. ask_barangay_list
+    11. ask_crop_distribution
+    12. weather
+    13. ask_crop_supply
+    14. market demand and pricing
+
+    User: {message}
+    Please respond with a comma-separated list of all intents that match the user's message.
+    """
+
+    response = client.chat.completions.create(
+        model=THIS_MODEL,
+        messages=[
+            {"role": "system", "content": "You are an intent classification assistant."},
+            {"role": "user", "content": prompt},
+        ]
+    )
+    
+    # Retrieve and clean the response
+    intents = response.choices[0].message.content.strip().split(",")
+    return [intent.strip() for intent in intents if intent.strip()]
+
+
+
+
+def ask_openai(message):
+    response = client.chat.completions.create(
+        model = THIS_MODEL,
+        messages=[
+             {
+                "role": "system", 
+                "content": (
+                    "You are an assistant specialized in agriculture. "
+                    "Avoid using first-person references in your responses."
+                    "follow the language used by the user's message."
+                    "Only provide information if the requested data is verified and exists in the database."
+                )
+            },
+            {"role": "user", "content": message},
+        ]
+    )
+    answer = response.choices[0].message.content.strip()
+    return answer
+
+
+
+
+def chatgroup_title_generator(message):
+    response = client.chat.completions.create(
+        model=THIS_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an assistant specialized in generating titles for chat groups."
+                    "Base the first message or question to generate the title, and avoid using first-person references."
+                    "The title should be descriptive of the message. 3 words maximum."
+                )
+            },
+            {"role": "user", "content": message},
+        ]
+    )
+    title = response.choices[0].message.content.strip()
+    return title
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

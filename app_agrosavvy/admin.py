@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
+import data_wizard
 from .models import (
     CustomUser,
     Field,
@@ -17,10 +18,10 @@ from .models import (
     UserAddress,
     ChatGroup,
     Chat,
-    PredictionAI,
-    TipsAI,
     ImageAnalysis,
     Notification,
+    DataRSBSA,
+    SoilDataSFM,
 )
 
 
@@ -44,8 +45,6 @@ class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
     actions = [unsubscribe_users, subscribe_users]
-
-
 
     fieldsets = (
         (None, {"fields": ("official_user_id", "username", "password", "profile_picture")}),
@@ -107,6 +106,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     list_display = (
+        "id",
         "official_user_id",
         "username",
         "email",
@@ -124,6 +124,14 @@ class CustomUserAdmin(UserAdmin):
     )
     ordering = ("username",)
     readonly_fields = ("request_date",)
+
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+
+
 
 
 @admin.action(description="Approve selected users")
@@ -148,12 +156,9 @@ def approve_users(modeladmin, request, queryset):
 
 
 
-
-
-
-
-
 class PendingUserAdmin(admin.ModelAdmin):
+    # model = PendingUser
+
     list_display = (
         "official_user_id",
         "username",
@@ -206,8 +211,13 @@ class PendingUserAdmin(admin.ModelAdmin):
         return super().get_queryset(request).order_by("-request_date")
 
 
+
+
+
+
+
 class ReviewRatingAdmin(admin.ModelAdmin):
-    list_display = (
+    common_fields = (
         "reviewrating_id",
         "reviewer",
         "rating",
@@ -215,30 +225,164 @@ class ReviewRatingAdmin(admin.ModelAdmin):
         "rate_date",
     )
 
+    list_display = common_fields
+    search_fields = ("rating", "review_header",)
+    ordering = common_fields
+    readonly_fields = common_fields + ("review_body",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
 
 class FieldAdmin(admin.ModelAdmin):
-    list_display = (
+    common_fields = (
+        "field_id",
         "field_name",
         "owner",
         "address",
+        "created_at",
     )
+
+    list_display = common_fields
+    search_fields = ("field_name", "owner", "address",)
+    ordering = common_fields
+    readonly_fields = ("field_id",)
+    list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+
+class FieldCropDataAdmin(admin.ModelAdmin):
+    common_fields = (
+        "fieldcrop_id",
+        "field",
+        "crop_planted",
+        "planting_date",
+    )
+
+    list_display = common_fields
+    search_fields = ("crop_planted",)
+    ordering = common_fields
+    list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class FieldSoilDataAdmin(admin.ModelAdmin):
+    common_fields = (
+        "soil_id",
+        "field",
+        "nitrogen",
+        "phosphorous",
+        "potassium",
+        "ph",
+        "record_date",
+    )
+
+    list_display = common_fields
+    search_fields = ("record_date",)
+    ordering = common_fields
+    list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class ChatGroupAdmin(admin.ModelAdmin):
+    common_fields = (
+        "title",
+        "user",
+        "created_at",
+    )
+
+    list_display = common_fields
+    search_fields = ("title",)
+    ordering = common_fields
+    list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class ChatAdmin(admin.ModelAdmin):
+    common_fields = (
+        "chat_group",
+        "user",
+        "created_at",
+    )
+
+    list_display = common_fields
+    search_fields = ("created_at",)
+    ordering = common_fields
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class ImageAnalysisAdmin(admin.ModelAdmin):
+    common_fields = (
+        "analysis_id",
+        "owner",
+        "created_at",
+    )
+
+    list_display = common_fields
+    search_fields = ("owner", "created_at")
+    ordering = common_fields
+    # list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+class NotificationAdmin(admin.ModelAdmin):
+    common_fields = (
+        "id",
+        "subject",
+        "created_at",
+        "is_read",
+    )
+
+    list_display = common_fields
+    search_fields = ("subject", "created_at",)
+    ordering = common_fields
+    # list_filter = ("is_deleted",)
+
+    # def has_delete_permission(self, request, obj=None):
+    #     return False
+
+
+data_wizard.register(DataRSBSA)
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Field, FieldAdmin)
-admin.site.register(Address)
 admin.site.register(ReviewRating, ReviewRatingAdmin)
-admin.site.register(FieldCropData)
-admin.site.register(FieldSoilData)
-admin.site.register(Crop)
-admin.site.register(RoleUser)
-admin.site.register(Barangay)
-admin.site.register(Gender)
-admin.site.register(UserAddress)
-admin.site.register(ChatGroup)
-admin.site.register(Chat)
-admin.site.register(ImageAnalysis)
-admin.site.register(PredictionAI)
-admin.site.register(TipsAI)
-admin.site.register(Notification)
+admin.site.register(FieldCropData, FieldCropDataAdmin)
+admin.site.register(FieldSoilData, FieldSoilDataAdmin)
+admin.site.register(ChatGroup, ChatGroupAdmin)
+admin.site.register(Chat, ChatAdmin)
+admin.site.register(ImageAnalysis, ImageAnalysisAdmin)
+admin.site.register(Notification, NotificationAdmin)
+
+
+
+# admin.site.register(Address)
+# admin.site.register(Crop)
+# admin.site.register(RoleUser)
+# admin.site.register(Barangay)
+# admin.site.register(Gender)
+# admin.site.register(UserAddress)
+
+
+
+
+
+
+# AI DATA
+admin.site.register(DataRSBSA)
+admin.site.register(SoilDataSFM)
 

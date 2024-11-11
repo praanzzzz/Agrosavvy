@@ -16,6 +16,7 @@ from decouple import config
 
 # MAPBOX_API_KEY = config('MAPBOX_API_KEY')
 WEATHER_API_KEY=config('WEATHER_API_KEY')
+ONECALL_API_KEY=config('ONECALL_API_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +32,7 @@ SECRET_KEY = 'django-insecure-*)n76u@pc%ctqk--2^z$31dy_()0#yi-yn)-n*^#s^jn2$a_us
 DEBUG = True
 
 ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -46,7 +48,11 @@ INSTALLED_APPS = [
     'app_agrosavvy',
     # log
     'easyaudit',
+    # forgot password templates
     'widget_tweaks',
+    # automatic data import from csv
+    'data_wizard',
+    'data_wizard.sources',
 ]
 
 MIDDLEWARE = [

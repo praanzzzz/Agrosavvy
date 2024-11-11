@@ -41,8 +41,7 @@ urlpatterns = [
     path('chat/group/<int:group_id>/', views.chat, name='chat_group'),
     path('chat/delete_group/<int:group_id>/', views.delete_chat_group, name='delete_chat_group'),
     path('image_analysis', views.image_analysis, name='image_analysis'),
-    path('predictionai', views.predictionai, name='predictionai'),
-    path('tipsai', views.tipsai, name = 'tipsai'),
+    path('delete_image_analysis/<int:id>/', views.delete_image_analysis, name = 'delete_image_analysis'),
 
 
     path('map', views.map, name='map'),
@@ -56,6 +55,8 @@ urlpatterns = [
     path('view_notification', views.view_notification, name='view_notification'),
     path('mark_as_read/', views.mark_notifications_as_read, name='mark_notifications_as_read'),
     path('bofa_view_notification', views.bofa_view_notification, name='bofa_view_notification'),
+    # path('delete_notification/<int:notif_id>/', views.delete_notification, name='delete_notification'),
+    # path('bofa_delete_notification', views.bofa_delete_notification, name='bofa_delete_notification'),
 
     # user management
     path('admin_deactivate_account/<int:user_id>', views.admin_deactivate_account, name="admin_deactivate_account"),
@@ -91,6 +92,7 @@ urlpatterns = [
 
     # callable function urls
     path('reviewrating/', views.reviewrating, name='reviewrating'),
+    path('classify_intent/', views.classify_intent, name='classify_intent'),
 
 
 
@@ -103,9 +105,7 @@ urlpatterns = [
     path('bofa_chat/group/<int:group_id>/', views.bofa_chat, name='bofa_chat_group'),
     path('bofa_chat/delete_group/<int:group_id>/', views.bofa_delete_chat_group, name='bofa_delete_chat_group'),
     path('bofa_image_analysis', views.bofa_image_analysis, name='bofa_image_analysis'),
-    path('bofa_predictionai', views.bofa_predictionai, name='bofa_predictionai'),
-    path('bofa_tipsai', views.bofa_tipsai, name = 'bofa_tipsai'),
-
+    path('bofa_delete_image_analysis/<int:id>/', views.bofa_delete_image_analysis, name = 'bofa_delete_image_analysis'),
 
 
     path('bofa_map', views.bofa_map, name='bofa_map'),

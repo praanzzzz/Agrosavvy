@@ -66,27 +66,21 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <!-- Button trigger modal -->
-                                <div class="btn-group">
-                                    {% if registered_user.active_status %}
-                                    <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" class="d-inline" id="deactivateForm">
-                                        {% csrf_token %}
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeactivateModal">Deactivate</button>
-                                    </form>
-                                    {% else %}
-                                    <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" class="d-inline" id="activateForm">
-                                        {% csrf_token %}
-                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmActivateModal">Activate</button>
-                                    </form>
-                                    {% endif %}
-                                </div>
+                               
+                                
 
-                                <!-- Confirmation Modal for Deactivate -->
-                                <div class="modal fade" id="confirmDeactivateModal" tabindex="-1" aria-labelledby="confirmDeactivateModalLabel" aria-hidden="true">
+                                <!-- Deactivate Form -->
+                                <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" class="d-inline" id="deactivateForm-{{ registered_user.id }}">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeactivateModal-{{ registered_user.id }}">Deactivate</button>
+                                </form>
+
+                                <!-- Deactivate Confirmation Modal -->
+                                <div class="modal fade" id="confirmDeactivateModal-{{ registered_user.id }}" tabindex="-1" aria-labelledby="confirmDeactivateModalLabel-{{ registered_user.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="confirmDeactivateModalLabel">Confirm Deactivation</h5>
+                                                <h5 class="modal-title" id="confirmDeactivateModalLabel-{{ registered_user.id }}">Confirm Deactivation</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
@@ -94,18 +88,24 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" form="deactivateForm" class="btn btn-outline-danger">Deactivate</button>
+                                                <button type="submit" form="deactivateForm-{{ registered_user.id }}" class="btn btn-outline-danger">Deactivate</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Confirmation Modal for Activate -->
-                                <div class="modal fade" id="confirmActivateModal" tabindex="-1" aria-labelledby="confirmActivateModalLabel" aria-hidden="true">
+                                <!-- Activate Form -->
+                                <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" class="d-inline" id="activateForm-{{ registered_user.id }}">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmActivateModal-{{ registered_user.id }}">Activate</button>
+                                </form>
+
+                                <!-- Activate Confirmation Modal -->
+                                <div class="modal fade" id="confirmActivateModal-{{ registered_user.id }}" tabindex="-1" aria-labelledby="confirmActivateModalLabel-{{ registered_user.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="confirmActivateModalLabel">Confirm Activation</h5>
+                                                <h5 class="modal-title" id="confirmActivateModalLabel-{{ registered_user.id }}">Confirm Activation</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
@@ -113,7 +113,7 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" form="activateForm" class="btn btn-outline-success">Activate</button>
+                                                <button type="submit" form="activateForm-{{ registered_user.id }}" class="btn btn-outline-success">Activate</button>
                                             </div>
                                         </div>
                                     </div>

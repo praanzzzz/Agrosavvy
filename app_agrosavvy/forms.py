@@ -9,8 +9,6 @@ from .models import (
     PendingUser,
     ReviewRating,
     Barangay,
-    PredictionAI,
-    TipsAI,
     ImageAnalysis,
     Notification,
     UserAddress,
@@ -21,7 +19,7 @@ from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
-# from django.contrib.auth.forms import UserCreationForm
+
 
 
 class LoginForm(forms.Form):
@@ -43,53 +41,7 @@ class LoginForm(forms.Form):
     )
 
 
-# uses official user id
-# class LoginForm(forms.Form):
-#     official_user_id = forms.CharField(
-#         label="",
-#         widget=forms.TextInput(
-#             attrs={
-#                 "class": "form-control",
-#                 "placeholder": "Official User ID",
-#                 "autofocus": True,
-#             }
-#         ),
-#     )
-#     password = forms.CharField(
-#         label="",
-#         widget=forms.PasswordInput(
-#             attrs={"class": "form-control", "placeholder": "Password"}
-#         ),
-#     )
 
-
-# # we can call username, p1 and p2 since we use usercrreationform which has default fields for these fields.
-# # validate the logic, other variables may not work or it lack variables
-# class SignUpForm(UserCreationForm):
-#     username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control",}))
-#     password1 = forms.CharField(
-#         widget=forms.PasswordInput(attrs={"class": "form-control"})
-#     )
-#     password2 = forms.CharField(
-#         widget=forms.PasswordInput(attrs={"class": "form-control"})
-#     )
-
-#     # fields from models
-#     firstname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control","autofocus": True}))
-#     lastname = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-#     email = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control"}))
-
-#     # connecting default and custom fields from usercreationforms to abstractuser default and custom fields
-#     class Meta:
-#         model = CustomUser
-#         fields = (
-#             "username",
-#             "password1",
-#             "password2",
-#             "email",
-#             "firstname",
-#             "lastname",
-#         )
 
 
 class PendingUserForm(forms.ModelForm):
@@ -413,38 +365,9 @@ class ImageAnalysisForm(forms.ModelForm):
         fields = ['image']
         widgets = {
             'image': forms.ClearableFileInput(attrs={
-                'class': 'form-control-file',  # Bootstrap class for file input
-                # 'accept': 'image/*'  # Optional: limits file types to images
+                'class': 'form-control-file', 
             })
         }
-
-
-
-class PredictionAIForm(forms.ModelForm):
-    class Meta:
-        model = PredictionAI
-        fields = ['field']
-        widgets = {
-            "field": forms.Select(attrs={'class':'form-control'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super(PredictionAIForm, self).__init__(*args, **kwargs)
-        self.fields['field'].queryset = Field.objects.filter(is_deleted=False)
-
-
-
-class TipsAIForm(forms.ModelForm):
-    class Meta:
-        model = TipsAI
-        fields = ['field']
-        widgets = {
-            "field": forms.Select(attrs={'class':'form-control'}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        super(TipsAIForm, self).__init__(*args, **kwargs)
-        self.fields['field'].queryset = Field.objects.filter(is_deleted=False)
 
 
 
