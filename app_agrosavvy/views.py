@@ -13,7 +13,7 @@ from .models import (
     Barangay,
     ImageAnalysis,
     ChatGroup,
-    DataRSBSA,
+    SoilDataSFM,
 )
 
 from .forms import (
@@ -33,7 +33,7 @@ from .forms import (
 # others
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+# from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
@@ -49,35 +49,28 @@ from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
 from django.utils.safestring import mark_safe
 import re, base64
-from collections import Counter
-from django.conf import settings
-from datetime import datetime
+# from collections import Counter
+# from django.conf import settings
+# from datetime import datetime
 from django.core.serializers import serialize
 
 # AI
-from PIL import Image
-from io import BytesIO
+# from PIL import Image
+# from io import BytesIO
 import os
 from openai import OpenAI
 client = OpenAI()
 OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
+CHROMA_PATH = "chroma"
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+
+
 #  Password:                PRAgab19-5158-794 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Main pages for da_admin and brgy officers
@@ -114,7 +107,6 @@ def dashboard(request):
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
-        reviewrating_context = reviewrating(request)
 
         # Pie Chart Data
         labels = []
@@ -179,7 +171,6 @@ def dashboard(request):
             "filter_type": filter_type,
             "sort_by": sort_by,
         }
-        context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", context)
     
 
@@ -228,9 +219,6 @@ def dashboard(request):
         )
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
-
-
-        reviewrating_context = reviewrating(request)
 
         # pie chart
         # retrieves the latest field crop data for each crop type from non-deleted fields
@@ -309,7 +297,6 @@ def dashboard(request):
             "filter_type": filter_type,
             "sort_by": sort_by,
         }
-        brgy_officer_context.update(reviewrating_context)
         return render(request, "app_agrosavvy/dashboard.html", brgy_officer_context)
     else:
         return redirect("forbidden")
@@ -334,18 +321,12 @@ def dashboard(request):
 
 
 
-
-
-
-
-
 THIS_MODEL = "gpt-4o-mini"
-
-
 
 def chat(request, group_id=None):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         chat_group = None
+
         if group_id:
             chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user, is_deleted=False)
         chats = Chat.objects.filter(user=request.user, chat_group=chat_group)
@@ -367,133 +348,125 @@ def chat(request, group_id=None):
             previous_messages = chats.order_by('-created_at')[:10]
             conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
             full_conversation = conversation_history + f"\nUser: {message}\nAI:"
-            intents = classify_intent(message)
-
-            processed_intents = []
-
-            for intent in intents:
-                processed_intents.append(intent)  # Add the intent to the list
-
-                # contexts and data from DATABASE (specific data)
-
-                if intent == "ask_top_crops":
-                    top_crops = (
-                        DataRSBSA.objects.values('crops_planted')
-                        .annotate(total_planted=Count('reference_number'))
-                        .order_by('-total_planted')[:10]
-                    )
-                    crops_context = f"The top 10 crops are: {', '.join([crop['crops_planted'] for crop in top_crops])}"
-
-                elif intent == "ask_area_by_barangay":
-                    barangay = extract_brgy_name_with_openai(message).capitalize()
-                    total_area_by_barangay = DataRSBSA.objects.filter(barangay__iexact=barangay).aggregate(total_area=Sum('total_area'))['total_area']
-                    area_by_barangay_context = f"The total farming area in {barangay} is {total_area_by_barangay} hectares."
-
-                # to improve
-                elif intent == "ask_crops_by_barangay":
-                    barangay = extract_brgy_name_with_openai(message)
-                    crops_in_barangay = DataRSBSA.objects.filter(barangay__iexact=barangay).values_list('crops_planted', flat=True)
-                    crops_by_barangay_context = f"Crops planted in {barangay}: {', '.join(crops_in_barangay)}"
-
-                # bug: it gives total farmers of a brgy (9000) even its in cebu city
-                elif intent == "ask_total_farmers":
-                    total_farmers = DataRSBSA.objects.count()
-                    total_farmers_context = f"There are {total_farmers} farmers in Cebu City."
-
-
-                elif intent == "ask_barangay_list":
-                    barangays = Barangay.objects.values_list('brgy_name', flat=True)
-                    barangay_list_context = "Here are the barangays in the system:\n" + ", ".join(barangays)
-
-                # query only the direct answer and not all the data -  to improve, cannot get this intent if word dont have distribution
-                # cannot get brgy anf crops
-                elif intent == "ask_crop_distribution":
-                    barangay = extract_brgy_name_with_openai(message)
-                    specific_crop = extract_crop_name_with_openai(message)
-
-                    crop_distribution_query = DataRSBSA.objects.values('barangay', 'crops_planted').annotate(count=Count('reference_number'))
-                    if barangay:
-                        crop_distribution_query = crop_distribution_query.filter(barangay=barangay)
-
-                    if specific_crop:
-                        crop_distribution_query = crop_distribution_query.filter(crops_planted__icontains=specific_crop)
-                    
-                    # Generate the response context with only the filtered data
-                    if crop_distribution_query.exists():
-                        crop_distribution_context = "Crop distribution by barangay:\n" + "\n".join([
-                            f"{data['barangay']}: {data['crops_planted']} ({data['count']} farmers)" for data in crop_distribution_query
-                        ])
-                    else:
-                        crop_distribution_context = "No data found for the specified query."
-
-                elif intent == "ask_crop_supply":
-                    crop_supply_info = get_crop_supply_info()
-                    supply_context = f"Current supply for crops:\n{crop_supply_info}"
 
 
 
 
 
-                # openweathermap api
-                elif intent == "weather":
-                    location = extract_location_with_openai(message)
-                    if location:
-                        weather_data = get_weather_data(location)
-                        weather_context = f"weather forecast for {location}:\n{weather_data}" if weather_data else "Sorry, I couldn't retrieve the weather data right now."
-                    else:
-                        weather_context = "Can you please specify the location for the weather forecast?"
+
+            # barangay memory
+            # Extract previously mentioned barangay or sitio if any
+            if any("barangay" in message or "brgy" in message for message in conversation_history.split("\n")):
+                barangay = extract_brgy_name_conv_history(conversation_history)
+            else:
+                barangay = extract_brgy_name(message)
+
+            # If the user explicitly mentions for a different barangay, override the barangay value
+            if "barangay" in message or "brgy" in message:
+                barangay = extract_brgy_name(message)
+            elif barangay is not None:
+                pass 
+            else:
+                barangay = None
+            
 
 
-
-                # general knowledge from openai
-                elif intent == "ask_crop_management":
-                    crop_management_context = "Here is some information on crop management."
-
-                elif intent == "ask_help":
-                    help_context = "Sure! I can help you with crop recommendations, farmers' info, and more."
-
-                # restrictions
-                elif intent == "market demand and pricing":
-                    market_pricing_context = "Unfortunately, I do not have data on current market demand and pricing."
-                        
-                elif intent == "ask_farmers_info":
-                    farmers_info_context =  "Not allowed to provide personal information."
-
-                elif intent == "ask_farmers_by_barangay":
-                    farmers_by_barangay_context_str = "Not allowed to provide personal information."
-
-                elif intent == "ask_farmer_details_by_reference":
-                    farmer_details_context = "Not allowed to provide personal information."
-
+            intent = classify_intent(message)
             ai_context = ""
-            if 'weather_context' in locals():
-                ai_context += weather_context + "\n"
-            if 'crops_context' in locals():
-                ai_context += crops_context + "\n"
-            if 'farmers_info_context' in locals():
-                ai_context += farmers_info_context + "\n"
-            if 'farmers_by_barangay_context_str' in locals():
-                ai_context += farmers_by_barangay_context_str + "\n"
-            if 'area_by_barangay_context' in locals():
-                ai_context += area_by_barangay_context + "\n"
-            if 'crops_by_barangay_context' in locals():
-                ai_context += crops_by_barangay_context + "\n"
-            if 'total_farmers_context' in locals():
-                ai_context += total_farmers_context + "\n"
-            if 'farmer_details_context' in locals():
-                ai_context += farmer_details_context + "\n"
-            if 'barangay_list_context' in locals():
-                ai_context += barangay_list_context + "\n"
-            if 'crop_distribution_context' in locals():
-                ai_context += crop_distribution_context + "\n"
-            if 'supply_context' in locals():
-                ai_context += supply_context + "\n"
-            if 'market_pricing_context' in locals():
-                ai_context += market_pricing_context + "\n"
-            if 'crop_management_context' in locals():
-                ai_context += crop_management_context + "\n"
-            if 'help_context' in locals():
-                ai_context += help_context + "\n"
+
+            # USING OBJECT TECHNIQUE
+            if intent == "ask_help":
+                if barangay is not None:
+                    soil_data_entries = SoilDataSFM.objects.filter(barangay__iexact=barangay)
+                    total_area = soil_data_entries.aggregate(total_area=Sum('total_area'))['total_area']
+                    crops = soil_data_entries.values_list('crops_planted', flat=True)
+                    ai_context = ""
+
+                    # Keep track of processed sitios
+                    processed_sitios = set()
+
+                    # Loop through all sitios in the barangay
+                    for soil_data in soil_data_entries:
+                        if soil_data.sitio not in processed_sitios:
+                            ai_context += (
+                                f"In {barangay}, Sitio {soil_data.sitio}: "
+                                f"Nitrogen level is {soil_data.get_nitrogen_level_display()}, "
+                                f"Phosphorus level is {soil_data.get_phosphorus_level_display()}, "
+                                f"and Potassium level is {soil_data.get_potassium_level_display()}. "
+                                f"pH level is {soil_data.get_ph_level_display()}, "
+                                f"indicating that it is {'acidic' if soil_data.ph_level in ['L', 'ML', 'MH'] else 'alkaline'}. "
+                                f"Total farming area in Sitio {soil_data.sitio} is {soil_data.total_area} hectares. "
+                                f"Crops planted in Sitio {soil_data.sitio}: {soil_data.crops_planted}. "
+                                f"These nutrient levels may be ideal for crops that thrive in {'low' if soil_data.nitrogen_level == 'L' else 'moderate' if soil_data.nitrogen_level in ['ML', 'MH'] else 'high'} nutrient environments.\n"
+                            )
+                            # Mark this sitio as processed
+                            processed_sitios.add(soil_data.sitio)
+
+                    # Add total area and crops for the whole barangay
+                    ai_context += (
+                        f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
+                        f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
+                    )
+
+                    # If there's no data for the barangay
+                    if not soil_data_entries:
+                        ai_context = "Soil data is not available for this barangay. You may check the spelling of barangay and make sure it's correct."
+                else:
+                    ai_context = "Say this: 'Please provide the barangay name in a full sentence.'"
+
+
+
+            elif intent == "conversational":
+                ai_context == "Ask me questions about agriculture specially in Cebu City."
+
+
+            # USING RAG TECHNIQUE
+            # if intent == "ask_help":
+            #     # Prepare the DB.
+            #     embedding_function = OpenAIEmbeddings()
+            #     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
+
+            #     # Search the DB.
+            #     results = db.similarity_search_with_relevance_scores(message, k=3)
+
+            #     # Check if the results are good enough (based on similarity score threshold)
+            #     if len(results) == 0 or results[0][1] < 0.7:
+            #         return "Unable to find matching results."
+
+            #     # Extract the relevant context text from the results
+            #     context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+
+            #     # Generate a prompt for the LLM
+            #     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+            #     prompt = prompt_template.format(context=context_text, question=message)
+                
+            #     # Call OpenAI to get the response based on the context
+            #     model = ChatOpenAI()
+            #     response_text = model.invoke(prompt)
+            #     # You can format the response to include sources or additional data
+            #     sources = [doc.metadata.get("source", None) for doc, _score in results]
+            #     ai_context = f"Response: {response_text}\nSources: {sources}."
+
+
+
+
+            # openweathermap api
+            elif intent == "weather":
+                location = extract_location_with_openai(message)
+                if location is not None:
+                    weather_data = get_weather_data(location)
+                    if weather_data:
+                        ai_context = f"weather forecast for {location}:\n{weather_data}."
+                    else:
+                        ai_context = f"Sorry, no weather data available in that area. Try searching for a city."
+                else:
+                    ai_context = "Say this: 'Can you please specify the location for the weather forecast? For example: What is the weather for location X?'"
+
+
+            # handling if no intent is processed
+            else:
+                ai_context = "I'm sorry, but I couldn't process your request right now. Please try again later."
+            
 
             full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
             openai_response = ask_openai(full_conversation_with_context)
@@ -505,11 +478,15 @@ def chat(request, group_id=None):
 
 
             # debugging
-            print("Processed Intents:", processed_intents)
+            print("Processed Intent:" , intent)
             print("AI Context:", ai_context)
 
-
-
+            if barangay:
+                print("barangay:" + barangay)
+            else:
+                print("brgy not found")
+            
+    
 
             chat = Chat(
                 user=request.user, 
@@ -528,12 +505,13 @@ def chat(request, group_id=None):
                 'status': 'message_sent',
                 'title': chat_group.title,
             })
-
+        reviewrating_context = reviewrating(request)
         context = {
             "chats": chats,
             "chat_group": chat_group,
             "chat_groups": ChatGroup.objects.filter(user=request.user, is_deleted=False),
         }
+        context.update(reviewrating_context)
         return render(request, 'app_agrosavvy/ai/chatai.html', context)
     else:
         return redirect("forbidden")
@@ -575,6 +553,7 @@ def image_analysis(request):
         analysis = None  # Initialize variable to store analysis
         history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
         history_json = json.loads(serialize('json', history))
+        reviewrating_context = reviewrating(request)
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -616,7 +595,7 @@ def image_analysis(request):
                                     ]
                                 }
                             ],
-                            max_tokens=100
+                            max_tokens=500
                     )
 
                     if response.choices:
@@ -649,20 +628,21 @@ def image_analysis(request):
             "history": history,
             "history_json": json.dumps(history_json),
         }
+        context.update(reviewrating_context)
         return render(request, "app_agrosavvy/ai/analysisai.html", context)
     else:
         return redirect("forbidden")
 
 
 
-def delete_image_analysis(request, id):
+def delete_image_analysis(request, pk):
     if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
         if request.method == "POST":
-            analyzed_image = get_object_or_404(ImageAnalysis, pk=id, owner=request.user)
-            if analyzed_image.owner == request.user:
-                analyzed_image.delete()
+            analysis = get_object_or_404(ImageAnalysis, pk=pk, owner=request.user)
+            if analysis.owner == request.user:
+                analysis.delete()
                 messages.success(request, "Image analysis successfully deleted.")
-                return redirect("image_analysis"    )
+                return redirect("image_analysis")
             else:
                 messages.error(request, "You do not have permission to delete this analysis.")
         return render(request, "app_agrosavvy/ai/analysisai.html")
@@ -1535,130 +1515,117 @@ def bofa_chat(request, group_id=None):
             # Combine history with the new message
             full_conversation = conversation_history + f"\nUser: {message}\nAI:"
 
-            # Classify the intent of the message
-            intents = classify_intent(message)
-
-            # Initialize response
-            # response = ""
-
-            for intent in intents:
-                if intent == "weather":
-                    # location = extract_location(message)
-                    location = extract_location_with_openai(message)
-
-                    if location:
-                        weather_data = get_weather_data(location)
-                        print(weather_data)
-                        if weather_data:
-                            # Store the weather response in a context string
-                            weather_context = f"weather forecast for {location}:\n{weather_data}"
-                        else:
-                            weather_context = "Sorry, I couldn't retrieve the weather data right now."
-                    else:
-                        weather_context = "Can you please specify the location for the weather forecast?"
-
-
-                elif intent == "ask_crop_supply":
-                    crop_supply_info = get_crop_supply_info()
-                    supply_context = f"Current supply for crops:\n{crop_supply_info}"
-
-
-                # Handle the response based on the intent
-                elif intent == "ask_top_crops":
-                    top_crops = (
-                        DataRSBSA.objects.values('crops_planted')
-                        .annotate(total_planted=Count('reference_number'))
-                        .order_by('-total_planted')[:5]
-                    )
-                    crops_context = f"The top 5 crops are: {', '.join([crop['crops_planted'] for crop in top_crops])}"
-
-
-                elif intent == "ask_farmers_info":
-                    farmers_info_context =  "I cannot give you personal information of people."
-            
-                elif intent == "ask_farmers_by_barangay":
-                    farmers_by_barangay_context_str = "I cannot give you personal information of people."
-
-                elif intent == "ask_area_by_barangay":
-                    barangay = message.split()[-1]
-                    total_area_by_barangay = DataRSBSA.objects.filter(barangay__brgy_name=barangay).aggregate(total_area=Sum('total_area'))['total_area']
-                    area_by_barangay_context = f"The total farming area in {barangay} is {total_area_by_barangay} hectares."
-
-                elif intent == "ask_crops_by_barangay":
-                    barangay = message.split()[-1]
-                    crops_in_barangay = DataRSBSA.objects.filter(barangay__brgy_name=barangay).values_list('crops_planted', flat=True)
-                    crops_by_barangay_context = f"Crops planted in {barangay}: {', '.join(crops_in_barangay)}"
-
-                elif intent == "ask_total_farmers":
-                    total_farmers = DataRSBSA.objects.count()
-                    total_farmers_context = f"There are {total_farmers} farmers in total."
-
-                elif intent == "ask_farmer_details_by_reference":
-                        farmer_details_context = "I cannot give you persomal information of people."
-
-                elif intent == "ask_barangay_list":
-                    barangays = Barangay.objects.values_list('brgy_name', flat=True)
-                    barangay_list_context = "Here are the barangays in the system:\n" + ", ".join(barangays)
-
-                elif intent == "ask_crop_distribution":
-                    crop_distribution = DataRSBSA.objects.values('barangay__brgy_name', 'crops_planted').annotate(count=Count('reference_number'))
-                    crop_distribution_context = "Crop distribution by barangay:\n" + "\n".join([f"{data['barangay__brgy_name']}: {data['crops_planted']} ({data['count']} farmers)" for data in crop_distribution])
-
-
-                # for more general answers
-                elif intent == "ask_crop_management":
-                    # Add crop management logic here
-                    crop_management_context = "Here is some information on crop management."
-
-                elif intent == "ask_help":
-                    # Respond with help information
-                    help_context = "Sure! I can help you with crop recommendations, farmers' info, and more."
-
-                elif intent == "market demand and pricing":
-                    market_pricing_context = "Say this phrase: Unfortunately, I do not have data on current market demand and pricing. "
-
-
-            # Create a context string for OpenAI using collected data
-            ai_context = ""
-
-            # Add all context parts to the AI context string
-            if 'weather_context' in locals():
-                ai_context += weather_context + "\n"
-            if 'crops_context' in locals():
-                ai_context += crops_context + "\n"
-            if 'farmers_info_context' in locals():
-                ai_context += farmers_info_context + "\n"
-            if 'farmers_by_barangay_context_str' in locals():
-                ai_context += farmers_by_barangay_context_str + "\n"
-            if 'area_by_barangay_context' in locals():
-                ai_context += area_by_barangay_context + "\n"
-            if 'crops_by_barangay_context' in locals():
-                ai_context += crops_by_barangay_context + "\n"
-            if 'total_farmers_context' in locals():
-                ai_context += total_farmers_context + "\n"
-            if 'farmer_details_context' in locals():
-                ai_context += farmer_details_context + "\n"
-            if 'barangay_list_context' in locals():
-                ai_context += barangay_list_context + "\n"
-            if 'crop_distribution_context' in locals():
-                ai_context += crop_distribution_context + "\n"
-            if 'supply_context' in locals():
-                ai_context += supply_context + "\n"
-            if 'market_pricing_context' in locals():
-                ai_context += market_pricing_context + "\n"
-            if 'crop_management_context' in locals():
-                ai_context += crop_management_context + "\n"
-            if 'help_context' in locals():
-                ai_context += help_context + "\n"
-
            
 
+            # barangay memory
+            # Extract previously mentioned barangay or sitio if any
+            if any("barangay" in message or "brgy" in message for message in conversation_history.split("\n")):
+                barangay = extract_brgy_name_conv_history(conversation_history)
+            else:
+                barangay = extract_brgy_name(message)
+
+            # If the user explicitly mentions for a different barangay, override the barangay value
+            if "barangay" in message or "brgy" in message:
+                barangay = extract_brgy_name(message)
+            elif barangay is not None:
+                pass 
+            else:
+                barangay = None
+            
+
+            intent = classify_intent(message)
+            ai_context = ""
+
+
+
+
+            # USING OBJECT TECHNIQUE
+            if intent == "ask_help":
+                if barangay is not None:
+                    soil_data_entries = SoilDataSFM.objects.filter(barangay__iexact=barangay)
+                    total_area = soil_data_entries.aggregate(total_area=Sum('total_area'))['total_area']
+                    crops = soil_data_entries.values_list('crops_planted', flat=True)
+                    ai_context = ""
+
+                    # Keep track of processed sitios
+                    processed_sitios = set()
+
+                    # Loop through all sitios in the barangay
+                    for soil_data in soil_data_entries:
+                        if soil_data.sitio not in processed_sitios:
+                            ai_context += (
+                                f"In {barangay}, Sitio {soil_data.sitio}: "
+                                f"Nitrogen level is {soil_data.get_nitrogen_level_display()}, "
+                                f"Phosphorus level is {soil_data.get_phosphorus_level_display()}, "
+                                f"and Potassium level is {soil_data.get_potassium_level_display()}. "
+                                f"pH level is {soil_data.get_ph_level_display()}, "
+                                f"indicating that it is {'acidic' if soil_data.ph_level in ['L', 'ML', 'MH'] else 'alkaline'}. "
+                                f"Total farming area in Sitio {soil_data.sitio} is {soil_data.total_area} hectares. "
+                                f"Crops planted in Sitio {soil_data.sitio}: {soil_data.crops_planted}. "
+                                f"These nutrient levels may be ideal for crops that thrive in {'low' if soil_data.nitrogen_level == 'L' else 'moderate' if soil_data.nitrogen_level in ['ML', 'MH'] else 'high'} nutrient environments.\n"
+                            )
+                            # Mark this sitio as processed
+                            processed_sitios.add(soil_data.sitio)
+
+                    # Add total area and crops for the whole barangay
+                    ai_context += (
+                        f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
+                        f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
+                    )
+
+                    # If there's no data for the barangay
+                    if not soil_data_entries:
+                        ai_context = "Soil data is not available for this barangay. You may check the spelling of barangay and make sure it's correct."
+                else:
+                    ai_context = "Say this: 'Please provide the barangay name in a full sentence.'"
+
+
+
+            elif intent == "conversational":
+                ai_context == "Ask me questions about agriculture specially in Cebu City."
+
+           # openweathermap api
+            elif intent == "weather":
+                location = extract_location_with_openai(message)
+                if location is not None:
+                    weather_data = get_weather_data(location)
+                    if weather_data:
+                        ai_context = f"weather forecast for {location}:\n{weather_data}."
+                    else:
+                        ai_context = f"Sorry, no weather data available in that area. Try searching for a city."
+                else:
+                    ai_context = "Say this: 'Can you please specify the location for the weather forecast? For example: What is the weather for location X?'"
+
+            
+            # handling if no intent is processed
+            else:
+                ai_context = "I'm sorry, but I couldn't process your request right now. Please try again later."
+            
+
+            full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
+            openai_response = ask_openai(full_conversation_with_context)
+
+            cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', openai_response)
+            cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)
+            cleaned_content = cleaned_content.replace('\n', '<br>')
+            final_response = cleaned_content
+
+
+            # debugging
+            print("Processed Intent:" , intent)
+            print("AI Context:", ai_context)
+
+            if barangay:
+                print("barangay:" + barangay)
+            else:
+                print("brgy not found")
+        
+        
             # Regardless of intent, continue to enhance the response with OpenAI
             full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
             openai_response = ask_openai(full_conversation_with_context)
 
 
-         
             # Clean and format AI output for display
             cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', openai_response)  # Bold
             cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
@@ -1667,12 +1634,6 @@ def bofa_chat(request, group_id=None):
             # Combine both the context and OpenAI's general response
             final_response = cleaned_content
 
-
-            print ("intent:    ", intents)
-            print("ai_context:   "+ai_context) # passed data from database
-            # print(full_conversation_with_context)
-            # print(openai_response)  # full convo + ai contect = openai_response
-            
 
             # Save the chat and response
             chat = Chat(
@@ -1692,13 +1653,13 @@ def bofa_chat(request, group_id=None):
                 'status': 'message_sent',
                 'title': chat_group.title,
             })
-
+        reviewrating_context = reviewrating(request)
         context = {
             "chats": chats,
             "chat_group": chat_group,
             "chat_groups": ChatGroup.objects.filter(user=request.user, is_deleted=False),
         }
-
+        context.update(reviewrating_context)
         return render(request, 'bofa_pages/ai/bofa_chatai.html', context)
     else:
         return redirect("forbidden")
@@ -1739,6 +1700,7 @@ def bofa_image_analysis(request):
         analysis = None 
         history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
         history_json = json.loads(serialize('json', history))
+        reviewrating_context = reviewrating(request)
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -1778,7 +1740,7 @@ def bofa_image_analysis(request):
                                     ]
                                 }
                             ],
-                            max_tokens=300
+                            max_tokens=500
                     )
 
                     if response.choices:
@@ -1811,6 +1773,7 @@ def bofa_image_analysis(request):
             "history": history,
             "history_json": json.dumps(history_json),
         }
+        context.update(reviewrating_context)
         return render(request, "bofa_pages/ai/bofa_analysisai.html", context)
     else:
         return redirect("forbidden")
@@ -1818,12 +1781,12 @@ def bofa_image_analysis(request):
 
 
 
-def bofa_delete_image_analysis(request, id):
+def bofa_delete_image_analysis(request, pk):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == "POST":
-            analyzed_image = get_object_or_404(ImageAnalysis, pk=id, owner=request.user)
-            if analyzed_image.owner == request.user:
-                analyzed_image.delete()
+            analysis= get_object_or_404(ImageAnalysis, pk=pk, owner=request.user)
+            if analysis.owner == request.user:
+                analysis.delete()
                 messages.success(request, "Image analysis successfully deleted.")
                 return redirect("bofa_image_analysis")
             else:
@@ -2143,15 +2106,22 @@ def reviewrating(request):
             rrform.save()
             messages.success(request, "Thank you for submitting feedback.")
             if request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer":
-                return redirect("dashboard")
+                return redirect("chat")
             elif request.user.roleuser.roleuser == "farmer":
-                return redirect("bofa_dashboard")
+                return redirect("bofa_chat")
         else:
             messages.error(request, "Please check the errors below.")
     else:
         rform = ReviewratingForm()
 
     return {"rform": rform}
+
+
+
+
+
+
+
 
 
 def get_nutrient_data(request):
@@ -2348,56 +2318,18 @@ def delete_crop_data(request, fieldcrop_id):
 
 
 
-# AI CALLABLE FUNCTIONS FOR ALL ROLESUSER
-
-def get_crop_supply_info():
-    # Get all records
-    records = DataRSBSA.objects.all()
-    
-    crop_counter = Counter()
-    
-    # Count occurrences of each crop
-    for record in records:
-        # Split crops planted by a delimiter, assuming comma for example
-        crops = record.crops_planted.split(',')
-        for crop in crops:
-            crop_name = crop.strip()  # Clean whitespace
-            crop_counter[crop_name] += 1
-
-    # Define thresholds for shortage and oversupply
-    shortage_threshold = 5  # Example threshold for shortage
-    oversupply_threshold = 20  # Example threshold for oversupply
-
-    supply_info = []
-
-    # Analyze supply
-    for crop, count in crop_counter.items():
-        if count < shortage_threshold:
-            status = "Shortage"
-        elif count > oversupply_threshold:
-            status = "Oversupply"
-        else:
-            status = "Balanced"
-        
-        supply_info.append(f"{crop}: {status} (Count: {count})")
-
-    return "\n".join(supply_info)
-
-
 
 
 
 
 def extract_location_with_openai(message):
     prompt = (
-        f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. If there is no location, set Cebu City as default location:\n\n"
+        f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. \n\n"
         f"Message: '{message}'\n\n"
         f"Location:"
     )
     response = ask_openai(prompt)
     location = response.strip() if response else None
-    if not location:
-        return None
     
     return location
 
@@ -2405,31 +2337,74 @@ def extract_location_with_openai(message):
 
 
 
-def extract_brgy_name_with_openai(message):
-    prompt = (
-        f"Extract and return only the barangay name if there is any in the message below."
-        f"Message: '{message}'\n\n"
-    )
-    response = ask_openai(prompt)
-    barangay_name = response.strip() if response else None
-    if not barangay_name:
-        return None
+
+# check for 2 words
+def extract_brgy_name(message, brgy_list=None):
+    brgy_list = [
+        "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
+        "Cambinocot", "Guba", "Kalunasan", "Lusaran", "Mabini", "Malubog", "Pamutan", "Paril", "Pung-ol Sibugay",  
+        "Pulangbato", "Sapangdaku", "Sinsin", "Sirao", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o",  
+        "Taptap", "Toong",
+    ]
+    # match the word in the sentence with brgy_list
+    for brgy_name in brgy_list:
+        if brgy_name.lower() in message.lower():  
+            return brgy_name
+    # match by finding words after the word "Barangay"
+    # brgy is not part of captured group because of ? symbol.
+    matched_brgy_name = re.search(r'\b(?:barangay|brgy)\s+([A-Za-z0-9-]+(?:\s+[A-Za-z0-9-]+)?)', message, re.IGNORECASE)
+    if matched_brgy_name:
+        return matched_brgy_name.group(1).strip()
     
-    return barangay_name
+    # If no barangay found, return None
+    return None
 
 
-def extract_crop_name_with_openai(message):
-    prompt = (
-        f"Extract and return only the crop name if there is any in the message below."
-        f"Message: '{message}'\n\n"
-    )
-    response = ask_openai(prompt)
-    crop_name = response.strip() if response else None
-    if not crop_name:
-        return None
+
+# def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
+#     brgy_list = [
+#         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
+#         "Cambinocot", "Guba", "Kalunasan", "Lusaran", "Mabini", "Malubog", "Pamutan", "Paril", "Pung-ol Sibugay",  
+#         "Pulangbato", "Sapangdaku", "Sinsin", "Sirao", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o",  
+#         "Taptap", "Toong",
+#     ]
+#     # match the word in the sentence with brgy_list
+#     for brgy_name in brgy_list:
+#         if brgy_name.lower() in conversation_history.lower():  
+#             return brgy_name
+#     # match by finding words after the word "Barangay"
+#     # brgy is not part of captured group because of ? symbol.
+#     matched_brgy_name = re.search(r'\b(?:barangay|brgy)\s+([A-Za-z0-9-]+(?:\s+[A-Za-z0-9-]+)?)', conversation_history, re.IGNORECASE)
+#     if matched_brgy_name:
+#         return matched_brgy_name.group(1).strip()
+#     # If no barangay found, return None
+#     return None
+
+
+# reversed conversation history = get the latest brgy 
+def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
+    brgy_list = [
+        "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
+        "Cambinocot", "Guba", "Kalunasan", "Lusaran", "Mabini", "Malubog", "Pamutan", "Paril", "Pung-ol Sibugay",  
+        "Pulangbato", "Sapangdaku", "Sinsin", "Sirao", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o",  
+        "Taptap", "Toong",
+    ]
+
+    # Split conversation history into individual lines
+    conversation_lines = conversation_history.split("\n")
+    # Look for the most recent occurrence of barangay name from brgy_list (in reverse)
+    for line in reversed(conversation_lines):
+        for brgy_name in brgy_list:
+            if brgy_name.lower() in line.lower():
+                return brgy_name
+    # If no barangay found in the brgy_list, search for the word "barangay" or "brgy"
+    matched_brgy_name = re.search(r'\b(?:barangay|brgy)\s+([A-Za-z0-9-]+(?:\s+[A-Za-z0-9-]+)?)', conversation_history, re.IGNORECASE)
     
-    return crop_name
-
+    if matched_brgy_name:
+        return matched_brgy_name.group(1).strip()
+    
+    # If no barangay found, return None
+    return None
 
 
 
@@ -2437,24 +2412,14 @@ def classify_intent(message):
     prompt = f"""
     You are an AI that classifies user intents. 
     Here are the possible intents:
-    1. ask_top_crops
-    2. ask_farmers_info
-    3. ask_crop_management
-    4. ask_help
-    5. ask_farmers_by_barangay
-    6. ask_area_by_barangay
-    7. ask_crops_by_barangay
-    8. ask_total_farmers
-    9. ask_farmer_details_by_reference
-    10. ask_barangay_list
-    11. ask_crop_distribution
-    12. weather
-    13. ask_crop_supply
-    14. market demand and pricing
-
+  
+    1. weather: Questions related to weather, including current conditions, forecasts, or specific weather events.
+    2. ask_help: Questions asking data like soil nutrients, best crops, area.
+    3. conversational: About greetings, some questions that dont need specific data.
     User: {message}
-    Please respond with a comma-separated list of all intents that match the user's message.
+    Choose only one intent. Choose the best one that fits.
     """
+    # 14. RAG technique for pdf and documents
 
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2465,8 +2430,10 @@ def classify_intent(message):
     )
     
     # Retrieve and clean the response
-    intents = response.choices[0].message.content.strip().split(",")
-    return [intent.strip() for intent in intents if intent.strip()]
+    intent = response.choices[0].message.content.strip()
+    if not intent:
+        return None
+    return intent
 
 
 
@@ -2482,14 +2449,28 @@ def ask_openai(message):
                     "Avoid using first-person references in your responses."
                     "follow the language used by the user's message."
                     "Only provide information if the requested data is verified and exists in the database."
+                    "Stay consistent in your answers."
                 )
             },
             {"role": "user", "content": message},
         ]
     )
     answer = response.choices[0].message.content.strip()
+    if not answer:
+        return None
     return answer
 
+
+# used in RAG for pdfs
+PROMPT_TEMPLATE = """
+Answer the question based only on the following context:
+
+{context}
+
+---
+
+Answer the question based on the above context: {question}
+"""
 
 
 
@@ -2509,6 +2490,8 @@ def chatgroup_title_generator(message):
         ]
     )
     title = response.choices[0].message.content.strip()
+    if not title:
+        return None
     return title
 
 
@@ -2685,56 +2668,6 @@ def my_login(request):
 
 
 
-
-
-# def my_login(request):
-#     form = LoginForm(request.POST or None)
-#     if request.method == "POST":
-#         if form.is_valid():
-#             official_user_id = form.cleaned_data.get("official_user_id")
-#             password = form.cleaned_data.get("password")
-
-#             # Check if the user is in the PendingUser table
-#             try:
-#                 pending_user = PendingUser.objects.get(official_user_id=official_user_id)
-#                 if check_password(password, pending_user.password):
-#                     messages.info(
-#                         request, "Your registration request is awaiting approval."
-#                     )
-#                     return render(request, "auth_pages/my_login.html", {"form": form})
-#                 else:
-#                     messages.error(request, "Invalid username or password")
-#                     return render(request, "auth_pages/my_login.html", {"form": form})
-#             except PendingUser.DoesNotExist:
-#                 pass
-
-#             user = authenticate(official_user_id=official_user_id, password=password)
-
-#             if user is not None:
-#                 if user.active_status:
-#                     if user.roleuser.roleuser == "da_admin" or  user.roleuser.roleuser == "brgy_officer":
-#                         login(request, user)
-#                         messages.success(request, "Account logged in successfully")
-#                         return redirect("dashboard")
-#                     elif (
-#                         user.roleuser.roleuser == "farmer"
-#                     ):
-#                         login(request, user)
-#                         messages.success(request, "Account logged in successfully")
-#                         return redirect("bofa_dashboard")
-#                     else:
-#                         messages.error(request, "Invalid credentials")
-#                 else:
-#                     messages.error(request, "Account is deactivated")
-#                     # redirect to a page that handles account reactivation request
-#             else:
-#                 messages.error(
-#                     request,
-#                     "Invalid username or password",
-#                 )
-#         else:
-#             messages.error(request, "Error validating form")
-#     return render(request, "auth_pages/my_login.html", {"form": form})
 
 
 def my_logout(request):

@@ -9,8 +9,9 @@
           <div class="row no-gutters">
             <div class="col-lg-6">
               <div class="p-5">
+                <a href="{% url 'my_login' %}" class="btn btn-outline-secondary btn-sm mb-3">Go back <i class='bx bx-chevrons-left'></i></a>
                 <h3 class="h4 font-weight-bold text-theme">Sign Up</h3>
-                <p class="text-muted mt-2 mb-4">Join the growing community Barangay Officers!</p>
+                <p class="text-muted mt-2 mb-4">Join as Barangay Officers!</p>
                 <form action="" method="POST">
                   {% csrf_token %}
                   {% for field in form %}

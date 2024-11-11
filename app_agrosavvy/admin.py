@@ -355,8 +355,7 @@ class NotificationAdmin(admin.ModelAdmin):
     #     return False
 
 
-data_wizard.register(DataRSBSA)
-
+data_wizard.register(SoilDataSFM)
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Field, FieldAdmin)
@@ -379,10 +378,7 @@ admin.site.register(Notification, NotificationAdmin)
 
 
 
-
-
-
 # AI DATA
-admin.site.register(DataRSBSA)
+# admin.site.register(DataRSBSA)
 admin.site.register(SoilDataSFM)
 

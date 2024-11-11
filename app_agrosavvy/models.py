@@ -393,11 +393,13 @@ class Chat(models.Model):
 
 class ImageAnalysis(models.Model):
     analysis_id = models.AutoField(primary_key=True)
+    # title = models.CharField(max_length=255, blank=False, null=False)
     owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="imageanalysis", null=True)
     image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
     analysis_output = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     is_deleted = models.BooleanField(default = False)
+    
 
     def delete(self, *args, **kwargs):
         self.is_deleted = True
@@ -505,7 +507,8 @@ class SoilDataSFM(models.Model):
     nitrogen_level = models.CharField(max_length=2, choices=NITROGEN_LEVELS)
     phosphorus_level = models.CharField(max_length=2, choices=PHOSPHORUS_LEVELS)
     potassium_level = models.CharField(max_length=2, choices=POTASSIUM_LEVELS)
-    # crops planted
+    crops_planted = models.TextField()  
+    total_area = models.FloatField()
 
     def __str__(self):
         return f"Soil Data for {self.sitio} , {self.barangay}"

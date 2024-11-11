@@ -2,7 +2,58 @@
 {% block header %}
 {% endblock %}
 {% block content %}
+
 <style>
+    .reviewbtn {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        z-index: 1050; /* Ensure it's above other elements */
+        font-size: 1.2rem; /* Slightly smaller font size */
+        padding: 8px 12px; /* Smaller padding for a compact button */
+        background-color: #007bff; /* Button background color */
+        border: none; /* Remove default border */
+        border-radius: 50%; /* Round button */
+        color: white; /* Button text color */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+        transition: all 0.3s ease; /* Smooth transition for hover effect */
+        cursor: pointer; /* Pointer cursor for interactivity */
+    }
+
+    .reviewbtn:hover {
+        background-color: #0056b3; /* Darker blue for hover */
+        transform: scale(1.05); /* Slightly enlarge the button on hover */
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Increase shadow on hover */
+    }
+
+    .reviewbtn i {
+        font-size: 1.5rem; /* Adjust icon size for the smaller button */
+    }
+
+    /* Tooltip styles */
+    .reviewbtn::after {
+        content: "Give us a rating"; /* Tooltip text */
+        position: absolute;
+        bottom: 100%; /* Position above the button */
+        left: -120%; /* Move the tooltip to the left of the button */
+        transform: translateX(-50%);
+        background-color: #ffffff;
+        color: rgb(0, 0, 0);
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .reviewbtn:hover::after {
+        visibility: visible;
+        opacity: 1;
+    }
+
+
     /* Centered Tabs Styles */
     .nav-tabs {
         margin-top: 20px;
@@ -37,13 +88,12 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(255, 255, 255, 0.8);
-        z-index: 9999;
         display: flex;
         justify-content: center;
         align-items: center;
         display: none;
     }
+
 
     /* Sidebar Styling */
     .sidebar-history {
@@ -131,7 +181,54 @@
     .sidebar-history li {
         margin-bottom: 20px;
     }
+    #mainContent {
+        margin-left: 300px; /* Adjust based on your sidebar width */
+        padding: 20px;
+    }
+
+    #analysisDetails {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    #selectedImage {
+        max-width: 300px; /* Adjust this value as needed */
+        max-height: 300px; /* Add max-height to maintain aspect ratio */
+        width: auto;
+        height: auto;
+        display: block;
+        margin: 0 auto 15px;
+        object-fit: contain; /* Ensure the entire image is visible */
+    }
 </style>
+
+<button type="button" class="btn reviewbtn" data-bs-toggle="modal" data-bs-target="#reviewModal">
+    <i class='bx bx-edit-alt'></i>
+</button>
+
+<!-- Modal HTML -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Review form -->
+          <form method="POST" action="{% url 'reviewrating' %}">
+            {% csrf_token %}
+            {{ rform.as_p }}
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
 
 <div id="spinnerContainer">
     <div class="spinner-grow text-success spinner-grow-sm" role="status">
@@ -163,12 +260,14 @@
         <ul id="analyzed_image-history">
             {% if history %}
             {% for item in history %}
-            <li class="history-item mb-3" id="analysis-{{ item.pk }}" onclick="toggleHistoryContent('{{ item.pk }}')">
+            <li class="history-item mb-3" id="analysis-{{ item.pk }}" onclick="showAnalysisDetails('{{ item.pk }}', '{{ item.image.url }}', '{{ item.analysis_output|escapejs }}')">
                 <h4>{{ item.created_at|date:"F j, Y, g:i a" }}</h4>
-                <img src="{{ item.image.url }}" alt="Analyzed Image" class="img-fluid mb-2">
-                <div class="analysis-output" id="output-{{ item.pk }}">
-                    {{ item.analysis_output|safe }}
-                </div>
+                <img src="{{ item.image.url }}" alt="Analyzed Image" class="img-fluid mb-2" style="max-width: 100px; height: auto;">
+                <!-- Delete button (trigger the modal) -->
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal({{ item.pk }})">
+                    Delete
+                </button>
+
             </li>
             {% endfor %}
             {% else %}
@@ -178,7 +277,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="main-content">
+    <div id="mainContent">
         <div class="form-container">
             <h2 class="h4">Image Analyzer</h2>
             <form method="POST" id="analyzeForm" enctype="multipart/form-data">
@@ -189,37 +288,95 @@
             <div id="analyzeResult" class="mt-2"></div>
         </div>
 
-        <!-- Displaying Analysis Output -->
-        {% if analysis_output %}
-        <div class="recommendations mt-4">
-            <h3>Output:</h3>
-            <div class="recommendation-content">
-                <p>{{ analysis_output|safe }}</p>
-            </div>
+        <!-- Updated section for displaying analysis details -->
+        <div id="analysisDetails" style="display: none;">
+            <h3>Analysis Details</h3>
+            <img id="selectedImage" src="" alt="Selected Image">
+            <div id="analysisOutput"></div>
         </div>
-        {% endif %}
     </div>
 </div>
+
+
+
+
+
+
+<!-- delete modal -->
+<div id="deleteModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this analysis?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <script>
     document.getElementById('analyzeForm').onsubmit = function () {
         document.getElementById('spinnerContainer').style.display = 'flex';
     };
 
-    // Function to toggle visibility of history content in sidebar
-    function toggleHistoryContent(id) {
+    function showAnalysisDetails(id, imageUrl, analysisOutput) {
+        // Update the main content area with the selected analysis details
+        const analysisDetails = document.getElementById('analysisDetails');
+        const selectedImage = document.getElementById('selectedImage');
+        const analysisOutputDiv = document.getElementById('analysisOutput');
+
+        analysisDetails.style.display = 'block';
+        selectedImage.src = imageUrl;
+        analysisOutputDiv.innerHTML = analysisOutput;
+
+        // Highlight the selected history item
         const allItems = document.querySelectorAll('.history-item');
-        const selectedItem = document.getElementById('analysis-' + id);
-        const selectedOutput = document.getElementById('output-' + id);
-
-        // Reset all items
         allItems.forEach(item => item.classList.remove('active'));
-        document.querySelectorAll('.analysis-output').forEach(output => output.style.display = 'none');
+        document.getElementById('analysis-' + id).classList.add('active');
 
-        // Activate clicked item and show content in main content
-        selectedItem.classList.add('active');
-        selectedOutput.style.display = 'block';
+        // Ensure the image is loaded before scrolling
+        selectedImage.onload = function() {
+            analysisDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+    }
+
+
+    
+    function showDeleteModal(itemId) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        form.action = `/bofa_delete_image_analysis/${itemId}/`;
+        modal.show();
     }
 </script>
 
 {% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
