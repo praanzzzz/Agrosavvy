@@ -63,11 +63,11 @@ client = OpenAI()
 OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
-CHROMA_PATH = "chroma"
-from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+# CHROMA_PATH = "chroma"
+# from langchain_chroma import Chroma
+# from langchain_openai import OpenAIEmbeddings
+# from langchain_openai import ChatOpenAI
+# from langchain.prompts import ChatPromptTemplate
 
 
 #  Password:                PRAgab19-5158-794 
