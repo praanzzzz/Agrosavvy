@@ -270,30 +270,6 @@
 
 
 
-<button type="button" class="btn reviewbtn" data-bs-toggle="modal" data-bs-target="#reviewModal">
-    <i class='bx bx-edit-alt'></i>
-</button>
-
-<!-- Modal HTML -->
-<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Review form -->
-          <form method="POST" action="{% url 'reviewrating' %}">
-            {% csrf_token %}
-            {{ rform.as_p }}
-            <button type="submit" class="btn btn-primary">Submit Review</button>
-          </form>
-        </div>
-      </div>
-    </div>
-</div>
-
 
 <div class="container">
     <div class="d-flex justify-content-center mb-4">
@@ -369,6 +345,22 @@
                     <li class="message received">
                         <div class="message-label">Agrosavvy AI : {{ chat.created_at|date:"Y-m-d H:i" }}</div>
                         <div class="message-text">{{ chat.response|safe }}</div>
+                            <div class="d-flex align-items-center mt-2">
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill me-2 shadow-sm" 
+                                        onclick="copyToClipboard('{{ chat.response }}')" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Copy chat response">
+                                    <i class="bx bx-copy-alt"></i>
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm rounded-pill shadow-sm" 
+                                        onclick="exportChat('{{ chat.response }}', 'chat_response_{{ chat.id }}.txt')" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Export chat as a file">
+                                    <i class="bx bx-export"></i> 
+                                </button>
+                            </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -395,6 +387,31 @@
        
     </div>
 
+
+    <!-- 
+    <button type="button" class="btn reviewbtn" data-bs-toggle="modal" data-bs-target="#reviewModal">
+        <i class='bx bx-edit-alt'></i>
+    </button>
+
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+            <form method="POST" action="{% url 'reviewrating' %}">
+                {% csrf_token %}
+                {{ rform.as_p }}
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+            </div>
+        </div>
+        </div>
+    </div> -->
+
     
 </div>
 
@@ -408,6 +425,89 @@
 
 
 <script>
+     // copy to clipboard
+     function copyToClipboard(text) {
+        console.log('copyToClipboard function triggered'); // Debug message
+        if (!text) {
+            console.error('Error: No text provided to copy');
+            return;
+        }
+        console.log('Text to copy:', text); // Debug message
+        try {
+            // Create a temporary element to parse the HTML and extract plain text
+            const tempElement = document.createElement('div');
+            tempElement.innerHTML = text;  // Set the provided HTML-formatted text
+
+            // Extract plain text by getting the textContent
+            const plainText = tempElement.textContent || tempElement.innerText;
+
+            // Create a textarea element for copying the plain text
+            const el = document.createElement('textarea');
+            el.value = plainText; // Use the plain text, not HTML
+            document.body.appendChild(el);
+            el.select();
+            const success = document.execCommand('copy');
+            document.body.removeChild(el);
+
+            if (success) {
+                showToast('Text copied to clipboard successfully', 'success');
+            } else {
+                showToast('Error: Failed to copy text to clipboard', 'error');
+            }
+        } catch (error) {
+            console.error('Error during clipboard operation:', error);
+        }
+    }
+
+
+    // function to export to .txt
+    function exportChat(text, filename) {
+        console.log('exportChat function triggered'); // Debug message
+
+        if (!text) {
+            console.error('Error: No text provided to export');
+            return;
+        }
+
+        if (!filename) {
+            console.error('Error: No filename provided for export');
+            return;
+        }
+
+        console.log('Exporting chat response:', text); // Debug message
+        console.log('Filename:', filename); // Debug message
+
+        try {
+            // Strip HTML tags from the text
+            const plainText = text.replace(/<[^>]*>/g, ''); // Regex to remove all HTML tags
+
+            // Create a Blob with the plain text content
+            const blob = new Blob([plainText], { type: 'text/plain' });
+
+            if (!blob) {
+                console.error('Error: Failed to create Blob');
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+
+            a.click();  // Initiates the download
+            console.log('Export initiated for file:', filename);
+            showToast('Recommendation exported successfully', 'success');
+        } catch (error) {
+            console.error('Error during file export:', error);
+            showToast('Error during file export', 'error');
+        }
+    }
+
+
+
+
+
+    
     // Function to scroll to the bottom of the chat messages
     function scrollToBottom() {
         const messagesBox = document.querySelector('.messages-box');
@@ -445,6 +545,9 @@
         // Show the spinner while waiting for AI response
         spinner.style.display = 'flex';
 
+
+
+
         // Make the POST request to send the message and receive the AI's response
         fetch(`/bofa_chat/group/${currentGroupId}/`, {
             method: 'POST',
@@ -460,10 +563,15 @@
                 const aiMessageItem = document.createElement('li');
                 aiMessageItem.classList.add('message', 'received');
                 aiMessageItem.innerHTML = `
-            <div class="message-label">Agrosavvy Chatbot</div>
-            <div class="message-text">${response}</div>`;
+                <div class="message-label">Agrosavvy Chatbot</div>
+                <div class="message-text">${response}</div>`;
                 messagesList.appendChild(aiMessageItem);
                 scrollToBottom(); // Scroll to the bottom after adding the response
+            })
+            .catch(error => {
+                // Handle network or unexpected errors
+                console.error('Error during message fetch:', error);
+                showToast('Network issue or AI service error. Please try again later.', 'error');
             })
             .finally(() => {
                 // Hide the spinner after the response is received

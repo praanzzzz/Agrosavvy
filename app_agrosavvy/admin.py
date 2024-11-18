@@ -20,7 +20,6 @@ from .models import (
     Chat,
     ImageAnalysis,
     Notification,
-    DataRSBSA,
     SoilDataSFM,
 )
 
@@ -366,7 +365,7 @@ admin.site.register(ChatGroup, ChatGroupAdmin)
 admin.site.register(Chat, ChatAdmin)
 admin.site.register(ImageAnalysis, ImageAnalysisAdmin)
 admin.site.register(Notification, NotificationAdmin)
-
+admin.site.register(SoilDataSFM)
 
 
 # admin.site.register(Address)
@@ -377,8 +376,4 @@ admin.site.register(Notification, NotificationAdmin)
 # admin.site.register(UserAddress)
 
 
-
-# AI DATA
-# admin.site.register(DataRSBSA)
-admin.site.register(SoilDataSFM)
 

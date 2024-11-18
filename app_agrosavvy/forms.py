@@ -359,16 +359,27 @@ class ReviewratingForm(forms.ModelForm):
 
 
 
+# class ImageAnalysisForm(forms.ModelForm):
+#     class Meta:
+#         model = ImageAnalysis
+#         fields = ['image']
+#         widgets = {
+#             'image': forms.ClearableFileInput(attrs={
+#                 'class': 'form-control-file', 
+#             })
+#         }
+
 class ImageAnalysisForm(forms.ModelForm):
     class Meta:
         model = ImageAnalysis
         fields = ['image']
         widgets = {
             'image': forms.ClearableFileInput(attrs={
-                'class': 'form-control-file', 
+                'class': 'form-control-file form-control',  # Bootstrap class for form styling
+                'accept': 'image/*',  # Restrict to image files
+                'placeholder': 'Choose an image',  # Add placeholder text
             })
         }
-
 
 
 

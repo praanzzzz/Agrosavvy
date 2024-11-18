@@ -4,57 +4,6 @@
 {% block content %}
 
 <style>
-  .reviewbtn {
-    position: fixed;
-    bottom: 40px;
-    right: 40px;
-    z-index: 1050; /* Ensure it's above other elements */
-    font-size: 1.2rem; /* Slightly smaller font size */
-    padding: 8px 12px; /* Smaller padding for a compact button */
-    background-color: #007bff; /* Button background color */
-    border: none; /* Remove default border */
-    border-radius: 50%; /* Round button */
-    color: white; /* Button text color */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
-    transition: all 0.3s ease; /* Smooth transition for hover effect */
-    cursor: pointer; /* Pointer cursor for interactivity */
-}
-
-.reviewbtn:hover {
-    background-color: #0056b3; /* Darker blue for hover */
-    transform: scale(1.05); /* Slightly enlarge the button on hover */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3); /* Increase shadow on hover */
-}
-
-.reviewbtn i {
-    font-size: 1.5rem; /* Adjust icon size for the smaller button */
-}
-
-/* Tooltip styles */
-.reviewbtn::after {
-    content: "Give us a rating"; /* Tooltip text */
-    position: absolute;
-    bottom: 100%; /* Position above the button */
-    left: -120%; /* Move the tooltip to the left of the button */
-    transform: translateX(-50%);
-    background-color: #ffffff;
-    color: rgb(0, 0, 0);
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    white-space: nowrap;
-}
-
-.reviewbtn:hover::after {
-    visibility: visible;
-    opacity: 1;
-}
-
-
-
     /* Centered Tabs Styles */
     .nav-tabs {
         margin-top: 20px;
@@ -207,44 +156,7 @@
 </style>
 
 
-<button type="button" class="btn reviewbtn" data-bs-toggle="modal" data-bs-target="#reviewModal">
-    <i class='bx bx-edit-alt'></i>
-</button>
 
-<!-- Modal HTML -->
-<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <!-- Review form -->
-          <form method="POST" action="{% url 'reviewrating' %}">
-            {% csrf_token %}
-            {{ rform.as_p }}
-            <button type="submit" class="btn btn-primary">Submit Review</button>
-          </form>
-        </div>
-      </div>
-    </div>
-</div>
-
-
-
-
-<div id="spinnerContainer">
-    <div class="spinner-grow text-success spinner-grow-sm" role="status">
-        <span class="sr-only">Loading...</span>
-    </div>
-    <div class="spinner-grow text-success spinner-grow-sm mx-2" role="status">
-        <span class="sr-only">Loading...</span>
-    </div>
-    <div class="spinner-grow text-success spinner-grow-sm" role="status">
-        <span class="sr-only">Loading...</span>
-    </div>
-</div>
 
 <div class="container">
     <div class="d-flex justify-content-center mb-4">
@@ -265,12 +177,45 @@
             {% if history %}
             {% for item in history %}
             <li class="history-item mb-3" id="analysis-{{ item.pk }}" onclick="showAnalysisDetails('{{ item.pk }}', '{{ item.image.url }}', '{{ item.analysis_output|escapejs }}')">
-                <h4>{{ item.created_at|date:"F j, Y, g:i a" }}</h4>
+                {% if item.title %}
+                <p>{{item.title}}</p>
+                {% else %}
+                <p>New Analysisp</p>
+                {% endif %}
                 <img src="{{ item.image.url }}" alt="Analyzed Image" class="img-fluid mb-2" style="max-width: 100px; height: auto;">
-                <!-- Delete button (trigger the modal) -->
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="showDeleteModal({{ item.pk }})">
-                    Delete
-                </button>
+                <div class="d-flex align-items-center mt-2">
+                   
+                    <!-- copy -->
+                    <button class="btn btn-success btn-sm rounded-pill me-2 shadow-sm" 
+                        onclick="copyToClipboard('{{ item.analysis_output|escapejs }}')"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Copy chat response">
+                        <i class="bx bx-copy-alt"></i>
+                    </button>
+                    <!-- export -->
+                    <button class="btn btn-primary btn-sm rounded-pill me-2 shadow-sm" 
+                        onclick="exportAnalysis('{{ item.title|escapejs }}', '{{ item.analysis_output|escapejs }}')"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Export chat as a file">
+                        <i class="bx bx-export"></i> 
+                    </button>
+                    <!-- review -->
+                    <button type="button" class="btn btn-warning btn-sm rounded-pill me-2 shadoaw-sm" data-bs-toggle="modal" data-bs-target="#reviewModal"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Give feedback">
+                        <i class='bx bx-edit-alt'></i>
+                    </button>
+                     <!-- delete -->
+                     <button type="button" class="btn btn-danger btn-sm me-2 shadow-sm" onclick="showDeleteModal({{ item.pk }})"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Delete Analysis">
+                        <i class='bx bx-trash-alt' ></i>
+                    </button>
+                </div>
             </li>
             {% endfor %}
             {% else %}
@@ -324,6 +269,47 @@
     </div>
 </div>
 
+
+
+
+
+<!-- review modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Review form -->
+          <form method="POST" action="{% url 'reviewrating' %}">
+            {% csrf_token %}
+            {{ rform.as_p }}
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
+
+
+<!-- spinner -->
+<div id="spinnerContainer">
+    <div class="spinner-grow text-success spinner-grow-sm" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <div class="spinner-grow text-success spinner-grow-sm mx-2" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <div class="spinner-grow text-success spinner-grow-sm" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+
+
+
 <script>
     document.getElementById('analyzeForm').onsubmit = function () {
         document.getElementById('spinnerContainer').style.display = 'flex';
@@ -356,6 +342,27 @@
         const form = document.getElementById('deleteForm');
         form.action = `/delete_image_analysis/${itemId}/`;
         modal.show();
+    }
+
+    
+
+    // Function to copy analysis output to clipboard
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Analysis copied to clipboard!', 'success');
+        }).catch(err => {
+            showToast('Error copying text: ', 'error');
+        });
+    }
+
+    // Function to export analysis output as text file
+    function exportAnalysis(title, analysisOutput) {
+        const blob = new Blob([title + "\n\n" + analysisOutput], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = title + '.txt';
+        link.click();
+        showToast('Analysis exported successfully', 'success');
     }
 </script>
 

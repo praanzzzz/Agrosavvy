@@ -54,23 +54,23 @@ import re, base64
 # from datetime import datetime
 from django.core.serializers import serialize
 
+# new
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+
+from django.views.decorators.http import require_http_methods
+
 # AI
 # from PIL import Image
 # from io import BytesIO
 import os
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError, OpenAIError
 client = OpenAI()
 OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
-
-# CHROMA_PATH = "chroma"
-# from langchain_chroma import Chroma
-# from langchain_openai import OpenAIEmbeddings
-# from langchain_openai import ChatOpenAI
-# from langchain.prompts import ChatPromptTemplate
-
-
 #  Password:                PRAgab19-5158-794 
+
+
 
 
 # Main pages for da_admin and brgy officers
@@ -132,18 +132,32 @@ def dashboard(request):
         # Line Chart Data
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
+        # field_data = (
+        #     Field.objects.filter(
+        #         created_at__range=[start_date, end_date], 
+        #         is_deleted=False
+        #     )
+        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
+        #     .values("month")
+        #     .annotate(count=Count("field_id"))
+        #     .order_by("month")
+        # )
+        # labelsfield = [data["month"] for data in field_data]
+        # datafield = [data["count"] for data in field_data]
+
+        # for postgress compatibility
         field_data = (
             Field.objects.filter(
                 created_at__range=[start_date, end_date], 
                 is_deleted=False
             )
-            .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
-            .values("month")
-            .annotate(count=Count("field_id"))
-            .order_by("month")
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('field_id'))
+            .order_by('month')
         )
-        labelsfield = [data["month"] for data in field_data]
-        datafield = [data["count"] for data in field_data]
+        labelsfield = [data['month'].strftime('%Y-%m') for data in field_data]
+        datafield = [data['count'] for data in field_data]
 
         # Pagination
         paginator = Paginator(fields, 5)  
@@ -250,20 +264,35 @@ def dashboard(request):
         # Filter Field data for the line chart based on the same barangay
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
+        # field_data = (
+        #     Field.objects.filter(
+        #         created_at__range=[start_date, end_date],  # Filter by date range
+        #         is_deleted=False,  # Soft deletion check for Field
+        #         address__barangay__brgy_name=user_barangay  # Filter by user's barangay
+        #     )
+        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})  # Group by year and month
+        #     .values("month")
+        #     .annotate(count=Count("field_id"))  # Count the number of fields created per month
+        #     .order_by("month")
+        # )
+        # # Prepare data for the line chart
+        # labelsfield = [data["month"] for data in field_data]
+        # datafield = [data["count"] for data in field_data]
+
+
         field_data = (
             Field.objects.filter(
-                created_at__range=[start_date, end_date],  # Filter by date range
-                is_deleted=False,  # Soft deletion check for Field
-                address__barangay__brgy_name=user_barangay  # Filter by user's barangay
+                created_at__range=[start_date, end_date], 
+                is_deleted=False,
+                address__barangay__brgy_name=user_barangay
             )
-            .extra(select={"month": "strftime('%%Y-%%m', created_at)"})  # Group by year and month
-            .values("month")
-            .annotate(count=Count("field_id"))  # Count the number of fields created per month
-            .order_by("month")
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('field_id'))
+            .order_by('month')
         )
-        # Prepare data for the line chart
-        labelsfield = [data["month"] for data in field_data]
-        datafield = [data["count"] for data in field_data]
+        labelsfield = [data['month'].strftime('%Y-%m') for data in field_data]
+        datafield = [data['count'] for data in field_data]
 
         # print(labelsfield)
         # print(datafield)
@@ -346,12 +375,9 @@ def chat(request, group_id=None):
                 chat_group.save()
 
             previous_messages = chats.order_by('-created_at')[:10]
-            conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
+            # conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
+            conversation_history = "\n".join([f"\n\nUser: {chat.message}\nAI response: {chat.response}" for chat in previous_messages])
             full_conversation = conversation_history + f"\nUser: {message}\nAI:"
-
-
-
-
 
 
             # barangay memory
@@ -374,6 +400,7 @@ def chat(request, group_id=None):
             intent = classify_intent(message)
             ai_context = ""
 
+          
             # USING OBJECT TECHNIQUE
             if intent == "ask_help":
                 if barangay is not None:
@@ -395,7 +422,6 @@ def chat(request, group_id=None):
                                 f"and Potassium level is {soil_data.get_potassium_level_display()}. "
                                 f"pH level is {soil_data.get_ph_level_display()}, "
                                 f"indicating that it is {'acidic' if soil_data.ph_level in ['L', 'ML', 'MH'] else 'alkaline'}. "
-                                f"Total farming area in Sitio {soil_data.sitio} is {soil_data.total_area} hectares. "
                                 f"Crops planted in Sitio {soil_data.sitio}: {soil_data.crops_planted}. "
                                 f"These nutrient levels may be ideal for crops that thrive in {'low' if soil_data.nitrogen_level == 'L' else 'moderate' if soil_data.nitrogen_level in ['ML', 'MH'] else 'high'} nutrient environments.\n"
                             )
@@ -406,8 +432,8 @@ def chat(request, group_id=None):
                     ai_context += (
                         f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
                         f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
+                        f"\nBased on crops planted in this barangay, there is shortage and oversupply of [specify the crops]"
                     )
-
                     # If there's no data for the barangay
                     if not soil_data_entries:
                         ai_context = "Soil data is not available for this barangay. You may check the spelling of barangay and make sure it's correct."
@@ -417,37 +443,7 @@ def chat(request, group_id=None):
 
 
             elif intent == "conversational":
-                ai_context == "Ask me questions about agriculture specially in Cebu City."
-
-
-            # USING RAG TECHNIQUE
-            # if intent == "ask_help":
-            #     # Prepare the DB.
-            #     embedding_function = OpenAIEmbeddings()
-            #     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
-
-            #     # Search the DB.
-            #     results = db.similarity_search_with_relevance_scores(message, k=3)
-
-            #     # Check if the results are good enough (based on similarity score threshold)
-            #     if len(results) == 0 or results[0][1] < 0.7:
-            #         return "Unable to find matching results."
-
-            #     # Extract the relevant context text from the results
-            #     context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-
-            #     # Generate a prompt for the LLM
-            #     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
-            #     prompt = prompt_template.format(context=context_text, question=message)
-                
-            #     # Call OpenAI to get the response based on the context
-            #     model = ChatOpenAI()
-            #     response_text = model.invoke(prompt)
-            #     # You can format the response to include sources or additional data
-            #     sources = [doc.metadata.get("source", None) for doc, _score in results]
-            #     ai_context = f"Response: {response_text}\nSources: {sources}."
-
-
+                ai_context = "Ask me questions about agriculture specially in Cebu City."
 
 
             # openweathermap api
@@ -466,8 +462,7 @@ def chat(request, group_id=None):
             # handling if no intent is processed
             else:
                 ai_context = "I'm sorry, but I couldn't process your request right now. Please try again later."
-            
-
+    
             full_conversation_with_context = full_conversation + f"\nAI Context: {ai_context}"
             openai_response = ask_openai(full_conversation_with_context)
 
@@ -479,12 +474,11 @@ def chat(request, group_id=None):
 
             # debugging
             print("Processed Intent:" , intent)
-            print("AI Context:", ai_context)
-
-            if barangay:
-                print("barangay:" + barangay)
-            else:
-                print("brgy not found")
+            # if barangay:
+            #     print("barangay:" + barangay)
+            # else:
+            #     print("brgy not found")
+            print("Full Conversation with Context to OpenAI:", full_conversation_with_context)
             
     
 
@@ -494,7 +488,8 @@ def chat(request, group_id=None):
                 message=message, 
                 response=final_response, 
                 ai_context=ai_context,
-                created_at=timezone.now()
+                created_at=timezone.now(),
+                intent=intent,
             )
             chat.save()
 
@@ -565,56 +560,69 @@ def image_analysis(request):
                     # Encode the uploaded image as base64 (with size limit)
                     base64_image = encode_image(image)
 
-                    # Send the request to the API
-                    response = client.chat.completions.create(
-                            model=THIS_MODEL,
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": [
-                                        {
-                                            "type": "text",
-                                            "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
-                                        }
-                                    ]
-                                },
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {
-                                            "type":"text",
-                                            "text": "What is in this image?"
-                                        },
-                                        {
-                                            "type": "image_url",
-                                            "image_url": 
-                                                {
-                                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                                }
-                                        }
-                                    ]
-                                }
-                            ],
-                            max_tokens=500
-                    )
+                    try:
+                        # Send the request to the API
+                        response = client.chat.completions.create(
+                                model=THIS_MODEL,
+                                messages=[
+                                    {
+                                        "role": "system",
+                                        "content": [
+                                            {
+                                                "type": "text",
+                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "role": "user",
+                                        "content": [
+                                            {
+                                                "type":"text",
+                                                "text": "What is in this image?"
+                                            },
+                                            {
+                                                "type": "image_url",
+                                                "image_url": 
+                                                    {
+                                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                                    }
+                                            }
+                                        ]
+                                    }
+                                ],
+                                max_tokens=500
+                        )
 
-                    if response.choices:
-                        ai_output = response.choices[0].message.content
-                        # print(f"AI Response: {ai_output}")  # Debug output
+                        if response.choices:
+                            ai_output = response.choices[0].message.content
+                            # print(f"AI Response: {ai_output}")  # Debug output
 
-                        # Clean and format AI output for display
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
-                        cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
-                        # Save analysis result and image
-                        analysis.image = image
-                        analysis.analysis_output = mark_safe(cleaned_content)
-                        analysis.owner = request.user
-                        analysis.save()
-                        messages.success(request, "Analysis saved.")
-                        return redirect("image_analysis")
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later")
+                            # Clean and format AI output for display
+                            cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
+                            cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
+                            cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+                            # Save analysis result and image
+                            analysis.image = image
+                            analysis.analysis_output = mark_safe(cleaned_content)
+                            analysis.owner = request.user
+                            analysis.title = image_analysis_title_generator(cleaned_content)
+                            analysis.save()
+                            # messages.success(request, "Analysis saved.")
+                            return redirect("image_analysis")
+                        else:
+                            messages.error(request, "AI did not respond. Please try again later")
+
+                    # the reason we can use backend try catch handling and not the fetch api catch is that
+                    # the page refreshes when output or no output. unlike in the chat ai page where its dynamic
+                    except APIConnectionError as e:         
+                        messages.error(request, "There was a connection issue with the AI service. Please try again later.")
+                    except OpenAIError as e:
+                        messages.error(request, "An error occurred with the AI service. Please try again later.")
+                    except Exception as e:
+                        messages.error(request, "An unexpected error occurred. Please try again later.")
+
+
                 else:
                     messages.error(request, "No Image provided")
             else:
@@ -632,6 +640,8 @@ def image_analysis(request):
         return render(request, "app_agrosavvy/ai/analysisai.html", context)
     else:
         return redirect("forbidden")
+
+
 
 
 
@@ -1415,7 +1425,7 @@ def bofa_dashboard(request):
         reviewwrating_context = reviewrating(request)
 
         numberOfRecommendations = (
-            ImageAnalysis.objects.filter(owner=request.user)
+            ImageAnalysis.objects.filter(owner=request.user, is_deleted=False)
         )
 
         numberOfChatGroups = (
@@ -1511,7 +1521,7 @@ def bofa_chat(request, group_id=None):
             # Get the previous messages from the chat group (limit to the last 10 messages)
             previous_messages = chats.order_by('-created_at')[:10]
             # Format the messages into a single string for context
-            conversation_history = "\n".join([f"User: {chat.message}\nAI Context: {chat.ai_context}\nAI: {chat.response}" for chat in previous_messages])
+            conversation_history = "\n".join([f"\n\nUser: {chat.message}\nAI response: {chat.response}" for chat in previous_messages])
             # Combine history with the new message
             full_conversation = conversation_history + f"\nUser: {message}\nAI:"
 
@@ -1560,7 +1570,6 @@ def bofa_chat(request, group_id=None):
                                 f"and Potassium level is {soil_data.get_potassium_level_display()}. "
                                 f"pH level is {soil_data.get_ph_level_display()}, "
                                 f"indicating that it is {'acidic' if soil_data.ph_level in ['L', 'ML', 'MH'] else 'alkaline'}. "
-                                f"Total farming area in Sitio {soil_data.sitio} is {soil_data.total_area} hectares. "
                                 f"Crops planted in Sitio {soil_data.sitio}: {soil_data.crops_planted}. "
                                 f"These nutrient levels may be ideal for crops that thrive in {'low' if soil_data.nitrogen_level == 'L' else 'moderate' if soil_data.nitrogen_level in ['ML', 'MH'] else 'high'} nutrient environments.\n"
                             )
@@ -1571,6 +1580,7 @@ def bofa_chat(request, group_id=None):
                     ai_context += (
                         f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
                         f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
+                        f"\nBased on crops planted in this barangay, there is shortage and oversupply of [specify the crops]"
                     )
 
                     # If there's no data for the barangay
@@ -1613,12 +1623,11 @@ def bofa_chat(request, group_id=None):
 
             # debugging
             print("Processed Intent:" , intent)
-            print("AI Context:", ai_context)
-
-            if barangay:
-                print("barangay:" + barangay)
-            else:
-                print("brgy not found")
+            # if barangay:
+            #     print("barangay:" + barangay)
+            # else:
+            #     print("brgy not found")
+            print("Full Conversation with Context to OpenAI:", full_conversation_with_context)
         
         
             # Regardless of intent, continue to enhance the response with OpenAI
@@ -1711,55 +1720,64 @@ def bofa_image_analysis(request):
                 if image:
                     base64_image = bofa_encode_image(image)
 
-                    # Send the request to the API
-                    response = client.chat.completions.create(
-                            model=THIS_MODEL,
-                            messages=[
-                                {
-                                    "role": "system",
-                                    "content": [
-                                        {"type": "text",
-                                        "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
-                                        }
-                                    ],
-                                },
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {
-                                            "type":"text",
-                                            "text": "What is in this image?"
-                                        },
-                                        {
-                                            "type": "image_url",
-                                            "image_url": 
-                                                {
-                                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                                }
-                                        }
-                                    ]
-                                }
-                            ],
-                            max_tokens=500
-                    )
+                    try:
+                        # Send the request to the API
+                        response = client.chat.completions.create(
+                                model=THIS_MODEL,
+                                messages=[
+                                    {
+                                        "role": "system",
+                                        "content": [
+                                            {"type": "text",
+                                            "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
+                                            }
+                                        ],
+                                    },
+                                    {
+                                        "role": "user",
+                                        "content": [
+                                            {
+                                                "type":"text",
+                                                "text": "What is in this image?"
+                                            },
+                                            {
+                                                "type": "image_url",
+                                                "image_url": 
+                                                    {
+                                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                                    }
+                                            }
+                                        ]
+                                    }
+                                ],
+                                max_tokens=500
+                        )
 
-                    if response.choices:
-                        ai_output = response.choices[0].message.content
-                        # print(f"AI Response: {ai_output}") 
+                        if response.choices:
+                            ai_output = response.choices[0].message.content
+                            # print(f"AI Response: {ai_output}") 
 
-                        # Clean and format AI output for display
-                        cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
-                        cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
-                        cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
-                        # Save analysis result and image
-                        analysis.image = image
-                        analysis.analysis_output = mark_safe(cleaned_content)
-                        analysis.owner = request.user
-                        analysis.save()
-                        messages.success(request, 'Analysis saved.')
-                        return redirect("bofa_image_analysis")
-                    else:
-                        messages.error(request, "AI did not respond. Please try again later.")                
+                            # Clean and format AI output for display
+                            cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
+                            cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
+                            cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+                            # Save analysis result and image
+                            analysis.image = image
+                            analysis.analysis_output = mark_safe(cleaned_content)
+                            analysis.owner = request.user
+                            analysis.title = image_analysis_title_generator(cleaned_content)
+                            analysis.save()
+                            messages.success(request, 'Analysis saved.')
+                            return redirect("bofa_image_analysis")
+                        else:
+                            messages.error(request, "AI did not respond. Please try again later.")
+
+                    except APIConnectionError as e:
+                        messages.error(request, "There was a connection issue with the AI service. Please try again later.")
+                    except OpenAIError as e:
+                        messages.error(request, "An error occurred with the AI service. Please try again later.")
+                    except Exception as e:
+                        messages.error(request, "An unexpected error occurred. Please try again later.")
                 else:
                     messages.error(request, "No image provided")
             else:
@@ -1875,13 +1893,15 @@ def bofa_add_field(request):
         return redirect("forbidden")
 
 
-# no auth yet
 def bofa_weather(request):
-    weather_data = get_weather_data("Cebu City")
-    context = {
-        "weather_data": weather_data,
-    }
-    return render(request, "bofa_pages/bofa_weather.html", context)
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        weather_data = get_weather_data("Cebu City")
+        context = {
+            "weather_data": weather_data,
+        }
+        return render(request, "bofa_pages/bofa_weather.html", context)
+    else:
+        return redirect("forbidden")
 
 
 
@@ -2106,9 +2126,9 @@ def reviewrating(request):
             rrform.save()
             messages.success(request, "Thank you for submitting feedback.")
             if request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer":
-                return redirect("chat")
+                return redirect("image_analysis")
             elif request.user.roleuser.roleuser == "farmer":
-                return redirect("bofa_chat")
+                return redirect("bofa_image_analysis")
         else:
             messages.error(request, "Please check the errors below.")
     else:
@@ -2117,13 +2137,7 @@ def reviewrating(request):
     return {"rform": rform}
 
 
-
-
-
-
-
-
-
+# for line chart
 def get_nutrient_data(request):
     field_id = request.GET.get('field_id')
     nutrient = request.GET.get('nutrient')
@@ -2134,8 +2148,6 @@ def get_nutrient_data(request):
     values = [getattr(d, nutrient) for d in data]
     
     return JsonResponse({'labels': labels, 'values': values})
-
-
 
 
 
@@ -2320,8 +2332,8 @@ def delete_crop_data(request, fieldcrop_id):
 
 
 
-
-
+# AI FEATURES
+# for weather
 def extract_location_with_openai(message):
     prompt = (
         f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. \n\n"
@@ -2330,15 +2342,10 @@ def extract_location_with_openai(message):
     )
     response = ask_openai(prompt)
     location = response.strip() if response else None
-    
     return location
 
 
-
-
-
-
-# check for 2 words
+# checks for 2 words
 def extract_brgy_name(message, brgy_list=None):
     brgy_list = [
         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
@@ -2358,27 +2365,6 @@ def extract_brgy_name(message, brgy_list=None):
     
     # If no barangay found, return None
     return None
-
-
-
-# def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
-#     brgy_list = [
-#         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
-#         "Cambinocot", "Guba", "Kalunasan", "Lusaran", "Mabini", "Malubog", "Pamutan", "Paril", "Pung-ol Sibugay",  
-#         "Pulangbato", "Sapangdaku", "Sinsin", "Sirao", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o",  
-#         "Taptap", "Toong",
-#     ]
-#     # match the word in the sentence with brgy_list
-#     for brgy_name in brgy_list:
-#         if brgy_name.lower() in conversation_history.lower():  
-#             return brgy_name
-#     # match by finding words after the word "Barangay"
-#     # brgy is not part of captured group because of ? symbol.
-#     matched_brgy_name = re.search(r'\b(?:barangay|brgy)\s+([A-Za-z0-9-]+(?:\s+[A-Za-z0-9-]+)?)', conversation_history, re.IGNORECASE)
-#     if matched_brgy_name:
-#         return matched_brgy_name.group(1).strip()
-#     # If no barangay found, return None
-#     return None
 
 
 # reversed conversation history = get the latest brgy 
@@ -2405,7 +2391,6 @@ def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
     
     # If no barangay found, return None
     return None
-
 
 
 def classify_intent(message):
@@ -2435,9 +2420,7 @@ def classify_intent(message):
         return None
     return intent
 
-
-
-
+# main prompt for chat
 def ask_openai(message):
     response = client.chat.completions.create(
         model = THIS_MODEL,
@@ -2445,11 +2428,12 @@ def ask_openai(message):
              {
                 "role": "system", 
                 "content": (
-                    "You are an assistant specialized in agriculture. "
-                    "Avoid using first-person references in your responses."
-                    "follow the language used by the user's message."
-                    "Only provide information if the requested data is verified and exists in the database."
-                    "Stay consistent in your answers."
+                    "You are an agriculture expert. "
+                    "Do not use 'I' or 'we' in your answers."
+                    "Respond in the same language the user is using."
+                    "Only provide information if the data is confirmed and available in the database."
+                    "Ensure your answers are consistent."
+                    "Always refer to the full chat history to maintain context and give relevant responses."
                 )
             },
             {"role": "user", "content": message},
@@ -2458,19 +2442,7 @@ def ask_openai(message):
     answer = response.choices[0].message.content.strip()
     if not answer:
         return None
-    return answer
-
-
-# used in RAG for pdfs
-PROMPT_TEMPLATE = """
-Answer the question based only on the following context:
-
-{context}
-
----
-
-Answer the question based on the above context: {question}
-"""
+    return answer   
 
 
 
@@ -2487,6 +2459,27 @@ def chatgroup_title_generator(message):
                 )
             },
             {"role": "user", "content": message},
+        ]
+    )
+    title = response.choices[0].message.content.strip()
+    if not title:
+        return None
+    return title
+
+
+def image_analysis_title_generator(firstline_output):
+    response = client.chat.completions.create(
+        model=THIS_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an assistant specialized in generating titles for image analysis."
+                    "Base the first line of the output to generate the title, and avoid using first-person references."
+                    "The title should be descriptive. 3 words maximum."
+                )
+            },
+            {"role": "user", "content": firstline_output},
         ]
     )
     title = response.choices[0].message.content.strip()
@@ -2545,7 +2538,7 @@ def register_da_admin(request):
             pending_user.save()
             messages.success(
                 request,
-                "Account is now for validation by the admin. Please wait for 24 hours",
+                "Your account is pending validation. Please check back soon.",
             )
             return redirect("my_login")
         else:
@@ -2571,7 +2564,7 @@ def register_barangay_officer(request):
             pending_user.save()
             messages.success(
                 request,
-                "Account is now for validation by the admin. Please wait for 24 hours",
+                "Your account is pending validation. Please check back soon.",
             )
             return redirect("my_login")
         else:
@@ -2598,7 +2591,7 @@ def register_farmer(request):
             pending_user.save()
             messages.success(
                 request,
-                "Account is now for validation by the admin. Please wait for 24 hours",
+                "Your account is pending validation. Please check back soon.",
             )
             return redirect("my_login")
         else:

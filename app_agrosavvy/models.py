@@ -33,7 +33,7 @@ class Gender(models.Model):
         return self.gender
     
 
-# brgy choices
+# 28 brgy choices
 class Barangay(models.Model):
     BRGY_CHOICES = [
         ("Adlaon", "Adlaon"),
@@ -360,58 +360,6 @@ class FieldSoilData(models.Model):
 
 
 
-
-class ChatGroup(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255, blank=False, null=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_deleted = models.BooleanField(default = False)
-
-    def delete(self, *args, **kwargs):
-        self.is_deleted = True
-        self.save()
-
-    def __str__(self):
-        return f'{self.id}. {self.user.username}'
-    
-    class Meta:
-        ordering = ['-created_at']
-
-
-class Chat(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    chat_group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='chats') 
-    message = models.TextField()
-    response = models.TextField()
-    ai_context = models.TextField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f'{self.user.username}: {self.message}'
-    
-
-
-class ImageAnalysis(models.Model):
-    analysis_id = models.AutoField(primary_key=True)
-    # title = models.CharField(max_length=255, blank=False, null=False)
-    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="imageanalysis", null=True)
-    image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
-    analysis_output = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_deleted = models.BooleanField(default = False)
-    
-
-    def delete(self, *args, **kwargs):
-        self.is_deleted = True
-        self.save()
-
-    def __str__(self):
-        return self.analysis_output[:50]
-    
-
-
-
-
 class Notification(models.Model):
     user_receiver = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='received_notifications')
     user_sender = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
@@ -429,41 +377,54 @@ class Notification(models.Model):
         return f"Notification to {self.user_receiver} - {self.subject[:20]}"
 
 
+class ChatGroup(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default = False)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DataRSBSA(models.Model):
-    barangay = models.CharField(max_length=50)
-    reference_number = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=50)
-    first_name = models.CharField(max_length=50)
-    middle_name = models.CharField(max_length=50, blank=True)
-    crops_planted = models.TextField()  
-    total_area = models.FloatField()
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
     def __str__(self):
-        return f"{self.reference_number}: {self.first_name} {self.last_name} {self.barangay}"
+        return f'{self.id}. {self.user.username}'
     
     class Meta:
-        ordering = ['-reference_number']
+        ordering = ['-created_at']
 
 
+class Chat(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    chat_group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='chats') 
+    intent = models.CharField(max_length=50, blank=False, null=False)
+    message = models.TextField()
+    response = models.TextField()
+    ai_context = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.username}: {self.message}'
     
+
+
+class ImageAnalysis(models.Model):
+    analysis_id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=255, blank=True, null=True)
+    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="imageanalysis", null=True)
+    image = models.ImageField(upload_to='image_analysis_pictures/', null=True, blank=True)
+    analysis_output = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_deleted = models.BooleanField(default = False)
+    
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
+
+    def __str__(self):
+        return self.analysis_output[:50]
+
 
 
 
