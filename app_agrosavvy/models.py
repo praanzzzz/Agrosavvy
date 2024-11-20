@@ -191,6 +191,7 @@ class UserAddress(models.Model):
 
 
 # abstract user is a helper class with default fields: username, password1 and password2, status
+# ang password ra ang nagamit sa default.
 class CustomUser(AbstractUser):
     official_user_id = models.CharField(max_length= 30, unique=True)
     email = models.EmailField(unique=True)

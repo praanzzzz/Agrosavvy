@@ -50,23 +50,20 @@ from easyaudit.models import LoginEvent, CRUDEvent
 from django.utils.safestring import mark_safe
 import re, base64
 # from collections import Counter
-# from django.conf import settings
+from django.conf import settings as django_settings
 # from datetime import datetime
 from django.core.serializers import serialize
 
-# new
+# postgress compatibility
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
 
-from django.views.decorators.http import require_http_methods
-
 # AI
-# from PIL import Image
-# from io import BytesIO
 import os
 from openai import OpenAI, APIConnectionError, OpenAIError
 client = OpenAI()
 OpenAI.api_key = os.environ["OPENAI_API_KEY"]
+
 
 #  Password:                PRAgab19-5158-794 
 
@@ -229,8 +226,8 @@ def dashboard(request):
         total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         active_users = CustomUser.objects.filter(
             useraddress__useraddress__startswith=user_barangay,  # Check for users in the same barangay
-            active_status=True 
-        )
+            active_status=True, 
+        ).exclude(roleuser__roleuser="da_admin")
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
 
@@ -428,7 +425,7 @@ def chat(request, group_id=None):
                             # Mark this sitio as processed
                             processed_sitios.add(soil_data.sitio)
 
-                    # Add total area and crops for the whole barangay
+                    # Whole Barangay data
                     ai_context += (
                         f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
                         f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
@@ -570,7 +567,7 @@ def image_analysis(request):
                                         "content": [
                                             {
                                                 "type": "text",
-                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
+                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. Provide the description in a more professional way and describe it well. Do not provide analysis on images that is unrelated to agriculture, crops, plants. This model is unable to answer questions. "
                                             }
                                         ]
                                     },
@@ -693,6 +690,7 @@ def map(request):
             "notifications_unread_count": notifications_unread_count,
             "fields_json": json.dumps(fields_json, cls=DjangoJSONEncoder),
             "crops": Crop.objects.all(),
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/map.html", context)
     else:
@@ -728,6 +726,7 @@ def add_field(request):
         context = {
             "field_form": field_form,
             "address_form": address_form,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/add_field.html", context)
     
@@ -769,6 +768,7 @@ def add_field(request):
             "field_form": field_form,
             "address_form": address_form,
             "bo_user_barangay": bo_user_barangay,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/brgy_add_field.html", context)
     else:
@@ -1295,6 +1295,7 @@ def update_field(request, field_id):
         context = {
             "field_form": field_form,
             "address_form": address_form,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/update_field.html", context)
     
@@ -1336,6 +1337,7 @@ def update_field(request, field_id):
             "field_form": field_form,
             "address_form": address_form,
             "bo_user_barangay": bo_user_barangay,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/brgy_update_field.html", context)
     
@@ -1728,8 +1730,9 @@ def bofa_image_analysis(request):
                                     {
                                         "role": "system",
                                         "content": [
-                                            {"type": "text",
-                                            "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. If the image content is unrelated to agriculture, please indicate that no analysis is possible."
+                                            {
+                                                "type": "text",
+                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. Provide the description in a more professional way and describe it well. Do not provide analysis on images that is unrelated to agriculture, crops, plants. This model is unable to answer questions. "
                                             }
                                         ],
                                     },
@@ -1848,6 +1851,7 @@ def bofa_map(request):
             "crops": Crop.objects.all(),
             "notifications": notifications,
             "notifications_unread_count": notifications_unread_count,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "bofa_pages/bofa_map.html", context)
 
@@ -1887,6 +1891,7 @@ def bofa_add_field(request):
         context = {
             "field_form": field_form,
             "address_form": address_form,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "bofa_pages/bofa_add_field.html", context)
     else:
@@ -2081,6 +2086,7 @@ def bofa_update_field(request, field_id):
         context = {
             "field_form": field_form,
             "address_form": address_form,
+            "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "bofa_pages/bofa_update_field.html", context)
     else:
@@ -2130,7 +2136,8 @@ def reviewrating(request):
             elif request.user.roleuser.roleuser == "farmer":
                 return redirect("bofa_image_analysis")
         else:
-            messages.error(request, "Please check the errors below.")
+            # messages.error(request, "Please check the errors below.")
+            pass
     else:
         rform = ReviewratingForm()
 

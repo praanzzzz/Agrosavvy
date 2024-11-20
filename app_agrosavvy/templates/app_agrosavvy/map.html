@@ -216,9 +216,9 @@
     <input type="text" id="custom-location" class="form-control" placeholder="Enter custom location">
 </div>
 
-<script>
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
 
+<script>
+    mapboxgl.accessToken = "{{ MAPBOX_API_KEY }}";
 
     const cebucityBounds = [
     [123.4000, 10.0000], // Further southwest

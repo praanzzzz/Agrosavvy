@@ -109,7 +109,7 @@
 
 // Initialize the map with coordinates from the database
 function initializeMap() {
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbnpnYWJpamFuIiwiYSI6ImNsdmV3dTljbTBlbzkya3BlY2Rwa28xczgifQ.z1HHDbS-prv9A3gwQJK43A';
+    mapboxgl.accessToken = "{{ MAPBOX_API_KEY }}";
 
     // Get the initial coordinates from the form (populated with database values)
     var initialLat = parseFloat(document.getElementById('id_latitude').value);
