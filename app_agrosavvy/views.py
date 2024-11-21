@@ -2272,7 +2272,6 @@ def update_crop_data(request, fieldcrop_id, field_id):
             # Show the current values in the form
             fcdform = FieldCropForm(instance=crop)
         return {"fcdform": fcdform, "crop": crop}
-
     else:
         messages.error(request, "You are not authorized to perform this action.")
         return redirect("forbidden")
@@ -2293,7 +2292,6 @@ def delete_soil_data(request, soil_id):
                 )
         else:
             messages.error(request, "Invalid request.")
-
     else:
         return redirect("forbidden")
 
@@ -2313,7 +2311,6 @@ def delete_crop_data(request, fieldcrop_id):
                 )
         else:
             messages.error(request, "Invalid request.")
-
     else:
         return redirect("forbidden")
 

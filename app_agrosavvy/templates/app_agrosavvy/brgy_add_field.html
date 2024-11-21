@@ -23,10 +23,9 @@
                         {{ address_form.as_p }}
 
                         <div class="form-group mt-4">
-                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on
-                                Map</button>
-                            <button type="submit" class="btn btn-success btn-block mb-2">Submit</button>
+                            <button type="submit" class="btn btn-success btn-block mb-2 w-100">Submit</button>
                         </div>
+                        
                     </form>
                 </div>
             </div>
@@ -35,12 +34,22 @@
         <!-- Map Section -->
         <div class="col-md-6">
             <div class="card shadow-lg border-0 rounded-3">
-                <div id="map" style="height: 660px; border-radius: 0.375rem;"></div>
+                <div id="map" style="height: 540px; border-radius: 0.375rem;"></div>
+            </div>
+            <div class="card shadow-lg border-0 rounded-3 mt-4">
+                <div class="message-label mt-4 mx-auto my-3">Adjust the marker on the map to match the precise location of your farm.</div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .message-label {
+    font-size: 0.75rem;
+    margin-bottom: 3px;
+    color: #777;
+}
+</style>
 
 
 
@@ -58,8 +67,6 @@
                     return;
                 }
 
-
-
                 // Get user's address for comparison (assuming userAddress is available in the context)
                 var bo_user_barangay = "{{bo_user_barangay }}".toLowerCase(); // Ensure userAddress is in lowercase
 
@@ -70,9 +77,6 @@
                     return;
                 }
 
-
-
-                
                 // Check if latitude and longitude fields are filled
                 var latitude = document.getElementById('id_latitude').value;
                 var longitude = document.getElementById('id_longitude').value;
@@ -115,7 +119,6 @@
 
 
 
- 
 
         function initializeMap() {
             mapboxgl.accessToken = "{{ MAPBOX_API_KEY }}";
@@ -205,7 +208,7 @@
             }
 
             // Handle "Show on Map" button click to geocode the address and update the marker
-            document.getElementById('geocodeButton').addEventListener('click', function () {
+            document.getElementById('id_barangay').addEventListener('change', function () {
                 var barangayName = document.getElementById('id_barangay').selectedOptions[0].text; // Get the selected barangay name
                 var address = `${barangayName}, ${document.getElementById('id_city_municipality').value}, ${document.getElementById('id_country').value}`;
 
@@ -233,9 +236,6 @@
                     });
             });
         }
-
-
-
 
 
         submitForm();

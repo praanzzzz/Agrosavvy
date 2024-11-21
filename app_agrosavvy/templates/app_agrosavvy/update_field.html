@@ -10,8 +10,7 @@
         <div class="col-md-6">
             <div class="card shadow-lg border-0 rounded-3">
                 <div class="card-body p-4">
-                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm mb-3">Go back <i class='bx bx-chevrons-left'></i></a>
-                    <h1 class="mb-4">Update Field</h1>
+                    <h4 class="card-title mb-4 text-primary"><strong>Update Field Details</strong></h4>
                     <form id="fieldForm" method="POST">
                         {% csrf_token %}
                         {{ field_form.as_p }}
@@ -19,9 +18,7 @@
                         <h5><strong>Address Details</strong> (Cebu City only)</h5>
                         {{ address_form.as_p }}
                         <div class="form-group mt-4">
-                            <button type="button" id="geocodeButton" class="btn btn-primary btn-block mb-2">Show on
-                                Map</button>
-                            <button type="submit" class="btn btn-success btn-block mb-2">Submit</button>
+                            <button type="submit" class="btn btn-success btn-block mb-2 w-100">Submit</button>
                         </div>
                     </form>
                 </div>
@@ -30,13 +27,22 @@
         <!-- Map section -->
         <div class="col-md-6">
             <div class="card shadow">
-                <div id="map" style="height: 700px; border-radius: 0.375rem;"></div>
+                <div id="map" style="height: 540px; border-radius: 0.375rem;"></div>
+            </div>
+            <div class="card shadow-lg border-0 rounded-3 mt-4">
+                <div class="message-label mt-4 mx-auto my-3">Adjust the marker on the map to match the precise location of your farm.</div>
             </div>
         </div>
     </div>
 </div>
 
-
+<style>
+    .message-label {
+    font-size: 0.75rem;
+    margin-bottom: 3px;
+    color: #777;
+}
+</style>
 
 
 
@@ -205,7 +211,7 @@ function initializeMap() {
     }
 
     // 'Show on Map' button click handler for updating map based on selected barangay
-    document.getElementById('geocodeButton').addEventListener('click', function () {
+    document.getElementById('id_barangay').addEventListener('change', function () {
         var barangayName = document.getElementById('id_barangay').selectedOptions[0].text;
         var address = `${barangayName}, ${document.getElementById('id_city_municipality').value}, ${document.getElementById('id_country').value}`;
         
