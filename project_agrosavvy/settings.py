@@ -13,8 +13,7 @@ import os
 from pathlib import Path
 from decouple import config
 
-
-# MAPBOX_API_KEY = config('MAPBOX_API_KEY')
+MAPBOX_API_KEY = config('MAPBOX_API_KEY')
 WEATHER_API_KEY=config('WEATHER_API_KEY')
 ONECALL_API_KEY=config('ONECALL_API_KEY')
 
