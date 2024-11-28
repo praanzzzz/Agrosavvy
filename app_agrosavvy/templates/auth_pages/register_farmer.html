@@ -16,11 +16,33 @@
                   {% csrf_token %}
                   {% for field in form %}
                   <div class="form-group mb-3">
+                   
+                    {% if field.name == "middle_initial" %}
+                  
                     {{ field.label_tag }}
+                    {% else %}
+                        {{ field.label_tag }} <span style="color: red">*</span>
+                    {% endif %}
+
+
+
+
                     {{ field }}
                     <span class="text-error">{{ field.errors }}</span>
+                    {% if field.name == "username" %}
+                    <div id="username-suggestions" class="suggestions"></div>
+                    {% endif %}
                   </div>
                   {% endfor %}
+                  <!-- Password Validation Rules -->
+                  <div class="password-rules mb-3" style="font-size: 0.8rem;">
+                    <ul class="text-muted">
+                      <li>Passwords must be at least 8 characters long.</li>
+                      <li>Passwords cannot be too similar to your personal information.</li>
+                      <li>Passwords must not be commonly used, like "password123."</li>
+                      <li>Passwords cannot be entirely numeric.</li>
+                    </ul>
+                  </div>
                   {% for uaform in useraddress_form %}
                   <div class="form-group mb-3">
                     {{ uaform.label_tag }}
@@ -56,5 +78,85 @@
     height: 100%;
     position: relative;
   }
+
+
+
+  
+  
+.suggestions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px; /* Use gap for consistent spacing */
+    flex-wrap: wrap; /* Allow wrapping for smaller screens */
+}
+
+.suggestions span {
+    padding: 6px 12px; /* Slightly larger padding for comfort */
+    background-color: #f8f9fa; /* Subtle light color */
+    border: 1px solid #dee2e6; /* Soft border */
+    border-radius: 12px; /* Rounded pills for modern look */
+    font-size: 14px; /* Smaller, clean font */
+    color: #495057; /* Neutral text color */
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s; /* Smooth hover effects */
+}
+
+.suggestions span:hover {
+    background-color: #326fe2; /* Modern blue hover */
+    color: #0754d0; /* White text for hover */
+}
+
 </style>
+
+
+
+
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const usernameField = document.querySelector('input[name="username"]');
+      const suggestionsContainer = document.getElementById("username-suggestions");
+
+      usernameField.addEventListener("input", function () {
+          const input = usernameField.value;
+
+          // Clear previous suggestions
+          suggestionsContainer.innerHTML = "";
+
+          // Skip suggestions for short inputs
+          if (input.length < 3) {
+              return;
+          }
+
+          // Generate suggestions
+          const suggestions = [
+              input + Math.floor(Math.random() * 1000),
+              input + Math.floor(Math.random() * 1000),
+              input + Math.floor(Math.random() * 1000),
+              input + Math.floor(Math.random() * 1000),
+            
+          ];
+
+          // Display suggestions
+          suggestions.forEach((suggestion) => {
+              const suggestionElement = document.createElement("span");
+              suggestionElement.textContent = suggestion;
+              suggestionElement.style.cursor = "pointer";
+              suggestionElement.style.marginRight = "10px";
+              suggestionElement.style.background = "#f0f0f0";
+              suggestionElement.style.padding = "5px";
+              suggestionElement.style.borderRadius = "5px";
+
+              // Set username when clicked
+              suggestionElement.addEventListener("click", () => {
+                  usernameField.value = suggestion;
+                  suggestionsContainer.innerHTML = ""; // Clear suggestions
+              });
+
+              suggestionsContainer.appendChild(suggestionElement);
+          });
+      });
+  });
+</script>
 {% endblock %}

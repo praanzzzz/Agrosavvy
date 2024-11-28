@@ -38,8 +38,6 @@ def subscribe_users(modeladmin, request, queryset):
     queryset.update(is_subscribed=True)
 
 
-
-
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
@@ -49,7 +47,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {"fields": ("official_user_id", "username", "password", "profile_picture")}),
         (
             "Personal info",
-            {"fields": ("firstname", "lastname", "email", "date_of_birth", "gender", "useraddress",)}, 
+            {"fields": ("firstname", "middle_initial", "lastname", "email", "contact_number", "date_of_birth", "gender", "useraddress",)}, 
         ),
         ("Roles", {"fields": ("roleuser",)}),
         (
@@ -78,40 +76,17 @@ class CustomUserAdmin(UserAdmin):
 
     )
 
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": (
-                    "official_user_id",
-                    "username",
-                    "password1",
-                    "password2",
-                    "firstname",
-                    "lastname",
-                    "email",
-                    "gender", 
-                    "is_staff",
-                    "is_superuser",
-                    "roleuser",
-                    "request_date",
-                    "is_approved",
-                    "approved_date",
-                    "approved_by",
-                ),
-            },
-        ),
-    )
-
     list_display = (
         "id",
         "official_user_id",
+        "firstname",
+        "lastname",
         "username",
         "email",
         "active_status",
         "is_subscribed",
         "roleuser",
+        "approved_date",
     )
 
     search_fields = (
@@ -125,12 +100,23 @@ class CustomUserAdmin(UserAdmin):
     readonly_fields = ("request_date",)
 
 
+
+    # Prevent adding new pending users directly from admin
+    def has_add_permission(self, request):
+        return False
+    
+
     # def has_delete_permission(self, request, obj=None):
     #     return False
 
 
 
 
+
+
+@admin.action(description='Disapprove selected users')
+def disapprove_users(modeladmin, request, queryset):
+    queryset.update(is_disapproved = True)
 
 
 @admin.action(description="Approve selected users")
@@ -141,7 +127,9 @@ def approve_users(modeladmin, request, queryset):
             username=pending_user.username,
             password=pending_user.password,
             email=pending_user.email,
+            contact_number=pending_user.contact_number,
             firstname=pending_user.firstname,
+            middle_initial=pending_user.middle_initial,
             lastname=pending_user.lastname,
             date_of_birth=pending_user.date_of_birth,
             gender=pending_user.gender, 
@@ -161,25 +149,32 @@ class PendingUserAdmin(admin.ModelAdmin):
     list_display = (
         "official_user_id",
         "username",
+        "firstname",
+        "lastname",
         "email",
         "roleuser",
         'useraddress',
+        "is_pending",
         "is_disapproved",
         "request_date",
     )
-    actions = [approve_users]
+    actions = [approve_users, disapprove_users]
 
     readonly_fields = (
         "official_user_id",
         "request_date",
         "username",
         "email",
+        "contact_number",
         "firstname",
+        "middle_initial",
         "lastname",
         "gender", 
         "date_of_birth",
         "useraddress",
         "roleuser",
+        "is_pending",
+        "is_disapproved",   
     )
 
     search_fields = (
@@ -368,12 +363,12 @@ admin.site.register(Notification, NotificationAdmin)
 admin.site.register(SoilDataSFM)
 
 
-# admin.site.register(Address)
-# admin.site.register(Crop)
-# admin.site.register(RoleUser)
-# admin.site.register(Barangay)
-# admin.site.register(Gender)
-# admin.site.register(UserAddress)
+admin.site.register(Address)
+admin.site.register(Crop)
+admin.site.register(RoleUser)
+admin.site.register(Barangay)
+admin.site.register(Gender)
+admin.site.register(UserAddress)
 
 
 

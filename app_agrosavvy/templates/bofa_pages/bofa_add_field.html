@@ -91,7 +91,8 @@
                             showToast('Field saved successfully!','success');
                             window.location.href = '{% url "bofa_dashboard" %}';
                         } else {
-                            showToast('Error saving field.', 'error');
+                            // showToast('Error saving field.', 'error');
+                            showToast('Slightly move the marker to change coordinates.', 'warning')
                         }
                     })
                     .catch(error => {

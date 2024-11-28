@@ -299,31 +299,32 @@
                         New Chat
                         {% endif %}
                         </a>
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmDeleteChatGroupModal">
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmDeleteChatGroupModal{{ group.id }}">
                             <i class='bx bx-trash-alt' ></i>
                         </button>
-                      </div>
-                    <!-- Confirmation Modal for Deleting Chat Group -->
-                    <div class="modal fade" id="confirmDeleteChatGroupModal" tabindex="-1" aria-labelledby="confirmDeleteChatGroupModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="confirmDeleteChatGroupModalLabel">Delete Chat Group</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p>Are you sure you want to delete this chat group?</p>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <form action="{% url 'delete_chat_group' group.id %}" method="POST" style="display:inline;">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger">Delete</button>
-                                    </form>
+
+                        <!-- Confirmation Modal for Deleting Chat Group -->
+                        <div class="modal fade" id="confirmDeleteChatGroupModal{{ group.id }}" tabindex="-1" aria-labelledby="confirmDeleteChatGroupModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="confirmDeleteChatGroupModalLabel">Delete Chat Group</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete this chat group?</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{% url 'delete_chat_group' group.id %}" method="POST" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                      </div>
 
                 </li>
                 {% endfor %}
@@ -336,32 +337,32 @@
             <div class="messages-box">
                 <ul class="messages-list" id="messagesList">
                     {% for chat in chats %}
-                    <li class="message {% if chat.user == request.user %}sent{% else %}received{% endif %}">
-                        <div class="message-label">
-                            {{ chat.user.username }} : {{ chat.created_at|date:"Y-m-d H:i" }}
-                        </div>
-                        <div class="message-text">{{ chat.message }}</div>
-                    </li>
-                    <li class="message received">
-                        <div class="message-label">Agrosavvy AI : {{ chat.created_at|date:"Y-m-d H:i" }}</div>
-                        <div class="message-text">{{ chat.response|safe }}</div>
+                        <li class="message {% if chat.user == request.user %}sent{% else %}received{% endif %}">
+                            <div class="message-label">
+                                {{ chat.user.username }} : {{ chat.created_at|date:"Y-m-d H:i" }}
+                            </div>
+                            <div class="message-text">{{ chat.message }}</div>
+                        </li>
+                        <li class="message received">
+                            <div class="message-label">Agrosavvy AI : {{ chat.created_at|date:"Y-m-d H:i" }}</div>
+                            <div class="message-text">{{ chat.response|safe }}</div>
                             <div class="d-flex align-items-center mt-2">
                                 <button class="btn btn-outline-secondary btn-sm rounded-pill me-2 shadow-sm" 
-                                        onclick="copyToClipboard('{{ chat.response }}')" 
+                                        onclick="copyToClipboard('{{ chat.response|escapejs }}')" 
                                         data-bs-toggle="tooltip" 
                                         data-bs-placement="top" 
                                         title="Copy chat response">
                                     <i class="bx bx-copy-alt"></i>
                                 </button>
                                 <button class="btn btn-outline-primary btn-sm rounded-pill shadow-sm" 
-                                        onclick="exportChat('{{ chat.response }}', 'chat_response_{{ chat.id }}.txt')" 
+                                        onclick="exportChat('{{ chat.response|escapejs }}', 'chat_response_{{ chat.id }}.txt')" 
                                         data-bs-toggle="tooltip" 
                                         data-bs-placement="top" 
                                         title="Export chat as a file">
                                     <i class="bx bx-export"></i> 
                                 </button>
                             </div>
-                    </li>
+                        </li>
                     {% endfor %}
                 </ul>
             </div>
@@ -425,14 +426,13 @@
 
 
 <script>
+    // this functions uses onclick in the html code rather than using eventlistener
     // copy to clipboard
     function copyToClipboard(text) {
-        console.log('copyToClipboard function triggered'); // Debug message
         if (!text) {
             console.error('Error: No text provided to copy');
             return;
         }
-        console.log('Text to copy:', text); // Debug message
         try {
             // Create a temporary element to parse the HTML and extract plain text
             const tempElement = document.createElement('div');
@@ -452,10 +452,10 @@
             if (success) {
                 showToast('Text copied to clipboard successfully', 'success');
             } else {
-                showToast('Error: Failed to copy text to clipboard', 'error');
+                showToast('Failed to copy text to clipboard', 'error');
             }
         } catch (error) {
-            console.error('Error during clipboard operation:', error);
+            showToast('Error during clipboard operation', 'error');
         }
     }
 
@@ -474,8 +474,8 @@
             return;
         }
 
-        console.log('Exporting chat response:', text); // Debug message
-        console.log('Filename:', filename); // Debug message
+        console.log('Exporting chat response:', text); 
+        console.log('Filename:', filename); 
 
         try {
             // Strip HTML tags from the text
@@ -495,10 +495,10 @@
             a.download = filename;
 
             a.click();  // Initiates the download
-            console.log('Export initiated for file:', filename);
+            // console.log('Export initiated for file:', filename);
             showToast('Recommendation exported successfully', 'success');
         } catch (error) {
-            console.error('Error during file export:', error);
+            // console.error('Error during file export:', error);
             showToast('Error during file export', 'error');
         }
     }
@@ -513,10 +513,7 @@
     }
 
 
-
-
-
-    // DOM elements
+    // Selecting elements by their ID and storing references in variables for DOM manipulation
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
     const messagesList = document.getElementById('messagesList');
@@ -524,7 +521,15 @@
     const chatGroupsList = document.getElementById('chatGroupsList');
     let currentGroupId = new URLSearchParams(window.location.search).get('group_id');
 
+
+    // another way of writing this is:
+    // document.getElementById('messageForm').addEventListener('submit', (event) =>{
+    //     // logic here
+    // });
+
+
     // Event listener for sending a new message
+    // uses arrow function. suggestion: wrap it in a function for better organization and readability
     messageForm.addEventListener('submit', (event) => {
         event.preventDefault();
 
@@ -540,7 +545,6 @@
         <div class="message-label">You</div>
         <div class="message-text">${message}</div>`;
         messagesList.appendChild(messageItem);
-
         messageInput.value = '';
         scrollToBottom(); // Scroll to the bottom after adding the message
 
@@ -548,10 +552,8 @@
         spinner.style.display = 'flex';
 
 
-
-
-        
         // Make the POST request to send the message and receive the AI's response
+        // fetch returns a promise (in this case it says: I will give you something status regardless of status)
         fetch(`/chat/group/${currentGroupId}/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -560,6 +562,7 @@
                 'message': message
             })
         })
+            // handles the server's JSON response.
             .then(response => response.json())
             .then(data => {
                 const response = data.response;
@@ -571,6 +574,7 @@
                 messagesList.appendChild(aiMessageItem);
                 scrollToBottom(); // Scroll to the bottom after adding the response
             })
+            // deals with errors like network issues.
             .catch(error => {
                 // Handle network or unexpected errors
                 console.error('Error during message fetch:', error);
@@ -585,12 +589,11 @@
 
 
 
-
-
     
 
 
     // Event listener for creating a new chat group
+    // suggestion: wrap it in a function for better organization and readability
     document.getElementById('createGroupButton').addEventListener('click', () => {
         fetch('/chat/', {  // Make sure this URL is correctly mapped in your Django urls.py
             method: 'POST',
@@ -630,7 +633,7 @@
 
 
 
-    // Function to load chats for a specific group
+    // Function to load chats for a specific group - called in the chatgrouplist event listener
     function loadChatsForGroup(groupId) {
         fetch(`/chat/group/${groupId}/`)
             .then(response => response.text())
@@ -652,11 +655,6 @@
     }
 
 
-
-
-
-
-
     // Event listener for switching between chat groups
     chatGroupsList.addEventListener('click', (event) => {
         if (event.target.tagName === 'A') {
@@ -669,10 +667,29 @@
     });
 
 
+    
+    // Function to automatically open the last chat group (or latest one)
+    function openLastChatGroup() {
+        const groups = Array.from(chatGroupsList.querySelectorAll('a'));  // Get all group links
+        if (groups.length > 0) {
+            const firstGroup = groups[0];  // Get the first group in the list
+            const groupId = new URL(firstGroup.href).searchParams.get('group_id');
+            if (groupId) {
+                loadChatsForGroup(groupId);  // Load chats for the last group
+            }
+        }
+    }
 
+    // Call the function to open the last chat group when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        openLastChatGroup();
+    });
 
     // Initial scroll to the bottom on page load
     scrollToBottom();
+
 </script>
 
 {% endblock %}
+
+

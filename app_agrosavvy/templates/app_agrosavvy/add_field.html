@@ -7,7 +7,6 @@
 
 
 <div class="container mt-4 pt-4">
-
     <div class="row">
         <!-- Field and Address Details Section -->
         <div class="col-md-6">
@@ -21,9 +20,8 @@
                         <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small>
                         </h5>
                         {{ address_form.as_p }}
-
+    
                         <div class="form-group mt-4">
-                            
                             <button type="submit" class="btn btn-success btn-block mb-2 w-100">Submit</button>
                         </div>
                     </form>
@@ -53,9 +51,14 @@
 
 
 <script>
-
+// waits for the DOM to load to ensure all elements are ready to interact with.
 document.addEventListener('DOMContentLoaded', function () {
 
+    // used the function (e) because we need to interact with the form that triggers the event.
+    // interaction  is through validating the input and stuff
+    
+    // wrapped it in function to avoid cluttering and to provide better structure and stuff
+    // suggestion: create another function for validation here and just call it.
     function submitForm() {
         document.getElementById('fieldForm').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -100,7 +103,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     showToast('Field saved successfully!', 'success');
                     window.location.href = '{% url "dashboard" %}';
                 } else {
-                    showToast('Error saving field.', 'error');
+                    // showToast('Error saving field.', 'error');
+                    showToast('Slightly move the marker to change coordinates.', 'warning')
                 }
             })
             .catch(error => {
@@ -232,9 +236,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+
     submitForm();
     initializeMap();
-    });
+});
 
 </script>
 

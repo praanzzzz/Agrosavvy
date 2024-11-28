@@ -63,6 +63,7 @@ urlpatterns = [
     path('admin_activate_account/<int:user_id>', views.admin_activate_account, name='admin_activate_account'),
     path('admin_approve_user/<int:user_id>', views.admin_approve_user, name='admin_approve_user'),
     path('admin_disapprove_user/<int:user_id>', views.admin_disapprove_user, name='admin_disapprove_user'),
+    path('admin_approve_disapproved_user/<int:user_id>', views.admin_approve_disapproved_user, name='admin_approve_disapproved_user'),
 
 
     #settings section urls
@@ -121,7 +122,7 @@ urlpatterns = [
     path('bofa_settings/bofa_billing', views.bofa_billing, name='bofa_billing'),
 
     #field management for Brgy officers and farmers
-    path('bofa_dashboard/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),
+    path('bofa_dashboard/bofa_manage_field/bofa_update_field/<int:field_id>/', views.bofa_update_field, name='bofa_update_field'),
     path('bofa_dashboard/bofa_delete_field/<int:field_id>/', views.bofa_delete_field, name='bofa_delete_field'),
     path('bofa_dashboard/bofa_manage_field/<int:field_id>/', views.bofa_manage_field, name="bofa_manage_field"),
 

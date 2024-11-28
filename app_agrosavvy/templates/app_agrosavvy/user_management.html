@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 {% block header %}
 {% endblock %}
 {% block content %}
@@ -8,6 +9,16 @@
     <div class="row">
         <!-- Main content area -->
         <div class="col-md-8">
+
+
+            <!-- Reports Link -->
+            <div class="mb-4">
+                <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportsModal">View Reports</a>
+            </div>
+
+
+
+
             <!-- Active Users Section -->
             <h3 class="text-center mb-4">Registered Users</h3>
             <form method="get" action="{% url 'user_management' %}" class="mb-4">
@@ -70,10 +81,20 @@
                                 
 
                                 <!-- Deactivate Form -->
-                                <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" class="d-inline" id="deactivateForm-{{ registered_user.id }}">
-                                    {% csrf_token %}
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeactivateModal-{{ registered_user.id }}">Deactivate</button>
-                                </form>
+                                 {% if registered_user.active_status %}
+                                    <form method="post" action="{% url 'admin_deactivate_account' registered_user.id %}" class="d-inline" id="deactivateForm-{{ registered_user.id }}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeactivateModal-{{ registered_user.id }}">Deactivate</button>
+                                    </form>
+                                 {% else %}
+                                    <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" class="d-inline" id="activateForm-{{ registered_user.id }}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmActivateModal-{{ registered_user.id }}">Activate</button>
+                                    </form>
+                                 {% endif %}
+                               
+
+                               
 
                                 <!-- Deactivate Confirmation Modal -->
                                 <div class="modal fade" id="confirmDeactivateModal-{{ registered_user.id }}" tabindex="-1" aria-labelledby="confirmDeactivateModalLabel-{{ registered_user.id }}" aria-hidden="true">
@@ -94,11 +115,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Activate Form -->
-                                <form method="post" action="{% url 'admin_activate_account' registered_user.id %}" class="d-inline" id="activateForm-{{ registered_user.id }}">
-                                    {% csrf_token %}
-                                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmActivateModal-{{ registered_user.id }}">Activate</button>
-                                </form>
+                               
 
                                 <!-- Activate Confirmation Modal -->
                                 <div class="modal fade" id="confirmActivateModal-{{ registered_user.id }}" tabindex="-1" aria-labelledby="confirmActivateModalLabel-{{ registered_user.id }}" aria-hidden="true">
@@ -186,6 +203,7 @@
                             <th>Role</th>
                             <th>Address</th>
                             <th>Request Date</th>
+                            <!-- <th>Status</th> -->
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -207,24 +225,34 @@
                             <td>{{ pending_user.useraddress }}</td>
                             <td>{{ pending_user.request_date }}</td>
                             <td>
-                              <!-- Button trigger modal -->
+                                {% if pending_user.is_pending %}
+                                <span class="badge bg-success">Pending</span>
+                                {% else %}
+                                <span class="badge bg-warning">Disapproved</span>
+                                {% endif %}
+                            </td>
+                            <td>
+
+                                <!-- Button trigger modal -->
                                 <div class="btn-group">
-                                    <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" class="d-inline" id="approveForm">
-                                        {% csrf_token %}
-                                        <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmApproveModal">Approve</button>
-                                    </form>
-                                    <form method="post" action="{% url 'admin_disapprove_user' pending_user.id %}" class="d-inline" id="disapproveForm">
-                                        {% csrf_token %}
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDisapproveModal">Disapprove</button>
-                                    </form>
+                                        <!-- Show Disapprove Button -->
+                                        <form method="post" action="{% url 'admin_disapprove_user' pending_user.id %}" class="d-inline" id="disapproveForm{{ pending_user.id }}">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDisapproveModal{{ pending_user.id }}">Disapprove</button>
+                                        </form>
+                                        <!-- Show Approve Button -->
+                                        <form method="post" action="{% url 'admin_approve_user' pending_user.id %}" class="d-inline" id="approveForm{{ pending_user.id }}">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmApproveModal{{ pending_user.id }}">Approve</button>
+                                        </form>
                                 </div>
 
                                 <!-- Confirmation Modal for Approve -->
-                                <div class="modal fade" id="confirmApproveModal" tabindex="-1" aria-labelledby="confirmApproveModalLabel" aria-hidden="true">
+                                <div class="modal fade" id="confirmApproveModal{{ pending_user.id }}" tabindex="-1" aria-labelledby="confirmApproveModalLabel{{ pending_user.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered"> <!-- Center the modal -->
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="confirmApproveModalLabel">Confirm Approval</h5>
+                                                <h5 class="modal-title" id="confirmApproveModalLabel{{ pending_user.id }}">Confirm Approval</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
@@ -232,18 +260,18 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" form="approveForm" class="btn btn-outline-success">Approve</button>
+                                                <button type="submit" form="approveForm{{ pending_user.id }}" class="btn btn-outline-success">Approve</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Confirmation Modal for Disapprove -->
-                                <div class="modal fade" id="confirmDisapproveModal" tabindex="-1" aria-labelledby="confirmDisapproveModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered"> <!-- Center the modal -->
+                                <div class="modal fade" id="confirmDisapproveModal{{ pending_user.id }}" tabindex="-1" aria-labelledby="confirmDisapproveModalLabel{{ pending_user.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered"> 
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="confirmDisapproveModalLabel">Confirm Disapproval</h5>
+                                                <h5 class="modal-title" id="confirmDisapproveModalLabel{{ pending_user.id }}">Confirm Disapproval</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
@@ -251,13 +279,140 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" form="disapproveForm" class="btn btn-outline-danger">Disapprove</button>
+                                                <button type="submit" form="disapproveForm{{ pending_user.id }}" class="btn btn-outline-danger">Disapprove</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Pagination for Pending Users -->
+                <nav aria-label="Page navigation" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        {% if pending_users_page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pending_page={{ pending_users_page_obj.previous_page_number }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}" aria-label="Previous">
+                                &laquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% for num in pending_users_page_obj.paginator.page_range %}
+                        <li class="page-item {% if pending_users_page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?pending_page={{ num }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if pending_users_page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?pending_page={{ pending_users_page_obj.next_page_number }}&pending_search={{ pending_search_query }}&pending_filter={{ pending_filter_type }}&pending_sort={{ pending_sort_by }}" aria-label="Next">
+                                &raquo;
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% else %}
+                <p class="text-muted text-center">No Pending Users</p>
+                {% endif %}
+            </div>
+
+
+
+
+            <!-- Dissaproved users section -->
+            <h3 class="text-center mb-4 mt-5">Disapproved Users</h3>
+            <form method="get" action="{% url 'user_management' %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="disapproved_search" placeholder="Search disapproved users..." value="{{ disapproved_search_query }}" class="form-control">
+                    <select name="disapproved_filter" class="form-select">
+                        <option value="">All roles</option>
+                        <option value="farmer" {% if disapproved_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
+                        <option value="brgy_officer" {% if disapproved_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
+                    </select>
+                    <select name="disapproved_sort" class="form-select">
+                        <option value="">Sort by</option>
+                        <option value="username" {% if disapproved_sort_by == 'username' %}selected{% endif %}>Username</option>
+                        <option value="email" {% if disapproved_sort_by == 'email' %}selected{% endif %}>Email</option>
+                        <option value="firstname" {% if disapproved_sort_by == 'firstname' %}selected{% endif %}>First Name</option>
+                        <option value="lastname" {% if disapproved_sort_by == 'lastname' %}selected{% endif %}>Last Name</option>
+                        <option value="request_date" {% if disapproved_sort_by == 'request_date' %}selected{% endif %}>Request Date</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </form>
+            <div class="table-responsive">
+                {% if disapproved_users %}
+                <table class="table table-borderless shadow-sm rounded">
+                    <thead class="bg-dark text-white">
+                        <tr>
+                            <th>Official User ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Address</th>
+                            <th>Request Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for disapproved_user in disapproved_users_page_obj %}
+                        <tr>
+                            <td>{{ disapproved_user.official_user_id }}</td>
+                            <td>{{ disapproved_user.firstname }} {{ disapproved_user.lastname }}</td>
+                            <td>{{ disapproved_user.email }}</td>
+                            <td>
+                                {% if disapproved_user.roleuser.roleuser == "farmer" %}
+                                Farmer
+                                {% elif disapproved_user.roleuser.roleuser == "brgy_officer" %}
+                                Barangay Officer
+                                {% else %}
+                                Unknown
+                                {% endif %}
+                            </td>
+                            <td>{{ disapproved_user.useraddress }}</td>
+                            <td>{{ disapproved_user.request_date }}</td>
+                            <td>
+                                {% if disapproved_user.is_disapproved %}
+                                <span class="badge text-danger">Disapproved</span>
+                                {% else %}
+                                <span class="badge text-warning">Disapproved</span>
+                                {% endif %}
+                            </td>
+                            <td>
+
+                                <!-- Button trigger modal -->
+                                <div class="btn-group">
+                                        <!-- Show Approve Button -->
+                                        <form method="post" action="{% url 'admin_approve_disapproved_user' disapproved_user.id %}" class="d-inline" id="approveForm{{ disapproved_user.id }}">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#confirmApproveDisapprovedModal{{ disapproved_user.id }}">Approve</button>
+                                        </form>
+                                </div>
+
+                                <!-- Confirmation Modal for Approve -->
+                                <div class="modal fade" id="confirmApproveDisapprovedModal{{ disapproved_user.id }}" tabindex="-1" aria-labelledby="confirmApproveDisapprovedModalLabel{{ disapproved_user.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered"> <!-- Center the modal -->
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="confirmApproveDisapprovedModalLabel{{ disapproved_user.id }}">Confirm Approval</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to approve this user?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" form="approveForm{{ disapproved_user.id }}" class="btn btn-outline-success">Approve</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -299,8 +454,8 @@
             <!-- User Log -->
             <div class="rounded p-3 bg-light shadow-sm mb-4">
                 <h4><strong>User Log</strong></h4>
-                <div>
-                    {% for event in login_events|slice:":5" %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for event in login_events %}
                     <div class="mb-3">
                         <span>
                             {% if event.user_id == null %}
@@ -322,8 +477,8 @@
             <!-- CRUD Log -->
             <div class="rounded p-3 bg-light shadow-sm">
                 <h4><strong>CRUD Log</strong></h4>
-                <div>
-                    {% for event in crud_events|slice:":5" %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for event in crud_events %}
                     <div class="mb-3">
                         <span>
                             {% if event.user_id == null %}
@@ -365,5 +520,160 @@
         </div>
     </div>
 </div>
+
+
+
+
+
+<!-- Reports Modal -->
+<div class="modal fade" id="reportsModal" tabindex="-1" aria-labelledby="reportsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportsModalLabel">Farmers List Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% for barangay in sorted_barangays %}
+                    <h4>Barangay {{ barangay }}</h4>
+                    <table class="table" id="farmersListTable-{{ barangay|slugify }}">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Crops Planted</th>
+                                <th>Total Hectares</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for farmer in farmers_data|dict_get:barangay %}
+                                <tr>
+                                    <td>{{ farmer.name }}</td>
+                                    <td>{{ farmer.crops_planted }}</td>
+                                    <td>{{ farmer.total_hectares }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="exportToPDF()">Export to PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- Include necessary scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+    function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+    
+        // Set page margins
+        const margin = 20;
+        const pageWidth = doc.internal.pageSize.width;
+        const pageHeight = doc.internal.pageSize.height;
+    
+        // Define image dimensions
+        const headerWidth = pageWidth - (margin * 2);
+        const headerHeight = 34; // Reduced height
+        const footerWidth = pageWidth - (margin * 2);
+        const footerHeight = 12;
+    
+        // Add header image (moved up)
+        doc.addImage("{% static 'images/header.png' %}", 'PNG', margin, 5, headerWidth, headerHeight);
+    
+        // Add centered title
+        doc.setFontSize(18);
+        doc.setTextColor(0); // Set to black color
+        doc.setFont(undefined, 'bold'); // Set font to bold
+        doc.text('Farmers List Report', pageWidth / 2, headerHeight + 15, { align: 'center' });
+        doc.setFont(undefined, 'normal'); // Reset font to normal
+    
+        let yOffset = headerHeight + 25;
+    
+        // Get all tables from the modal
+        const tables = document.querySelectorAll('#reportsModal table');
+    
+        // Iterate through each table
+        tables.forEach((table, index) => {
+            // Get the barangay name
+            const barangayName = table.previousElementSibling.textContent;
+    
+            // Add barangay title
+            doc.setFontSize(14);
+            doc.setTextColor(0); // Reset to black color for the rest of the text
+            doc.text(barangayName, margin, yOffset);
+            yOffset += 10;
+    
+            // Add table for the current barangay
+            doc.autoTable({
+                html: table,
+                startY: yOffset,
+                margin: { top: margin, right: margin, bottom: margin, left: margin },
+                styles: { fontSize: 10 },
+                headStyles: { fillColor: [144, 238, 144], textColor: 0 }, // Light green background with black text
+            });
+    
+            yOffset = doc.lastAutoTable.finalY + 10;
+    
+            // Add a new page if there's not enough space for the next barangay
+            if (yOffset > pageHeight - footerHeight - 20 && index < tables.length - 1) {
+                doc.addPage();
+                yOffset = margin + 10;
+            }
+        });
+    
+
+        // Add "Prepared by" and "Prepared on" below the tables
+        const preparedBy = "Prepared by: " + "{{ request.user.firstname }} {{request.user.lastname}}"; // Get the logged-in user's name
+        const preparedOn = "Prepared on: " + new Date().toLocaleDateString(); // Get today's date
+    
+        doc.setFontSize(12);
+        doc.setTextColor(0); // Set text color to black
+        doc.text(preparedBy, margin, yOffset);
+        yOffset += 7;
+        doc.text(preparedOn, margin, yOffset);
+
+
+
+
+        // Add footer image and page numbers
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.addImage(
+                "{% static 'images/footer.png' %}",
+                'PNG',
+                margin,
+                pageHeight - footerHeight - 5,
+                footerWidth,
+                footerHeight
+            );
+            doc.setFontSize(10);
+            doc.text(
+                `Page ${i} of ${pageCount}`,
+                pageWidth / 2,
+                pageHeight - footerHeight - 10,
+                { align: 'center' }
+            );
+        }
+    
+        // Save the PDF
+        doc.save('farmers_list_report.pdf');
+    }
+    </script>
+    
 
 {% endblock %}

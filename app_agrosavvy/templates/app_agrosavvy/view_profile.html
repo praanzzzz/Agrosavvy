@@ -24,7 +24,7 @@
                           <a href="{% url 'password_change' %}" class="nav-link">Change Password</a>
                       </li>
                       <li class="nav-item">
-                          <a href="{% url 'billing' %}" class="nav-link">Billing</a>
+                          <a href="{% url 'billing' %}" class="nav-link">Subscription</a>
                       </li>
                   </ul>
             </div>
@@ -73,15 +73,19 @@
                                             <small class="ms-3">{{user.official_user_id}}</small>
                                         </i>
                                     </div>
-                                    <div class="list-details">
-
-                                        
-                                    </div>
+                                    
                                 </li>
                                 <li class="list-group-item">
                                     <div class="list-icon">
                                         <i class="fa fa-envelope">
                                             <small class="ms-3">{{user.email}}</small>
+                                        </i>
+                                    </div>
+                                </li>
+                                <li class="list-group-item">
+                                    <div class="list-icon">
+                                        <i class="fa fa-phone">
+                                            <small class="ms-3">{{user.contact_number}}</small>
                                         </i>
                                     </div>
                                 </li>
@@ -107,6 +111,11 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <p>First Name: <strong>{{user.firstname}}</strong></p>
+                                        {% if user.middle_initial %}
+                                        <p>Middle Initial: <strong>{{user.middle_initial}}.</strong></p>
+                                        {% else %}
+                                        <p>Middle Initial: <strong></strong></p>
+                                        {% endif %}
                                         <p>Last Name: <strong>{{user.lastname}}</strong></p>
                                         <p>Role:
                                             {% if user.roleuser.roleuser == "farmer" %}

@@ -14,6 +14,7 @@ from .models import (
     ImageAnalysis,
     ChatGroup,
     SoilDataSFM,
+    Address,
 )
 
 from .forms import (
@@ -53,9 +54,11 @@ import re, base64
 from django.conf import settings as django_settings
 # from datetime import datetime
 from django.core.serializers import serialize
+from django.core.mail import send_mail
+from django.utils.html import format_html
 
-# postgress compatibility
-from django.db.models import Count
+
+# postgress compatibility in dashboard
 from django.db.models.functions import TruncMonth
 
 # AI
@@ -68,7 +71,7 @@ OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 #  Password:                PRAgab19-5158-794 
 
 
-
+    
 
 # Main pages for da_admin and brgy officers
 def dashboard(request):
@@ -79,7 +82,6 @@ def dashboard(request):
         search_query = request.GET.get('search', '')
         filter_type = request.GET.get('filter', '')
         sort_by = request.GET.get('sort', '')
-
         fields = Field.objects.filter(is_deleted=False)
 
         if search_query:
@@ -429,7 +431,6 @@ def chat(request, group_id=None):
                     ai_context += (
                         f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
                         f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
-                        f"\nBased on crops planted in this barangay, there is shortage and oversupply of [specify the crops]"
                     )
                     # If there's no data for the barangay
                     if not soil_data_entries:
@@ -546,6 +547,7 @@ def image_analysis(request):
         history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
         history_json = json.loads(serialize('json', history))
         reviewrating_context = reviewrating(request)
+        latest_analysis = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at').first()
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -599,6 +601,7 @@ def image_analysis(request):
                             cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
                             cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
                             cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+                            cleaned_content = translate_to_bisaya(cleaned_content)
                             # Save analysis result and image
                             analysis.image = image
                             analysis.analysis_output = mark_safe(cleaned_content)
@@ -632,6 +635,7 @@ def image_analysis(request):
             "analysis_output": analysis.analysis_output if analysis else None,
             "history": history,
             "history_json": json.dumps(history_json),
+            "latest_analysis": latest_analysis,
         }
         context.update(reviewrating_context)
         return render(request, "app_agrosavvy/ai/analysisai.html", context)
@@ -680,9 +684,12 @@ def map(request):
                 fields_json.append({
                     "name": field.field_name,
                     "acres": field.field_acres,
+                    "address": f"{field.address.barangay}, {field.address.city_municipality}" if field.address else "No address",
                     "latitude": field.address.latitude,
                     "longitude": field.address.longitude,
                     "crop": field.latest_crop_type or "No crop data",
+                    "owner_name": field.owner.get_full_name() if field.owner else "No owner",
+                    "owner_contact": str(field.owner.contact_number) if field.owner and field.owner.contact_number else "No contact info",
                 })
 
         context = {
@@ -774,7 +781,7 @@ def add_field(request):
     else:
         return redirect("forbidden")
     
-    
+
 
 
 
@@ -804,12 +811,18 @@ def settings(request):
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
-                return redirect("settings")
+                return redirect("view_profile")
             else:
-                messages.error(
-                    request, "Error updating profile. Please check the form."
-                )
+                # messages.error(
+                #     request, "Error updating profile. Please check the form."
+                # )
+                pass
         else:
+             # Pre-process the user's contact number to remove +63 before displaying it in the form
+            user_contact_number = user.contact_number
+            if user_contact_number and user_contact_number.startswith("+63"):
+                user.contact_number = user_contact_number[3:]
+
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform,
@@ -882,18 +895,21 @@ def user_management(request):
         if registered_sort_by:
             registered_users = registered_users.order_by(registered_sort_by)
 
+
+
+
         # Pending Users
         pending_search_query = request.GET.get('pending_search', '')
         pending_filter_type = request.GET.get('pending_filter', '')
         pending_sort_by = request.GET.get('pending_sort', '')
 
         if user_role == "da_admin":
-            pending_users = PendingUser.objects.exclude(roleuser__roleuser="da_admin").filter(is_disapproved=False)
+            pending_users = PendingUser.objects.filter(is_pending=True).exclude(roleuser__roleuser="da_admin").order_by('-request_date')
         else:  # brgy_officer
             pending_users = PendingUser.objects.filter(
                 useraddress__useraddress__startswith=user_barangay,
-                roleuser__roleuser="farmer", is_disapproved=False   
-            )
+                roleuser__roleuser="farmer", is_pending=True
+            ).order_by('-request_date')
 
         if pending_search_query:
             pending_users = pending_users.filter(
@@ -904,10 +920,39 @@ def user_management(request):
             )
 
         if pending_filter_type and user_role == "da_admin":
-            pending_users = pending_users.filter(roleuser__roleuser=pending_filter_type, is_disapproved=False)
+            pending_users = pending_users.filter(roleuser__roleuser=pending_filter_type,)
 
         if pending_sort_by:
             pending_users = pending_users.order_by(pending_sort_by)
+
+
+        # Disapproved Users
+        disapproved_search_query = request.GET.get('disapproved_search', '')
+        disapproved_filter_type = request.GET.get('disapproved_filter', '')
+        disapproved_sort_by = request.GET.get('disapproved_sort', '')
+
+        if user_role =="da_admin":
+            disapproved_users = PendingUser.objects.filter(is_disapproved=True).exclude(roleuser__roleuser="da_admin").order_by('-request_date')
+        else:
+            disapproved_users = PendingUser.objects.filter(
+                useraddress__useraddress__startswith=user_barangay,
+                roleuser__roleuser="farmer", is_disapproved=True
+            ).order_by('-request_date')
+
+        
+        if disapproved_search_query:
+            disapproved_users = disapproved_users.filter(
+                Q(username__icontains=disapproved_search_query) |
+                Q(email__icontains=disapproved_search_query) |
+                Q(firstname__icontains=disapproved_search_query) |
+                Q(lastname__icontains=disapproved_search_query)
+            )
+        if disapproved_filter_type and user_role == "da_admin":
+            disapproved_users = disapproved_users.filter(roleuser__roleuser=disapproved_filter_type,)
+        if disapproved_sort_by:
+            disapproved_users = disapproved_users.order_by(disapproved_sort_by)
+
+
 
         # Pagination for registered users
         registered_paginator = Paginator(registered_users, 4)
@@ -919,7 +964,12 @@ def user_management(request):
         pending_page_number = request.GET.get("pending_page")
         pending_users_page_obj = pending_paginator.get_page(pending_page_number)
 
-        # Login and CRUD events
+        # pagination for disapproved users
+        disapproved_paginator = Paginator(disapproved_users, 4)
+        disapproved_page_number = request.GET.get("disapproved_page")
+        disapproved_users_page_obj = disapproved_paginator.get_page(disapproved_page_number)
+
+        # Login and CRUD events (LOGS)
         if user_role == "da_admin":
             login_events = LoginEvent.objects.all().order_by('-datetime')
             crud_events = CRUDEvent.objects.all().order_by('-datetime')
@@ -931,11 +981,47 @@ def user_management(request):
                 user__useraddress__useraddress__startswith=user_barangay,
             ).order_by('-datetime')
 
+
+        
+        # reports
+        farmers_list = CustomUser.objects.filter(roleuser__roleuser="farmer")
+        if user_role == "brgy_officer":
+            farmers_list = farmers_list.filter(useraddress__useraddress__startswith=user_barangay)
+
+        farmers_data = {}
+        for farmer in farmers_list:
+            barangay = farmer.useraddress.useraddress.split(',')[0].strip()
+            fields = Field.objects.filter(owner=farmer, is_deleted=False)
+            crops_planted = set()
+            total_hectares = fields.aggregate(total=Sum('field_acres'))['total'] or 0
+            
+            for field in fields:
+                field_crops = FieldCropData.objects.filter(field=field, is_deleted=False).values_list('crop_planted__crop_type', flat=True)
+                crops_planted.update(field_crops)
+            
+            if barangay not in farmers_data:
+                farmers_data[barangay] = []
+
+            farmers_data[barangay].append({
+                'name': f"{farmer.firstname} {farmer.lastname}",
+                'crops_planted': ", ".join(crops_planted),
+                'total_hectares': round(total_hectares, 2)
+            })
+
+        # Sort the barangays
+        sorted_barangays = sorted(farmers_data.keys())
+        farmers_data = {barangay: farmers_data[barangay] for barangay in sorted_barangays}
+
+
+
+
         context = {
             "registered_users": registered_users,
             "registered_users_page_obj": registered_users_page_obj,
             "pending_users": pending_users,
             "pending_users_page_obj": pending_users_page_obj,
+            "disapproved_users": disapproved_users,
+            "disapproved_users_page_obj": disapproved_users_page_obj,
             "login_events": login_events,
             "crud_events": crud_events,
             "registered_search_query": registered_search_query,
@@ -944,7 +1030,13 @@ def user_management(request):
             "pending_search_query": pending_search_query,
             "pending_filter_type": pending_filter_type,
             "pending_sort_by": pending_sort_by,
+            "disapproved_search_query": disapproved_search_query,
+            "disapproved_filter_type": disapproved_filter_type,
+            "disapproved_sort_by": disapproved_sort_by,
+            # reports
             "user_role": user_role,
+            "farmers_data": farmers_data,
+            "sorted_barangays": sorted_barangays,
         }
 
         return render(request, "app_agrosavvy/user_management.html", context)
@@ -1123,14 +1215,37 @@ def admin_disapprove_user(request, user_id):
     if request.user.is_authenticated:
         if request.method == "POST":
             pending_user.is_disapproved = True
+            pending_user.is_pending = False
             pending_user.save()
+
+            # Send email notification to the pending user
+            subject = "Agrosavvy Account Request is Disapproved"
+            message = f"""
+                Dear {pending_user.firstname} {pending_user.lastname},
+
+                This is to inform you that your request for agrosavvy account has been disapproved.
+                
+                If you think that this is a mistake, feel free to reach out to us at any time. 
+
+                Best regards,
+                The Agrosavvy Team
+            """
+            recipient_list = [pending_user.email]
+            
+            send_mail(
+                subject,
+                message,
+                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+                recipient_list,
+                fail_silently=True,
+            )
+
             messages.success(request, "The pending user is disapproved.")
             return redirect("user_management")
         return render(request, "app_agrosavvy/user_management.html")
     else:
         return redirect("forbidden")
     
-
 
 
 def admin_approve_user(request, user_id):
@@ -1144,24 +1259,125 @@ def admin_approve_user(request, user_id):
                 password=pending_user.password,
                 email=pending_user.email,
                 firstname=pending_user.firstname,
+                middle_initial=pending_user.middle_initial,
                 lastname=pending_user.lastname,
                 date_of_birth=pending_user.date_of_birth,
                 gender=pending_user.gender,
+                contact_number=pending_user.contact_number,
                 useraddress=pending_user.useraddress,
                 roleuser=pending_user.roleuser,
                 is_approved=True,
                 approved_date=timezone.now(),
                 approved_by=request.user,
             )
+
+            login_url = request.build_absolute_uri(reverse('my_login'))
+            # Send email notification to the pending user
+            subject = "Agrosavvy Account Has Been Approved"
+            message = f"""
+                Dear {pending_user.firstname} {pending_user.lastname},
+
+                We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
+
+                You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
+                Should you have any questions or need assistance, feel free to reach out to us at any time. 
+
+                You can now login your account here:
+                {login_url}
+
+                Welcome to the team, and thank you for being a valued member of our community!
+
+                Best regards,
+                The Agrosavvy Team
+            """
+            recipient_list = [pending_user.email]
+            
+            send_mail(
+                subject,
+                message,
+                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+                recipient_list,
+                fail_silently=True,
+            )
+
+
             pending_user.delete()
             messages.success(
-                request, f"User {pending_user.username} has been approved successfully."
+                request, f"User has been approved successfully."
             )
             return redirect("user_management")
         return render(
             request,
             "app_agrosavvy/confirm_approve.html",
             {"pending_user": pending_user},
+        )
+    else:
+        return redirect("forbidden")
+    
+
+
+
+def admin_approve_disapproved_user(request, user_id):
+    disapproved_user = get_object_or_404(PendingUser, id=user_id)
+
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            CustomUser.objects.create(
+                official_user_id= disapproved_user.official_user_id,
+                username=disapproved_user.username,
+                password=disapproved_user.password,
+                email=disapproved_user.email,
+                firstname=disapproved_user.firstname,
+                middle_initial=disapproved_user.middle_initial,
+                lastname=disapproved_user.lastname,
+                date_of_birth=disapproved_user.date_of_birth,
+                gender=disapproved_user.gender,
+                contact_number=disapproved_user.contact_number,
+                useraddress=disapproved_user.useraddress,
+                roleuser=disapproved_user.roleuser,
+                is_approved=True,
+                approved_date=timezone.now(),
+                approved_by=request.user,
+            )
+
+            login_url = request.build_absolute_uri(reverse('my_login'))
+
+            subject = "Agrosavvy Account Has Been Approved"
+            message = f"""
+                Dear {disapproved_user.firstname} {disapproved_user.lastname},
+
+                We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
+
+                You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
+                Should you have any questions or need assistance, feel free to reach out to us at any time. 
+
+                You can now login your account here:
+                {login_url}
+
+                Welcome to the team, and thank you for being a valued member of our community!
+
+                Best regards,
+                The Agrosavvy Team
+            """
+            recipient_list = [disapproved_user.email]
+            
+            send_mail(
+                subject,
+                message,
+                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+                recipient_list,
+                fail_silently=True,
+            )
+
+            disapproved_user.delete()
+            messages.success(
+                request, f"User has been approved successfully."
+            )
+            return redirect("user_management")
+        return render(
+            request,
+            "app_agrosavvy/confirm_approve.html",
+            {"disapproved_user": disapproved_user},
         )
     else:
         return redirect("forbidden")
@@ -1582,7 +1798,6 @@ def bofa_chat(request, group_id=None):
                     ai_context += (
                         f"\nThe total farming area within {barangay} spans {total_area} hectares.\n"
                         f"Crops currently planted across all sitios in {barangay} include: {', '.join(set(crops))}."
-                        f"\nBased on crops planted in this barangay, there is shortage and oversupply of [specify the crops]"
                     )
 
                     # If there's no data for the barangay
@@ -1732,7 +1947,7 @@ def bofa_image_analysis(request):
                                         "content": [
                                             {
                                                 "type": "text",
-                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. Provide the description in a more professional way and describe it well. Do not provide analysis on images that is unrelated to agriculture, crops, plants. This model is unable to answer questions. "
+                                                "text": "As an AI field analyst, analyze the attached image to assess crop health conditions. Identify any visible issues such as diseases or pests, and suggest actionable improvements for optimal crop growth. Provide the description in a more professional way and describe it well. Do not provide analysis on images that is unrelated to agriculture, crops, plants. This model is unable to answer questions."
                                             }
                                         ],
                                     },
@@ -1764,13 +1979,14 @@ def bofa_image_analysis(request):
                             cleaned_content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_output)  # Bold
                             cleaned_content = re.sub(r'^(#+)\s*(.*?)$', lambda m: f'<h{len(m.group(1))}>{m.group(2)}</h{len(m.group(1))}>', cleaned_content, flags=re.MULTILINE)  # Headers
                             cleaned_content = cleaned_content.replace('\n', '<br>')  # Line breaks
+                            cleaned_content = translate_to_bisaya(cleaned_content)
                             # Save analysis result and image
                             analysis.image = image
                             analysis.analysis_output = mark_safe(cleaned_content)
                             analysis.owner = request.user
                             analysis.title = image_analysis_title_generator(cleaned_content)
                             analysis.save()
-                            messages.success(request, 'Analysis saved.')
+                            # messages.success(request, 'Analysis saved.')
                             return redirect("bofa_image_analysis")
                         else:
                             messages.error(request, "AI did not respond. Please try again later.")
@@ -1841,9 +2057,12 @@ def bofa_map(request):
                 fields_json.append({
                     "name": field.field_name,
                     "acres": field.field_acres,
+                    "address": f"{field.address.barangay}, {field.address.city_municipality}" if field.address else "No address",
                     "latitude": field.address.latitude,
                     "longitude": field.address.longitude,
                     "crop": field.latest_crop_type or "No crop data",
+                    "owner_name": field.owner.get_full_name() if field.owner else "No owner",
+                    "owner_contact": str(field.owner.contact_number) if field.owner and field.owner.contact_number else "No contact info",
                 })
 
         context = {
@@ -1923,12 +2142,15 @@ def bofa_settings(request):
             if updateprofileform.is_valid():
                 updateprofileform.save()
                 messages.success(request, "Profile updated successfully.")
-                return redirect("bofa_settings")
+                return redirect("bofa_view_profile")
             else:
-                messages.error(
-                    request, "Error updating profile. Please check the form."
-                )
+                pass
         else:
+            # Pre-process the user's contact number to remove +63 before displaying it in the form
+            user_contact_number = user.contact_number
+            if user_contact_number and user_contact_number.startswith("+63"):
+                user.contact_number = user_contact_number[3:]
+
             updateprofileform = CustomUserUpdateForm(instance=user)
 
         context = {"updateprofileform": updateprofileform, 
@@ -2051,9 +2273,13 @@ def bofa_manage_field(request, field_id):
         return redirect("forbidden")
 
 
+
+
+
+
 def bofa_update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        field = get_object_or_404(Field, pk=field_id)
+        field = get_object_or_404(Field, field_id=field_id)
 
         if field.owner != request.user:
             return redirect("forbidden")
@@ -2177,7 +2403,25 @@ def add_soil_data(request, field_id):
                         reverse("bofa_manage_field", kwargs={"field_id": field_id})
                     )
             else:
-                messages.error(request, "Form invalid")
+                errors = asdform.errors.get_json_data()
+                all_errors = []
+                # Loop through form errors
+                for field, errors in asdform.errors.items():
+                    for error in errors:
+                        all_errors.append(f"{field.capitalize()}: {error}")
+                # Concatenate all errors into a single message
+                error_message = " | ".join(all_errors)
+                # Display the concatenated error message
+                messages.error(request, error_message)
+                # go back to the old page
+                if request.user.roleuser.roleuser == "da_admin" or  request.user.roleuser.roleuser == "brgy_officer":
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
+                elif request.user.roleuser.roleuser == "farmer":
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    ) 
         else:
             asdform = FieldSoilDataForm()
         return {"asdform": asdform, "field": field}
@@ -2205,7 +2449,23 @@ def add_crop_data(request, field_id):
                         reverse("bofa_manage_field", kwargs={"field_id": field_id})
                     )
             else:
-                messages.error(request, "Form invalid")
+                errors = acdform.errors.get_json_data()
+                all_errors = []
+                # Loop through form errors
+                for field, errors in acdform.errors.items():
+                    for error in errors:
+                        all_errors.append(f"{field.capitalize()}: {error}")
+                error_message = " | ".join(all_errors)
+                messages.error(request, error_message)
+                # go back to old page
+                if request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer":
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
+                elif request.user.roleuser.roleuser == "farmer":
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
         else:
             acdform = FieldCropForm()
         
@@ -2236,7 +2496,25 @@ def update_soil_data(request, field_id, soil_id):
                         reverse("bofa_manage_field", kwargs={"field_id": field_id})
                     )
             else:
-                messages.error(request, "Error updating soil data.")
+                errors = fsdform.errors.get_json_data()
+                all_errors = []
+                # Loop through form errors
+                for field, errors in fsdform.errors.items():
+                    for error in errors:
+                        all_errors.append(f"{field.capitalize()}: {error}")
+                # Concatenate all errors into a single message
+                error_message = " | ".join(all_errors)
+                # Display the concatenated error message
+                messages.error(request, error_message)
+                # go back to the old page
+                if request.user.roleuser.roleuser == "da_admin" or  request.user.roleuser.roleuser == "brgy_officer":
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
+                elif request.user.roleuser.roleuser == "farmer":
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    ) 
         else:
             # Show the current values in the form
             fsdform = FieldSoilDataForm(instance=soil)
@@ -2267,7 +2545,23 @@ def update_crop_data(request, fieldcrop_id, field_id):
                         reverse("bofa_manage_field", kwargs={"field_id": field_id})
                     )
             else:
-                messages.error(request, "Error updating crop data.")
+                errors = fcdform.errors.get_json_data()
+                all_errors = []
+                # Loop through form errors
+                for field, errors in fcdform.errors.items():
+                    for error in errors:
+                        all_errors.append(f"{field.capitalize()}: {error}")
+                error_message = " | ".join(all_errors)
+                messages.error(request, error_message)
+                # go back to old page
+                if request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer":
+                    return redirect(
+                        reverse("manage_field", kwargs={"field_id": field_id})
+                    )
+                elif request.user.roleuser.roleuser == "farmer":
+                    return redirect(
+                        reverse("bofa_manage_field", kwargs={"field_id": field_id})
+                    )
         else:
             # Show the current values in the form
             fcdform = FieldCropForm(instance=crop)
@@ -2496,7 +2790,23 @@ def image_analysis_title_generator(firstline_output):
 
 
 
-
+def translate_to_bisaya(cleaned_content):
+    response = client.chat.completions.create(
+        model=THIS_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                   "As an bisaya translator, act as the best bisaya translator. Translate this to bisaya dialect."
+                )
+            },
+            {"role": "user", "content": cleaned_content},
+        ]
+    )
+    translated_content = response.choices[0].message.content.strip()
+    if not translated_content:
+        return None
+    return translated_content
 
 
 
@@ -2542,11 +2852,11 @@ def register_da_admin(request):
             pending_user.save()
             messages.success(
                 request,
-                "Your account is pending validation. Please check back soon.",
+                "Your account is pending for approval. Please check your email.",
             )
             return redirect("my_login")
         else:
-            messages.error(request, "Please check the form.")
+           return render(request, 'auth_pages/register_da_admin.html', {'form': form})
     else:
         form = PendingUserForm()
     
@@ -2568,11 +2878,11 @@ def register_barangay_officer(request):
             pending_user.save()
             messages.success(
                 request,
-                "Your account is pending validation. Please check back soon.",
+                "Your account is pending for approval. Please check your email.",
             )
             return redirect("my_login")
         else:
-            messages.error(request, "Please check the form")
+            return render(request, 'auth_pages/register_barangay_officer.html', {'form': form})
     else:
         form = PendingUserForm()
     return render(
@@ -2595,11 +2905,11 @@ def register_farmer(request):
             pending_user.save()
             messages.success(
                 request,
-                "Your account is pending validation. Please check back soon.",
+                "Your account is pending for approval. Please check your email.",
             )
             return redirect("my_login")
         else:
-            messages.error(request, "Please check the form")
+            return render(request, 'auth_pages/register_farmer.html', {'form': form})
     else:
         form = PendingUserForm()
     return render(
@@ -2625,10 +2935,9 @@ def my_login(request):
                     messages.info(
                         request, "Your registration request is awaiting approval."
                     )
-                    return render(request, "auth_pages/my_login.html", {"form": form})
+                    return redirect("my_login")
                 else:
                     messages.error(request, "Invalid username or password")
-                    return render(request, "auth_pages/my_login.html", {"form": form})
             except PendingUser.DoesNotExist:
                 pass
 
@@ -2674,6 +2983,10 @@ def my_logout(request):
         return redirect("my_login")
     else:
         return redirect("forbidden")
+
+
+
+
 
 
 def password_change(request):

@@ -191,7 +191,7 @@
                     {% elif user.roleuser.roleuser == "brgy_officer" %}
                     <span class="small text-white">Brgy Officer</span>
                     {% elif user.roleuser.roleuser == "da_admin" %}
-                    <span class="small text-white">DA Admin</span>
+                    <span class="small text-white">CAD Admin</span>
                     {% else %}
                     <span>Unknown</span>
                     {% endif %}
@@ -259,9 +259,12 @@
 
             const popup = new mapboxgl.Popup({ offset: 25 })
                 .setHTML(`
-                    <strong>${field.name}</strong><br>
-                    Hectares: ${field.acres}<br>
-                    Crop: ${field.crop}<br>
+                    <strong>Farm Name: </strong>${field.name}<br>
+                    <strong>Hectares: </strong>${field.acres}<br>
+                    <strong>Crop: </strong>${field.crop}<br>
+                    <strong>Farm Owner: </strong> ${field.owner_name || 'No owner'}<br>
+                    <strong>Contact Number: </strong> ${field.owner_contact || 'No contact info'}<br>
+                    <strong>Address: </strong> ${field.address || 'No address'}<br>
                     <button class="navigate-to-field btn btn-primary">Navigate Here</button>
                 `);
 

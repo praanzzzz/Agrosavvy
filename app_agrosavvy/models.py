@@ -4,7 +4,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-import time
+
 
 
 
@@ -87,12 +87,6 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.barangay}, {self.city_municipality}, {self.country}"
-
-
-
-
-
-
 
 
 
@@ -190,24 +184,44 @@ class UserAddress(models.Model):
 
 
 
+
+
+
 # abstract user is a helper class with default fields: username, password1 and password2, status
 # ang password ra ang nagamit sa default.
 class CustomUser(AbstractUser):
+    first_name = None
+    last_name = None
     official_user_id = models.CharField(max_length= 30, unique=True)
     email = models.EmailField(unique=True)
-    firstname = models.CharField(max_length=30, blank=True)
-    lastname = models.CharField(max_length=30, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
+    firstname = models.CharField(max_length=30)
+    middle_initial = models.CharField(max_length=1, null=True, blank=True)
+    lastname = models.CharField(max_length=30)
+    date_of_birth = models.DateField(null=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True)
-    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, null=True, blank=True)  
-    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
-    active_status = models.BooleanField(default=True) #used custom instead of default is_active
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, null= True)
+    contact_number = models.CharField(max_length=13)
+    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, null=True)  
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, null= True)
+    active_status = models.BooleanField(default=True) 
     is_approved = models.BooleanField(default=False)
     request_date = models.DateTimeField(auto_now_add=True)
     approved_date = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_users')
     is_subscribed = models.BooleanField(default=True)
+
+
+    def save(self, *args, **kwargs):
+        self.username = self.username.strip()
+        self.email = self.email.strip()
+        self.firstname = self.firstname.strip()
+        self.lastname =self.lastname.strip()
+        super().save(*args, **kwargs)
+
+
+    # Define your custom get_full_name method
+    def get_full_name(self):
+        return f"{self.firstname} {self.lastname}".strip()
     
     def __str__(self):
         return self.username
@@ -216,21 +230,24 @@ class CustomUser(AbstractUser):
         ordering = ['-approved_date']
     
 
+
+
 class PendingUser(models.Model):
     official_user_id = models.CharField(max_length= 30, unique=True)
-    username = models.CharField(max_length=150, unique=False)
+    username = models.CharField(max_length=10, unique=True)
     password = models.CharField(max_length=128)
-    email = models.EmailField(unique=True)
-    firstname = models.CharField(max_length=30, blank=True)
-    lastname = models.CharField(max_length=30, blank=True)
-    date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, blank=True, null=True )
-    # contact number
-    # if brgy, add official ID number
-    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, blank=True, null=True)
-    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, blank=True, null=True)
+    email = models.EmailField(max_length = 50, unique=True) 
+    firstname = models.CharField(max_length=30)
+    middle_initial = models.CharField(max_length=1, null=True, blank= True)
+    lastname = models.CharField(max_length=30)
+    date_of_birth = models.DateField(null=True)
+    gender = models.ForeignKey(Gender, on_delete=models.SET_NULL, null= True)
+    contact_number = models.CharField(max_length=13)
+    useraddress = models.ForeignKey(UserAddress, on_delete=models.SET_NULL, null= True)
+    roleuser = models.ForeignKey(RoleUser, on_delete=models.SET_NULL, null= True)
     request_date = models.DateTimeField(auto_now_add=True)
     is_disapproved = models.BooleanField(default=False)
+    is_pending = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'firstname', 'lastname']
@@ -239,6 +256,13 @@ class PendingUser(models.Model):
     def save(self, *args, **kwargs):
         if not self.pk and self.password:
             self.password = make_password(self.password)
+
+
+        self.official_user_id = self.official_user_id.strip()
+        self.username = self.username.strip()
+        self.email = self.email.strip()
+        self.firstname = self.firstname.strip()
+        self.lastname =self.lastname.strip()
         super().save(*args, **kwargs)
 
 
@@ -259,8 +283,8 @@ class ReviewRating(models.Model):
     ]
     
     rating = models.CharField(max_length=1, choices=RATING_CHOICES)
-    review_header = models.CharField(max_length=30, blank=True, null=True)
-    review_body = models.CharField(max_length=200, blank=True, null=True)
+    review_header = models.CharField(max_length=30)
+    review_body = models.CharField(max_length=100)
     rate_date = models.DateTimeField(auto_now_add=True)
     reviewer = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     is_deleted = models.BooleanField(default = False)
@@ -277,8 +301,8 @@ class ReviewRating(models.Model):
 
 class Field(models.Model):
     field_id = models.AutoField(primary_key=True)
-    field_name = models.CharField(max_length=100)
-    field_acres = models.FloatField()  # changed to hectares in templates only
+    field_name = models.CharField(max_length=20)
+    field_acres = models.FloatField() 
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, related_name="fields", null=True)
     owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, related_name="fields", null=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -364,8 +388,8 @@ class FieldSoilData(models.Model):
 class Notification(models.Model):
     user_receiver = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='received_notifications')
     user_sender = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
-    subject = models.TextField()
-    message = models.TextField()
+    subject = models.TextField(max_length=30)
+    message = models.TextField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default = False)
@@ -398,8 +422,8 @@ class ChatGroup(models.Model):
 class Chat(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     chat_group = models.ForeignKey(ChatGroup, on_delete=models.CASCADE, related_name='chats') 
-    intent = models.CharField(max_length=50, blank=False, null=False)
-    message = models.TextField()
+    intent = models.CharField(max_length=50, null=True, blank=True)
+    message = models.TextField(max_length=250)
     response = models.TextField()
     ai_context = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
