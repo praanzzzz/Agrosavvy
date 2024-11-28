@@ -224,6 +224,20 @@
       <span class="tooltip">Dashboard</span>
     </li>
     <li>
+      <a href="{% url 'add_field' %}">
+        <i class="fa-solid fa-plus"></i>
+        <span class="link_name">Contribute</span>
+      </a>
+      <span class="tooltip">Contribute</span>
+    </li>
+    <li>
+      <a href="{% url 'user_management' %}">
+        <i class="fa-solid fa-users"></i>
+        <span class="link_name">User Management</span>
+      </a>
+      <span class="tooltip">User Management</span>
+    </li>
+    <li>
       <a href="{% url 'chat' %}">
         <i class="fa-solid fa-robot"></i>
         <span class="link_name">AI Recommendation</span>
@@ -238,13 +252,7 @@
       <span class="tooltip">Map</span>
     </li>
 
-    <li>
-      <a href="{% url 'add_field' %}">
-        <i class="fa-solid fa-plus"></i>
-        <span class="link_name">Contribute</span>
-      </a>
-      <span class="tooltip">Contribute</span>
-    </li>
+  
     <li>
       <a href="{% url 'weather' %}">
         <i class="fa-solid fa-cloud"></i>
@@ -252,20 +260,14 @@
       </a>
       <span class="tooltip">Weather</span>
     </li>
-    <li>
+    <!-- <li>
       <a href="{% url 'view_profile' %}">
         <i class="fa-solid fa-user"></i>
         <span class="link_name">Profile</span>
       </a>
       <span class="tooltip">Profile</span>
-    </li>
-    <li>
-      <a href="{% url 'user_management' %}">
-        <i class="fa-solid fa-users"></i>
-        <span class="link_name">User Management</span>
-      </a>
-      <span class="tooltip">User Management</span>
-    </li>
+    </li> -->
+   
     <li>
       <a href="{% url 'create_notification' %}">
         <i class="fa-solid fa-bell"></i>
