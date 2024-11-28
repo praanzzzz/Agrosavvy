@@ -101,7 +101,7 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'agrosavvydb',
+        'NAME': 'agrosavvydb3',
         'USER': 'postgres',
         'PASSWORD': 'NASA',
         'HOST': 'localhost',
@@ -167,6 +167,13 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 
 
 
+JAZZMIN_SETTINGS = {
+    "site_title": "Agrosavvy Admin",  # The title in the browser tab
+    "site_header": "Agrosavvy Admin",  # The title in the admin page header
+    # Optional: Customize the index_title if desired
+    "site_brand": "Agrosavvy",
+    "welcome_sign": "Welcome to Agrosavvy Admin Panel",
+}
 
 
 
