@@ -1,6 +1,7 @@
 from .models import (
     Field,
     get_weather_data,
+    get_weather_data_with_minutely_hourly,
     CustomUser,
     PendingUser,
     Crop,
@@ -34,7 +35,6 @@ from .forms import (
 # others
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-# from django.views.decorators.csrf import csrf_exempt
 import json
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core.serializers.json import DjangoJSONEncoder
@@ -50,28 +50,22 @@ from datetime import timedelta
 from easyaudit.models import LoginEvent, CRUDEvent
 from django.utils.safestring import mark_safe
 import re, base64
-# from collections import Counter
 from django.conf import settings as django_settings
-# from datetime import datetime
 from django.core.serializers import serialize
 from django.core.mail import send_mail
-from django.utils.html import format_html
 
 
 # postgress compatibility in dashboard
 from django.db.models.functions import TruncMonth
 
 # AI
-import os
 from openai import OpenAI, APIConnectionError, OpenAIError
+OpenAI.api_key = django_settings.OPENAI_API_KEY
 client = OpenAI()
-OpenAI.api_key = os.environ["OPENAI_API_KEY"]
 
 
 #  Password:                PRAgab19-5158-794 
 
-
-    
 
 # Main pages for da_admin and brgy officers
 def dashboard(request):
@@ -103,7 +97,8 @@ def dashboard(request):
         # retrieve data
         crops = Crop.objects.all()
         active_users = CustomUser.objects.filter(active_status=True).exclude(roleuser__roleuser="super_admin")
-        total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+        total_acres_wo_rounds = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+        total_acres = round(total_acres_wo_rounds, 2)
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
 
@@ -225,7 +220,8 @@ def dashboard(request):
             fields = fields.order_by('field_acres')
 
 
-        total_acres = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+        total_acres_wo_rounds = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
+        total_acres = round(total_acres_wo_rounds, 2)
         active_users = CustomUser.objects.filter(
             useraddress__useraddress__startswith=user_barangay,  # Check for users in the same barangay
             active_status=True, 
@@ -447,6 +443,7 @@ def chat(request, group_id=None):
             # openweathermap api
             elif intent == "weather":
                 location = extract_location_with_openai(message)
+                print(location)
                 if location is not None:
                     weather_data = get_weather_data(location)
                     if weather_data:
@@ -518,13 +515,11 @@ def delete_chat_group(request, group_id):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         if request.method == 'POST':
             chat_group = get_object_or_404(ChatGroup, id=group_id, user=request.user)
-            
             if chat_group.user == request.user:
                 chat_group.delete()
                 messages.success(request, 'Chat group deleted successfully.')
             else:
                 messages.error(request, 'You do not have permission to delete this chat group.')
-
         return redirect('chat')
     else:
         return redirect("forbidden")
@@ -704,6 +699,8 @@ def map(request):
         return redirect("forbidden")
 
 
+
+# add server side validation on address and coordinates
 def add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
@@ -787,7 +784,7 @@ def add_field(request):
 
 def weather(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        weather_data = get_weather_data("Cebu City")
+        weather_data = get_weather_data_with_minutely_hourly("Cebu City")
         context = {
             
             "weather_data": weather_data,
@@ -1178,7 +1175,7 @@ def bofa_view_notification(request):
 
 
 
-
+# ADD RBAC HERE
 
 # user management for da admin and brgy officer
 def admin_deactivate_account(request, user_id):
@@ -1211,7 +1208,6 @@ def admin_activate_account(request, user_id):
 
 def admin_disapprove_user(request, user_id):
     pending_user = get_object_or_404(PendingUser, id=user_id)
-
     if request.user.is_authenticated:
         if request.method == "POST":
             pending_user.is_disapproved = True
@@ -1250,7 +1246,6 @@ def admin_disapprove_user(request, user_id):
 
 def admin_approve_user(request, user_id):
     pending_user = get_object_or_404(PendingUser, id=user_id)
-
     if request.user.is_authenticated:
         if request.method == "POST":
             CustomUser.objects.create(
@@ -1319,7 +1314,6 @@ def admin_approve_user(request, user_id):
 
 def admin_approve_disapproved_user(request, user_id):
     disapproved_user = get_object_or_404(PendingUser, id=user_id)
-
     if request.user.is_authenticated:
         if request.method == "POST":
             CustomUser.objects.create(
@@ -1389,12 +1383,118 @@ def admin_approve_disapproved_user(request, user_id):
 
 
 
+# # field management
+# def manage_field(request, field_id):    
+#     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
+#         request.user.roleuser.roleuser == "brgy_officer"                                  
+#         ):
+#         field = get_object_or_404(Field, field_id=field_id)
+
+#         # Soil Data
+#         soil_filter_type = request.GET.get('soil_filter', '')
+#         soil_sort_by = request.GET.get('soil_sort', '')
+
+#         fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
+
+#         if soil_filter_type:
+#             if soil_filter_type == 'acidic':
+#                 fieldsoildata = fieldsoildata.filter(ph__lt=7)
+#             elif soil_filter_type == 'neutral':
+#                 fieldsoildata = fieldsoildata.filter(ph=7)
+#             elif soil_filter_type == 'alkaline':
+#                 fieldsoildata = fieldsoildata.filter(ph__gt=7)
+
+#         if soil_sort_by:
+#             if soil_sort_by == 'date_asc':
+#                 fieldsoildata = fieldsoildata.order_by('record_date')
+#             elif soil_sort_by == 'date_desc':
+#                 fieldsoildata = fieldsoildata.order_by('-record_date')
+#             elif soil_sort_by == 'ph_asc':
+#                 fieldsoildata = fieldsoildata.order_by('ph')
+#             elif soil_sort_by == 'ph_desc':
+#                 fieldsoildata = fieldsoildata.order_by('-ph')
+
+#         # Crop Data
+#         crop_filter_type = request.GET.get('crop_filter', '')
+#         crop_sort_by = request.GET.get('crop_sort', '')
+
+#         fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
+
+#         if crop_filter_type:
+#             fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
+
+#         if crop_sort_by:
+#             if crop_sort_by == 'planting_asc':
+#                 fieldcropdata = fieldcropdata.order_by('planting_date')
+#             elif crop_sort_by == 'planting_desc':
+#                 fieldcropdata = fieldcropdata.order_by('-planting_date')
+#             # elif crop_sort_by == 'harvest_asc':
+#             #     fieldcropdata = fieldcropdata.order_by('harvest_date')
+#             # elif crop_sort_by == 'harvest_desc':
+#             #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
+
+#         # Create form instance for adding soil data
+#         asdform = FieldSoilDataForm()
+#         acdform = FieldCropForm()
+
+#         # Create a dictionary of forms for each soil and crop data instance
+#         fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
+#         fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
+
+#         # Pagination for fieldsoildata
+#         soil_paginator = Paginator(fieldsoildata, 3)
+#         soil_page_number = request.GET.get("soil_page")
+#         fsdpage_obj = soil_paginator.get_page(soil_page_number)
+
+#         # Pagination for fieldcropdata
+#         crop_paginator = Paginator(fieldcropdata, 3)
+#         crop_page_number = request.GET.get("crop_page")
+#         fcdpage_obj = crop_paginator.get_page(crop_page_number)
+
+#         context = {
+#             "field": field,
+#             "fieldsoildata": fieldsoildata,
+#             "fieldcropdata": fieldcropdata,
+#             "asdform": asdform,
+#             "acdform": acdform,
+#             "fsdforms": fsdforms,
+#             "fcdforms": fcdforms,
+#             "fsdpage_obj": fsdpage_obj,
+#             "fcdpage_obj": fcdpage_obj,
+#             "soil_filter_type": soil_filter_type,
+#             "soil_sort_by": soil_sort_by,
+#             "crop_filter_type": crop_filter_type,
+#             "crop_sort_by": crop_sort_by,
+#             "crops": Crop.objects.all(),
+#         }
+#         return render(request, "app_agrosavvy/manage_field.html", context)
+#     else:
+#         return redirect("forbidden")
+
+
+
+
+
+
+
 # field management
 def manage_field(request, field_id):    
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
-        request.user.roleuser.roleuser == "brgy_officer"                                  
-        ):
+    if request.user.is_authenticated:
+        user_role = request.user.roleuser.roleuser
         field = get_object_or_404(Field, field_id=field_id)
+
+        # ownership validation and RBAC
+        if user_role == "brgy_officer":
+            # Retrieve the user's barangay information
+            user_address = request.user.useraddress.useraddress
+            user_barangay = user_address.split(",")[0].strip()
+
+            # Check if the field belongs to the same barangay
+            if field.address.barangay.brgy_name != user_barangay:
+                return redirect("forbidden")
+        
+        elif user_role !="da_admin":
+            return redirect("forbidden")
 
         # Soil Data
         soil_filter_type = request.GET.get('soil_filter', '')
@@ -1522,6 +1622,7 @@ def update_field(request, field_id):
             # Retrieve user's barangay information
             bo_user_address = request.user.useraddress.useraddress
             bo_user_barangay = bo_user_address.split(",")[0].strip()
+            
             field_form = FieldForm(request.POST, instance=field)
             address_instance = field.address
             address_form = AddressForm(request.POST, instance=address_instance)
@@ -1659,7 +1760,7 @@ def bofa_dashboard(request):
                 field__owner=owner,
                 field__is_deleted=False,
                 is_deleted=False
-            )
+            ).order_by('-planting_date').values('planting_date')[:1]
             .values("crop_planted__crop_type")
             .annotate(total_acres=Sum("field__field_acres"))
         )
@@ -2119,7 +2220,7 @@ def bofa_add_field(request):
 
 def bofa_weather(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        weather_data = get_weather_data("Cebu City")
+        weather_data = get_weather_data_with_minutely_hourly("Cebu City")
         context = {
             "weather_data": weather_data,
         }
@@ -2385,6 +2486,7 @@ def get_nutrient_data(request):
 
 
 def add_soil_data(request, field_id):
+    # to make it secure, only validate a field according to role and its scope
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
         if request.method == "POST":
@@ -3053,9 +3155,6 @@ def bofa_billing(request):
         return redirect("forbidden")
 
 
-
-
-
 def bofa_password_change(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -3110,6 +3209,10 @@ def bofa_deactivate_account(request):
 # error pages
 def forbidden(request):
     return render(request, "error_pages/forbidden.html")
+
+
+def custom_404_view(request, exception=None):
+    return render(request, '404.html', status=404)
 
 
 

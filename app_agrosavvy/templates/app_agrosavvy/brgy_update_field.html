@@ -96,9 +96,36 @@
                 if (data.status === 'success') {
                     showToast('Field updated successfully!', 'success');
                     window.location.href = '{% url "dashboard" %}';
-                } else {
-                    // showToast('Error updating field.', 'error');
-                    showToast('Try moving the marker to change coordinates.', 'warning');
+                }
+                // if returned json is error
+                else if (data.status === "error") {
+                    const fieldErrors = data.errors.field_form || {};
+                    const addressErrors = data.errors.address_form || {};
+
+                    // Process and display field form errors
+                    for (const [field, errorMessages] of Object.entries(fieldErrors)) {
+                        errorMessages.forEach((errorMessage) => {
+                            showToast(errorMessage, "error");
+                        });
+                    }
+
+                    // Process and display address form errors
+                    for (const [field, errorMessages] of Object.entries(addressErrors)) {
+                        errorMessages.forEach((errorMessage) => {
+                            if (
+                                errorMessage.includes(
+                                    "The location with these coordinates already exists"
+                                )
+                            ) {
+                                showToast(
+                                    "Slightly move the marker to change coordinates.",
+                                    "warning"
+                                );
+                            } else {
+                                showToast(errorMessage, "error");
+                            }
+                        });
+                    }
                 }
             })
             .catch(error => {

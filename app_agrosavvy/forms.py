@@ -19,7 +19,7 @@ from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from datetime import date
-from django.core.validators import RegexValidator, MinValueValidator
+from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 import re
 
 
@@ -152,12 +152,6 @@ class PendingUserForm(forms.ModelForm):
         empty_label="Select an Address",  # Placeholder option
     )
 
-    email = forms.EmailField(
-        max_length=254, 
-        widget=forms.EmailInput(attrs={"class": "form-control"})
-    ),
-
-
     class Meta:
         model = PendingUser
         fields = [
@@ -175,7 +169,7 @@ class PendingUserForm(forms.ModelForm):
         ]
 
         widgets = {
-            # "email": forms.EmailInput(attrs={"class": "form-control"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
             "gender": forms.Select(attrs={"class": "form-control"}),
         }
 
@@ -302,12 +296,12 @@ class CustomUserUpdateForm(UserChangeForm):
         ),
     )
 
-    useraddress = forms.ModelChoiceField(
-        queryset=UserAddress.objects.all(),  # Dynamically fetch all addresses
-        label="Address",  # Change label
-        widget=forms.Select(attrs={"class": "form-control"}),  # Add styling
-        empty_label="Select an Address",  # Placeholder option
-    )
+    # useraddress = forms.ModelChoiceField(
+    #     queryset=UserAddress.objects.all(),  # Dynamically fetch all addresses
+    #     label="Address",  # Change label
+    #     widget=forms.Select(attrs={"class": "form-control"}),  # Add styling
+    #     empty_label="Select an Address",  # Placeholder option
+    # )
 
     # email = forms.EmailField(
     #     max_length=254, 
@@ -326,7 +320,7 @@ class CustomUserUpdateForm(UserChangeForm):
             "contact_number",
             "email",
             "date_of_birth",
-            "useraddress",
+            # "useraddress",
             "profile_picture",
         ]
 
@@ -421,7 +415,8 @@ class FieldForm(forms.ModelForm):
     )
 
     field_acres = forms.DecimalField(
-        max_digits=10,
+        label = "Hectares",
+        max_digits=5,
         decimal_places=2,
         min_value=0, 
         widget=forms.NumberInput(
@@ -504,22 +499,38 @@ class AddressForm(forms.ModelForm):
         self.fields['barangay'].queryset = Barangay.objects.all().order_by('brgy_name')
 
 
-    # new - checks for coordinates if exists
+    # checks for coordinates if exists
     def clean(self):
         cleaned_data = super().clean()
         latitude = cleaned_data.get("latitude")
         longitude = cleaned_data.get("longitude")
-
+        
+        # Check if latitude and longitude are provided
         if latitude and longitude:
-            # Check if the latitude and longitude combination already exists in the database
-            existing_address = Address.objects.filter(latitude=latitude, longitude=longitude) #.exclude(id=self.instance.id).first()
-            print (existing_address)
-            if existing_address:
-                # Raise validation error if the combination exists
+            # Get the current instance being updated
+            current_instance = self.instance
+            
+            # Check if we're updating an existing object (i.e., it's not a new one) (only old instance has pk)
+            if current_instance.pk:
+                # Exclude the current instance from the search to avoid a conflict with itself
+                existing_address = Address.objects.exclude(pk=current_instance.pk).filter(latitude=latitude, longitude=longitude)
+            else:
+                # If it's a new instance, just check for duplicates
+                existing_address = Address.objects.filter(latitude=latitude, longitude=longitude)
+
+            # If the address already exists (except for the current one), raise validation error
+            if existing_address.exists():
                 raise forms.ValidationError(
                     "The location with these coordinates already exists. Please move the marker."
                 )
+        
         return cleaned_data
+
+
+ 
+
+
+       
 
 
 
@@ -555,7 +566,7 @@ class FieldCropForm(forms.ModelForm):
 # okay
 class FieldSoilDataForm(forms.ModelForm):
     nitrogen = forms.DecimalField(
-        max_digits=3,
+        max_digits=5,
         required=False,
         decimal_places=2,
         min_value=0, 
@@ -574,7 +585,7 @@ class FieldSoilDataForm(forms.ModelForm):
     )
 
     phosphorous = forms.DecimalField(
-        max_digits=3,
+        max_digits=5,
         required=False,
         decimal_places=2,
         min_value=0, 
@@ -594,7 +605,7 @@ class FieldSoilDataForm(forms.ModelForm):
 
 
     potassium = forms.DecimalField(
-        max_digits=3,
+        max_digits=5,
         required=False,
         decimal_places=2,
         min_value=0, 
@@ -614,7 +625,7 @@ class FieldSoilDataForm(forms.ModelForm):
 
 
     ph = forms.DecimalField(
-        max_digits=3,
+        max_digits=5,
         required=False,
         decimal_places=2,
         min_value=0, 

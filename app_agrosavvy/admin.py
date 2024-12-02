@@ -106,8 +106,8 @@ class CustomUserAdmin(UserAdmin):
         return False
     
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 
@@ -186,8 +186,8 @@ class PendingUserAdmin(admin.ModelAdmin):
     )
 
     # Prevent deletion of pending users directly from admin
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     # Prevent adding new pending users directly from admin
     def has_add_permission(self, request):
@@ -224,8 +224,8 @@ class ReviewRatingAdmin(admin.ModelAdmin):
     ordering = common_fields
     readonly_fields = common_fields + ("review_body",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class FieldAdmin(admin.ModelAdmin):
@@ -243,8 +243,8 @@ class FieldAdmin(admin.ModelAdmin):
     readonly_fields = ("field_id",)
     list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 
@@ -261,8 +261,8 @@ class FieldCropDataAdmin(admin.ModelAdmin):
     ordering = common_fields
     list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class FieldSoilDataAdmin(admin.ModelAdmin):
@@ -281,8 +281,8 @@ class FieldSoilDataAdmin(admin.ModelAdmin):
     ordering = common_fields
     list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class ChatGroupAdmin(admin.ModelAdmin):
@@ -297,8 +297,8 @@ class ChatGroupAdmin(admin.ModelAdmin):
     ordering = common_fields
     list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class ChatAdmin(admin.ModelAdmin):
@@ -312,8 +312,8 @@ class ChatAdmin(admin.ModelAdmin):
     search_fields = ("created_at",)
     ordering = common_fields
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class ImageAnalysisAdmin(admin.ModelAdmin):
@@ -328,8 +328,8 @@ class ImageAnalysisAdmin(admin.ModelAdmin):
     ordering = common_fields
     # list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class NotificationAdmin(admin.ModelAdmin):
@@ -345,8 +345,8 @@ class NotificationAdmin(admin.ModelAdmin):
     ordering = common_fields
     # list_filter = ("is_deleted",)
 
-    # def has_delete_permission(self, request, obj=None):
-    #     return False
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 data_wizard.register(SoilDataSFM)
@@ -356,19 +356,20 @@ admin.site.register(Field, FieldAdmin)
 admin.site.register(ReviewRating, ReviewRatingAdmin)
 admin.site.register(FieldCropData, FieldCropDataAdmin)
 admin.site.register(FieldSoilData, FieldSoilDataAdmin)
-admin.site.register(ChatGroup, ChatGroupAdmin)
 admin.site.register(Chat, ChatAdmin)
 admin.site.register(ImageAnalysis, ImageAnalysisAdmin)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(SoilDataSFM)
 
 
-admin.site.register(Address)
-admin.site.register(Crop)
-admin.site.register(RoleUser)
-admin.site.register(Barangay)
-admin.site.register(Gender)
-admin.site.register(UserAddress)
+
+# admin.site.register(ChatGroup, ChatGroupAdmin)
+# admin.site.register(Address)
+# admin.site.register(Crop)
+# admin.site.register(RoleUser)
+# admin.site.register(Barangay)
+# admin.site.register(Gender)
+# admin.site.register(UserAddress)
 
 
 

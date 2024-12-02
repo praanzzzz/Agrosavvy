@@ -530,7 +530,53 @@ def get_weather_data(location):
                 "lon": lon,
                 "appid": api_key,
                 "units": "metric",  # Use metric units
-                "exclude": "minutely,hourly"  # Exclude minutely and hourly data for simplicity
+                "exclude": "minutely,hourly"  
+            }
+            
+            weather_response = requests.get(weather_url, params=weather_params)
+            weather_response.raise_for_status()  # Check if the request was successful
+            return weather_response.json()
+
+        else:
+            print(f"Location not found: {location}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error getting weather data: {e}")
+        return None
+
+
+
+
+
+
+
+
+
+
+def get_weather_data_with_minutely_hourly(location):
+    api_key = settings.ONECALL_API_KEY
+    
+    # First, get latitude and longitude from the city name (using the Geocoding API)
+    geocode_url = "http://api.openweathermap.org/geo/1.0/direct"
+    geocode_params = {"q": location, "appid": api_key, "limit": 1}
+    
+    try:
+        geocode_response = requests.get(geocode_url, params=geocode_params)
+        geocode_response.raise_for_status()  # Check if the request was successful
+        location_data = geocode_response.json()
+
+        if location_data:
+            lat = location_data[0]['lat']
+            lon = location_data[0]['lon']
+            
+            # Now, get the weather data for the lat/lon
+            weather_url = "https://api.openweathermap.org/data/3.0/onecall"  # Update to version 3.0
+            weather_params = {
+                "lat": lat,
+                "lon": lon,
+                "appid": api_key,
+                "units": "metric",  # Use metric units
             }
             
             weather_response = requests.get(weather_url, params=weather_params)

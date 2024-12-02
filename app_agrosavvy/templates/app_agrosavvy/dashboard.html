@@ -156,7 +156,7 @@
                                 {{ field.address.city_municipality }},
                                 {{ field.address.country }}
                             </td>
-                            <td>{{ field.owner }}</td>
+                            <td>{{ field.owner.firstname }} {{field.owner.lastname}}</td>
                             <td>
                                 {% if field.owner.roleuser.roleuser == "farmer" %}
                                 Farmer

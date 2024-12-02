@@ -126,14 +126,14 @@ urlpatterns = [
     path('bofa_dashboard/bofa_delete_field/<int:field_id>/', views.bofa_delete_field, name='bofa_delete_field'),
     path('bofa_dashboard/bofa_manage_field/<int:field_id>/', views.bofa_manage_field, name="bofa_manage_field"),
 
-    #forbidden, 404 chuchu
+    #forbidden
     path('forbidden', views.forbidden, name='forbidden'),
-
 
 ]
 
 
 
-
+# it enables django to fetch static files during developmemt phase.
+# on production stage, must use nginx or apache web server to serve files
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
