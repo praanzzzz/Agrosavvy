@@ -16,6 +16,7 @@ from decouple import config
 MAPBOX_API_KEY = config('MAPBOX_API_KEY')
 WEATHER_API_KEY=config('WEATHER_API_KEY')
 ONECALL_API_KEY=config('ONECALL_API_KEY')
+OPENAI_API_KEY=config('OPENAI_API_KEY')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -64,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'project_agrosavvy.urls'
@@ -171,8 +173,10 @@ JAZZMIN_SETTINGS = {
     "site_title": "Agrosavvy Admin",  # The title in the browser tab
     "site_header": "Agrosavvy Admin",  # The title in the admin page header
     # Optional: Customize the index_title if desired
-    "site_brand": "Agrosavvy",
+    "site_brand": "Agrosavvy Admin",
     "welcome_sign": "Welcome to Agrosavvy Admin Panel",
+    "site_logo": "/images/Logo_Agrosavvy.png",
+    "site_logo_classes": "img-circle",
 }
 
 
