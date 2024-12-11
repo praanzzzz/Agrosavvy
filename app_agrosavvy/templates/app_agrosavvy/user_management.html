@@ -24,11 +24,13 @@
             <form method="get" action="{% url 'user_management' %}" class="mb-4">
                 <div class="input-group">
                     <input type="text" name="registered_search" placeholder="Search registered users..." value="{{ registered_search_query }}" class="form-control">
+                    {% if request.user.roleuser.roleuser == "da_admin" %}
                     <select name="registered_filter" class="form-select">
                         <option value="">All roles</option>
                         <option value="farmer" {% if registered_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
                         <option value="brgy_officer" {% if registered_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
                     </select>
+                    {% endif %}
                     <select name="registered_sort" class="form-select">
                         <option value="">Sort by</option>
                         <option value="username" {% if registered_sort_by == 'username' %}selected{% endif %}>Username</option>
@@ -176,11 +178,13 @@
             <form method="get" action="{% url 'user_management' %}" class="mb-4">
                 <div class="input-group">
                     <input type="text" name="pending_search" placeholder="Search pending users..." value="{{ pending_search_query }}" class="form-control">
+                    {% if request.user.roleuser.roleuser == "da_admin" %}
                     <select name="pending_filter" class="form-select">
                         <option value="">All roles</option>
                         <option value="farmer" {% if pending_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
                         <option value="brgy_officer" {% if pending_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
                     </select>
+                    {% endif %}
                     <select name="pending_sort" class="form-select">
                         <option value="">Sort by</option>
                         <option value="username" {% if pending_sort_by == 'username' %}selected{% endif %}>Username</option>
@@ -329,11 +333,13 @@
             <form method="get" action="{% url 'user_management' %}" class="mb-4">
                 <div class="input-group">
                     <input type="text" name="disapproved_search" placeholder="Search disapproved users..." value="{{ disapproved_search_query }}" class="form-control">
+                    {% if request.user.roleuser.roleuser == "da_admin" %}
                     <select name="disapproved_filter" class="form-select">
                         <option value="">All roles</option>
                         <option value="farmer" {% if disapproved_filter_type == 'farmer' %}selected{% endif %}>Farmer</option>
                         <option value="brgy_officer" {% if disapproved_filter_type == 'brgy_officer' %}selected{% endif %}>Barangay Officer</option>
                     </select>
+                    {% endif %}
                     <select name="disapproved_sort" class="form-select">
                         <option value="">Sort by</option>
                         <option value="username" {% if disapproved_sort_by == 'username' %}selected{% endif %}>Username</option>
@@ -453,20 +459,21 @@
         <div class="col-md-4">
             <!-- User Log -->
             <div class="rounded p-3 bg-light shadow-sm mb-4">
-                <h4><strong>User Log</strong></h4>
-                <div style="max-height: 300px; overflow-y: auto;">
+                <h4><strong>Login/Logout Logs</strong></h4>
+                <div style="max-height: 500px; overflow-y: auto;">
                     {% for event in login_events %}
                     <div class="mb-3">
-                        <span>
+                        <p class="small">
                             {% if event.user_id == null %}
                             <strong>unknown user</strong>
                             {% else %}
                             <strong>@ {{ event.user.username }}</strong>
                             {% endif %}
                             {% if event.login_type == 0 %}logged in{% elif event.login_type == 1 %}logged out{% elif event.login_type == 2 %}failed login{% else %}error{% endif %}
-                            {{ event.datetime|timesince }} ago
-                        </span>
-                        <p class="small">IP: {{ event.remote_ip }}</p>
+                            {{ event.datetime|timesince }} ago,
+                            IP: {{ event.remote_ip }}
+                        </p>
+                        <!-- <p class="small">IP: {{ event.remote_ip }}</p> -->
                     </div>
                     {% empty %}
                     <p>No login events found.</p>
@@ -475,12 +482,12 @@
             </div>
 
             <!-- CRUD Log -->
-            <div class="rounded p-3 bg-light shadow-sm">
-                <h4><strong>CRUD Log</strong></h4>
+            <!-- <div class="rounded p-3 bg-light shadow-sm">
+                <h4><strong>CRUD Logs</strong></h4>
                 <div style="max-height: 300px; overflow-y: auto;">
                     {% for event in crud_events %}
                     <div class="mb-3">
-                        <span>
+                        <p class="small">
                             {% if event.user_id == null %}
                             <strong>unknown user</strong>
                             {% else %}
@@ -510,13 +517,13 @@
                             {% endif %}
                             {{ event.object_repr }}
                             ,{{ event.datetime|timesince }} ago
-                        </span>
+                        </p>
                     </div>  
                     {% empty %}
                     <p>No CRUD events found.</p>
                     {% endfor %}
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 </div>

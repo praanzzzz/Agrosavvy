@@ -320,7 +320,7 @@ class Field(models.Model):
         ordering = ['-created_at']
 
 
-# crop choices
+
 class Crop(models.Model):
     CROP_CHOICES = [
         ("Carrots", "Carrots"),
@@ -506,7 +506,7 @@ class SoilDataSFM(models.Model):
 
         
 
-
+# used in AI
 def get_weather_data(location):
     api_key = settings.ONECALL_API_KEY
     

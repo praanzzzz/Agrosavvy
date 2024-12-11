@@ -53,9 +53,7 @@ import re, base64
 from django.conf import settings as django_settings
 from django.core.serializers import serialize
 from django.core.mail import send_mail
-
-
-# postgress compatibility in dashboard
+from django.views.decorators.cache import cache_control
 from django.db.models.functions import TruncMonth
 
 # AI
@@ -64,15 +62,11 @@ OpenAI.api_key = django_settings.OPENAI_API_KEY
 client = OpenAI()
 
 
-#  Password:                PRAgab19-5158-794 
-
-
 # Main pages for da_admin and brgy officers
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)   # implement to all functions that needs authentication
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
-        notifications_unread_count = notifications.filter(is_read=False).count()
-        # Search, Filter, and Sort
+        # Search, Filter, and Sort functions for list of farms table
         search_query = request.GET.get('search', '')
         filter_type = request.GET.get('filter', '')
         sort_by = request.GET.get('sort', '')
@@ -84,10 +78,8 @@ def dashboard(request):
                 Q(owner__username__icontains=search_query) |
                 Q(address__barangay__brgy_name__icontains=search_query)
             )
-
         if filter_type:
             fields = fields.filter(owner__roleuser__roleuser=filter_type)
-
         if sort_by == 'name':
             fields = fields.order_by('field_name')
         elif sort_by == 'acres':
@@ -101,12 +93,13 @@ def dashboard(request):
         total_acres = round(total_acres_wo_rounds, 2)
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
 
-        # Pie Chart Data
+
+        # Pie Chart
         labels = []
         data = []
-
-        # latest field crop data per field only
         queryset =  FieldCropData.objects.filter(
                 planting_date=Subquery(
                     FieldCropData.objects.filter(
@@ -118,28 +111,14 @@ def dashboard(request):
             ).values("crop_planted__crop_type").annotate(
                 total_acres=Sum("field__field_acres")
             )
-
-
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
 
-        # Line Chart Data
+
+
+        # Line Chart
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
-        # field_data = (
-        #     Field.objects.filter(
-        #         created_at__range=[start_date, end_date], 
-        #         is_deleted=False
-        #     )
-        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})
-        #     .values("month")
-        #     .annotate(count=Count("field_id"))
-        #     .order_by("month")
-        # )
-        # labelsfield = [data["month"] for data in field_data]
-        # datafield = [data["count"] for data in field_data]
-
-        # for postgress compatibility
         field_data = (
             Field.objects.filter(
                 created_at__range=[start_date, end_date], 
@@ -152,6 +131,8 @@ def dashboard(request):
         )
         labelsfield = [data['month'].strftime('%Y-%m') for data in field_data]
         datafield = [data['count'] for data in field_data]
+
+
 
         # Pagination
         paginator = Paginator(fields, 5)  
@@ -167,14 +148,11 @@ def dashboard(request):
             "active_user_count": active_users.count(),
             "total_acres": total_acres,
             "average_acres": average_acres,
-            # Charts
             "labels": labels,
             "data": data,
             "labelsfield": labelsfield,
             "datafield": datafield,
-            # Pagination
             "page_obj": page_obj,
-            # Search, Filter, and Sort Context
             "search_query": search_query,
             "filter_type": filter_type,
             "sort_by": sort_by,
@@ -185,18 +163,14 @@ def dashboard(request):
 
     #  for brgy officers
     elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
-        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
-        notifications_unread_count = notifications.filter(is_read=False).count()
         # Search, Filter, and Sort
         search_query = request.GET.get('search', '')
         filter_type = request.GET.get('filter', '')
         sort_by = request.GET.get('sort', '')
 
-        # Retrieve user's barangay information
+        # retrieve users barangay and query the field that belongs to the same barangay on user's barangay
         user_address = request.user.useraddress.useraddress
         user_barangay = user_address.split(",")[0].strip()
-
-        # Initial queryset to include fields from the user's barangays
         fields = Field.objects.filter(
             Q(address__barangay__brgy_name=user_barangay, is_deleted=False)
         )
@@ -208,26 +182,24 @@ def dashboard(request):
                 Q(owner__username__icontains=search_query) |
                 Q(address__barangay__brgy_name__icontains=search_query)
             )
-
-        # Apply additional filtering if a filter type is provided
         if filter_type:
             fields = fields.filter(owner__roleuser__roleuser=filter_type)
-
-        # Apply sorting if a sort option is provided
         if sort_by == 'name':
             fields = fields.order_by('field_name')
         elif sort_by == 'acres':
             fields = fields.order_by('field_acres')
 
-
+        # retrieve data
         total_acres_wo_rounds = fields.aggregate(Sum("field_acres"))["field_acres__sum"] or 0
         total_acres = round(total_acres_wo_rounds, 2)
         active_users = CustomUser.objects.filter(
             useraddress__useraddress__startswith=user_barangay,  # Check for users in the same barangay
             active_status=True, 
-        ).exclude(roleuser__roleuser="da_admin")
+        ).exclude(roleuser__roleuser="da_admin").exclude(roleuser__roleuser="super_admin")
         average_acres = fields.aggregate(Avg("field_acres"))["field_acres__avg"] or 0
         average_acres = round(average_acres, 2)
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
 
         # pie chart
         # retrieves the latest field crop data for each crop type from non-deleted fields
@@ -242,15 +214,12 @@ def dashboard(request):
                     field=OuterRef('field'),
                     field__is_deleted=False,
                     is_deleted=False,
-                    field__address__barangay__brgy_name=user_barangay  # Ensure the same barangay filter is applied
+                    field__address__barangay__brgy_name=user_barangay 
                 ).order_by('-planting_date').values('planting_date')[:1]
             )
         ).values("crop_planted__crop_type").annotate(
             total_acres=Sum("field__field_acres")
         )
-
-
-        # Prepare data for the pie chart
         labels = [entry["crop_planted__crop_type"] for entry in queryset]
         data = [entry["total_acres"] for entry in queryset]
 
@@ -259,22 +228,6 @@ def dashboard(request):
         # Filter Field data for the line chart based on the same barangay
         end_date = timezone.now()
         start_date = end_date - timedelta(days=365)
-        # field_data = (
-        #     Field.objects.filter(
-        #         created_at__range=[start_date, end_date],  # Filter by date range
-        #         is_deleted=False,  # Soft deletion check for Field
-        #         address__barangay__brgy_name=user_barangay  # Filter by user's barangay
-        #     )
-        #     .extra(select={"month": "strftime('%%Y-%%m', created_at)"})  # Group by year and month
-        #     .values("month")
-        #     .annotate(count=Count("field_id"))  # Count the number of fields created per month
-        #     .order_by("month")
-        # )
-        # # Prepare data for the line chart
-        # labelsfield = [data["month"] for data in field_data]
-        # datafield = [data["count"] for data in field_data]
-
-
         field_data = (
             Field.objects.filter(
                 created_at__range=[start_date, end_date], 
@@ -289,19 +242,10 @@ def dashboard(request):
         labelsfield = [data['month'].strftime('%Y-%m') for data in field_data]
         datafield = [data['count'] for data in field_data]
 
-        # print(labelsfield)
-        # print(datafield)
-
-
-
         # pagination
         paginator = Paginator(fields, 5)  
-        page_number = request.GET.get(
-            "page"
-        )  
-        page_obj = paginator.get_page(
-            page_number
-        )
+        page_number = request.GET.get("page")  
+        page_obj = paginator.get_page(page_number)
 
         brgy_officer_context={
             "notifications": notifications,
@@ -316,7 +260,6 @@ def dashboard(request):
             "data": data,
             "labelsfield": labelsfield,
             "datafield": datafield,
-            # Search, Filter, and Sort Context
             "search_query": search_query,
             "filter_type": filter_type,
             "sort_by": sort_by,
@@ -467,13 +410,13 @@ def chat(request, group_id=None):
             final_response = cleaned_content
 
 
-            # debugging
-            print("Processed Intent:" , intent)
+            # # debugging
+            # print("Processed Intent:" , intent)
             # if barangay:
             #     print("barangay:" + barangay)
             # else:
             #     print("brgy not found")
-            print("Full Conversation with Context to OpenAI:", full_conversation_with_context)
+            # print("Full Conversation with Context to OpenAI:", full_conversation_with_context)
             
     
 
@@ -532,17 +475,13 @@ def delete_chat_group(request, group_id):
 
 
 
-def encode_image(image_file):
-    return base64.b64encode(image_file.read()).decode('utf-8')
-
 
 def image_analysis(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
-        analysis = None  # Initialize variable to store analysis
-        history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5]  # Get the 5 most recent analyses
+        analysis = None
+        history = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at')[:5] #increase to 10
         history_json = json.loads(serialize('json', history))
         reviewrating_context = reviewrating(request)
-        latest_analysis = ImageAnalysis.objects.filter(owner=request.user, is_deleted=False).order_by('-created_at').first()
 
         if request.method == 'POST':
             form = ImageAnalysisForm(request.POST, request.FILES)
@@ -630,7 +569,6 @@ def image_analysis(request):
             "analysis_output": analysis.analysis_output if analysis else None,
             "history": history,
             "history_json": json.dumps(history_json),
-            "latest_analysis": latest_analysis,
         }
         context.update(reviewrating_context)
         return render(request, "app_agrosavvy/ai/analysisai.html", context)
@@ -700,7 +638,8 @@ def map(request):
 
 
 
-# add server side validation on address and coordinates
+# add server side validation on address and coordinates, check if the is_valid refers to the forms.py. 
+# para didto nalang ibutang ang logic and serverside validation.
 def add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
@@ -737,10 +676,13 @@ def add_field(request):
 
     elif request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer": 
         if request.method == "POST":
-            # Retrieve user's barangay information
+            # Retrieve user's barangay information - used as context for client side validation
             bo_user_address = request.user.useraddress.useraddress
             bo_user_barangay = bo_user_address.split(",")[0].strip()
 
+            # # # Check if the field belongs to the same barangay - server side validation
+            # if field.address.barangay.brgy_name != bo_user_barangay:
+            #     return redirect("forbidden")
 
             field_form = FieldForm(request.POST)
             address_form = AddressForm(request.POST)
@@ -837,9 +779,8 @@ def view_profile(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser=='da_admin' or request.user.roleuser.roleuser=='brgy_officer'):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         notifications_unread_count = notifications.filter(is_read=False).count()
-        owner=request.user
         fields = Field.objects.filter(owner = request.user, is_deleted=False)
-        user = get_object_or_404(CustomUser, pk=request.user.pk)
+        # user = get_object_or_404(CustomUser, pk=request.user.pk)
 
         context = {
             "field_count": fields.count(),
@@ -849,7 +790,6 @@ def view_profile(request):
         return render(request, "app_agrosavvy/view_profile.html", context)
     else:
         return redirect("forbidden")
-
 
 
 
@@ -968,20 +908,22 @@ def user_management(request):
 
         # Login and CRUD events (LOGS)
         if user_role == "da_admin":
-            login_events = LoginEvent.objects.all().order_by('-datetime')
-            crud_events = CRUDEvent.objects.all().order_by('-datetime')
+            login_events = LoginEvent.objects.filter(user__is_superuser=False).order_by('-datetime')
+            # crud_events = CRUDEvent.objects.filter(user__is_superuser=False).order_by('-datetime')
         else:  # brgy_officer
             login_events = LoginEvent.objects.filter(
-                user__useraddress__useraddress__startswith=user_barangay,
-            ).order_by('-datetime')
-            crud_events = CRUDEvent.objects.filter(
-                user__useraddress__useraddress__startswith=user_barangay,
-            ).order_by('-datetime')
+                user__useraddress__useraddress__startswith=user_barangay, user__is_superuser=False
+            )
+            # crud_events = CRUDEvent.objects.filter(
+            #     user__useraddress__useraddress__startswith=user_barangay, user__is_superuser=False
+            # ).order_by('-datetime')
 
 
         
-        # reports
+        # reports for da_admin
+
         farmers_list = CustomUser.objects.filter(roleuser__roleuser="farmer")
+        # if brgy officer
         if user_role == "brgy_officer":
             farmers_list = farmers_list.filter(useraddress__useraddress__startswith=user_barangay)
 
@@ -1020,7 +962,7 @@ def user_management(request):
             "disapproved_users": disapproved_users,
             "disapproved_users_page_obj": disapproved_users_page_obj,
             "login_events": login_events,
-            "crud_events": crud_events,
+            # "crud_events": crud_events,
             "registered_search_query": registered_search_query,
             "registered_filter_type": registered_filter_type,
             "registered_sort_by": registered_sort_by,
@@ -1048,7 +990,7 @@ def user_management(request):
 
 # Create notification based on the selected option
 def create_notification(request):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
         notifications_unread_count = notifications.filter(is_read=False).count()
         if request.method == 'POST':
@@ -1100,12 +1042,6 @@ def create_notification(request):
 
 
 
-def mark_notifications_as_read(request):
-    # Mark all unread notifications as read for the current user
-    Notification.objects.filter(user_receiver = request.user, is_read=False).update(is_read=True)
-    return JsonResponse({'status': 'success'})
-
-
 
 def view_notification(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
@@ -1147,25 +1083,6 @@ def view_notification(request):
 
 
 
-def bofa_view_notification(request):
-    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
-        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
-        notifications_unread_count = notifications.filter(is_read=False).count()
-
-        paginator = Paginator(notifications, 4)
-        page_number = request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
-
-        context = {
-            'notifications': notifications,
-            'page_obj': page_obj,
-            'notifications_unread_count': notifications_unread_count,  
-        }
-        return render(request, 'bofa_pages/bofa_view_notification.html', context)
-    else:
-        return redirect("forbidden")
-    
-
 
     
 
@@ -1173,315 +1090,250 @@ def bofa_view_notification(request):
 
 
 
-
-
-# ADD RBAC HERE
 
 # user management for da admin and brgy officer
 def admin_deactivate_account(request, user_id):
-    user = get_object_or_404(CustomUser, id=user_id)
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            # Deactivate the chosen account
-            user.active_status = False
-            user.save()
-            messages.success(request, "The account is successfully deactivated.")
-            return redirect("user_management")
-        return render(request, "app_agrosavvy/user_management.html")
-    else:
+    if not request.user.is_authenticated:
         return redirect("forbidden")
+    
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
+    user = get_object_or_404(CustomUser, id=user_id)
+
+    if request.user.roleuser.roleuser == "brgy_officer" and user.useraddress.useraddress != request.user.useraddress.useraddress:
+        return redirect("forbidden")
+    
+    if request.method == "POST":
+        user.active_status = False
+        user.save()
+        messages.success(request, "The account has been successfully deactivated.")
+        return redirect("user_management")
+
+    return render(request, "app_agrosavvy/user_management.html")
 
 
 def admin_activate_account(request, user_id):
-    user = get_object_or_404(CustomUser, id=user_id)
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            # activate the chosen account
-            user.active_status = True
-            user.save()
-            messages.success(request, "The account is successfully activated.")
-            return redirect("user_management")
-        return render(request, "app_agrosavvy/user_management.html")
-    else:
+    if not request.user.is_authenticated:
         return redirect("forbidden")
+    
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
+    user = get_object_or_404(CustomUser, id=user_id)
+
+    if request.user.roleuser.roleuser == "brgy_officer" and user.useraddress.useraddress != request.user.useraddress.useraddress:
+        return redirect("forbidden")
+    
+    if request.method == "POST":
+        user.active_status = True
+        user.save()
+        messages.success(request, "The account is successfully activated.")
+        return redirect("user_management")
+    return render(request, "app_agrosavvy/user_management.html")
+
 
 
 def admin_disapprove_user(request, user_id):
-    pending_user = get_object_or_404(PendingUser, id=user_id)
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            pending_user.is_disapproved = True
-            pending_user.is_pending = False
-            pending_user.save()
-
-            # Send email notification to the pending user
-            subject = "Agrosavvy Account Request is Disapproved"
-            message = f"""
-                Dear {pending_user.firstname} {pending_user.lastname},
-
-                This is to inform you that your request for agrosavvy account has been disapproved.
-                
-                If you think that this is a mistake, feel free to reach out to us at any time. 
-
-                Best regards,
-                The Agrosavvy Team
-            """
-            recipient_list = [pending_user.email]
-            
-            send_mail(
-                subject,
-                message,
-                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
-                recipient_list,
-                fail_silently=True,
-            )
-
-            messages.success(request, "The pending user is disapproved.")
-            return redirect("user_management")
-        return render(request, "app_agrosavvy/user_management.html")
-    else:
+    if not request.user.is_authenticated:
         return redirect("forbidden")
     
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
+    pending_user = get_object_or_404(PendingUser, id=user_id)
+
+    if request.user.roleuser.roleuser == "brgy_officer" and pending_user.useraddress.useraddress != request.user.useraddress.useraddress:
+        return redirect("forbidden")
+    
+    if request.method == "POST":
+        pending_user.is_disapproved = True
+        pending_user.is_pending = False
+        pending_user.save()
+
+        # Send email notification to the pending user
+        subject = "Agrosavvy Account Request is Disapproved"
+        message = f"""
+            Dear {pending_user.firstname} {pending_user.lastname},
+
+            This is to inform you that your request for agrosavvy account has been disapproved.
+            
+            If you think that this is a mistake, feel free to reach out to us at any time. 
+
+            Best regards,
+            The Agrosavvy Team
+        """
+        recipient_list = [pending_user.email]
+        
+        send_mail(
+            subject,
+            message,
+            django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+            recipient_list,
+            fail_silently=True,
+        )
+
+        messages.success(request, "The pending user is disapproved.")
+        return redirect("user_management")
+    return render(request, "app_agrosavvy/user_management.html")
+
 
 
 def admin_approve_user(request, user_id):
-    pending_user = get_object_or_404(PendingUser, id=user_id)
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            CustomUser.objects.create(
-                official_user_id= pending_user.official_user_id,
-                username=pending_user.username,
-                password=pending_user.password,
-                email=pending_user.email,
-                firstname=pending_user.firstname,
-                middle_initial=pending_user.middle_initial,
-                lastname=pending_user.lastname,
-                date_of_birth=pending_user.date_of_birth,
-                gender=pending_user.gender,
-                contact_number=pending_user.contact_number,
-                useraddress=pending_user.useraddress,
-                roleuser=pending_user.roleuser,
-                is_approved=True,
-                approved_date=timezone.now(),
-                approved_by=request.user,
-            )
-
-            login_url = request.build_absolute_uri(reverse('my_login'))
-            # Send email notification to the pending user
-            subject = "Agrosavvy Account Has Been Approved"
-            message = f"""
-                Dear {pending_user.firstname} {pending_user.lastname},
-
-                We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
-
-                You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
-                Should you have any questions or need assistance, feel free to reach out to us at any time. 
-
-                You can now login your account here:
-                {login_url}
-
-                Welcome to the team, and thank you for being a valued member of our community!
-
-                Best regards,
-                The Agrosavvy Team
-            """
-            recipient_list = [pending_user.email]
-            
-            send_mail(
-                subject,
-                message,
-                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
-                recipient_list,
-                fail_silently=True,
-            )
-
-
-            pending_user.delete()
-            messages.success(
-                request, f"User has been approved successfully."
-            )
-            return redirect("user_management")
-        return render(
-            request,
-            "app_agrosavvy/confirm_approve.html",
-            {"pending_user": pending_user},
-        )
-    else:
+    if not request.user.is_authenticated:
         return redirect("forbidden")
     
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
+    pending_user = get_object_or_404(PendingUser, id=user_id)
+
+    if request.user.roleuser.roleuser == "brgy_officer" and pending_user.useraddress.useraddress != request.user.useraddress.useraddress:
+        return redirect("forbidden")
+
+    if request.method == "POST":
+        CustomUser.objects.create(
+            official_user_id= pending_user.official_user_id,
+            username=pending_user.username,
+            password=pending_user.password,
+            email=pending_user.email,
+            firstname=pending_user.firstname,
+            middle_initial=pending_user.middle_initial,
+            lastname=pending_user.lastname,
+            date_of_birth=pending_user.date_of_birth,
+            gender=pending_user.gender,
+            contact_number=pending_user.contact_number,
+            useraddress=pending_user.useraddress,
+            roleuser=pending_user.roleuser,
+            is_approved=True,
+            approved_date=timezone.now(),
+            approved_by=request.user,
+        )
+
+        login_url = request.build_absolute_uri(reverse('my_login'))
+        # Send email notification to the pending user
+        subject = "Agrosavvy Account Has Been Approved"
+        message = f"""
+            Dear {pending_user.firstname} {pending_user.lastname},
+
+            We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
+
+            You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
+            Should you have any questions or need assistance, feel free to reach out to us at any time. 
+
+            You can now login your account here:
+            {login_url}
+
+            Welcome to the team, and thank you for being a valued member of our community!
+
+            Best regards,
+            The Agrosavvy Team
+        """
+        recipient_list = [pending_user.email]
+        
+        send_mail(
+            subject,
+            message,
+            django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+            recipient_list,
+            fail_silently=True,
+        )
+
+
+        pending_user.delete()
+        messages.success(
+            request, f"User has been approved successfully."
+        )
+        return redirect("user_management")
+    return render(
+        request,
+        "app_agrosavvy/confirm_approve.html",
+        {"pending_user": pending_user},
+    )
 
 
 
 def admin_approve_disapproved_user(request, user_id):
+
+    if not request.user.is_authenticated:
+        return redirect("forbidden")
+    
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
     disapproved_user = get_object_or_404(PendingUser, id=user_id)
-    if request.user.is_authenticated:
-        if request.method == "POST":
-            CustomUser.objects.create(
-                official_user_id= disapproved_user.official_user_id,
-                username=disapproved_user.username,
-                password=disapproved_user.password,
-                email=disapproved_user.email,
-                firstname=disapproved_user.firstname,
-                middle_initial=disapproved_user.middle_initial,
-                lastname=disapproved_user.lastname,
-                date_of_birth=disapproved_user.date_of_birth,
-                gender=disapproved_user.gender,
-                contact_number=disapproved_user.contact_number,
-                useraddress=disapproved_user.useraddress,
-                roleuser=disapproved_user.roleuser,
-                is_approved=True,
-                approved_date=timezone.now(),
-                approved_by=request.user,
-            )
 
-            login_url = request.build_absolute_uri(reverse('my_login'))
-
-            subject = "Agrosavvy Account Has Been Approved"
-            message = f"""
-                Dear {disapproved_user.firstname} {disapproved_user.lastname},
-
-                We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
-
-                You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
-                Should you have any questions or need assistance, feel free to reach out to us at any time. 
-
-                You can now login your account here:
-                {login_url}
-
-                Welcome to the team, and thank you for being a valued member of our community!
-
-                Best regards,
-                The Agrosavvy Team
-            """
-            recipient_list = [disapproved_user.email]
-            
-            send_mail(
-                subject,
-                message,
-                django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
-                recipient_list,
-                fail_silently=True,
-            )
-
-            disapproved_user.delete()
-            messages.success(
-                request, f"User has been approved successfully."
-            )
-            return redirect("user_management")
-        return render(
-            request,
-            "app_agrosavvy/confirm_approve.html",
-            {"disapproved_user": disapproved_user},
-        )
-    else:
+    if request.user.roleuser.roleuser == "brgy_officer" and disapproved_user.useraddress.useraddress != request.user.useraddress.useraddress:
         return redirect("forbidden")
 
+    if request.method == "POST":
+        CustomUser.objects.create(
+            official_user_id= disapproved_user.official_user_id,
+            username=disapproved_user.username,
+            password=disapproved_user.password,
+            email=disapproved_user.email,
+            firstname=disapproved_user.firstname,
+            middle_initial=disapproved_user.middle_initial,
+            lastname=disapproved_user.lastname,
+            date_of_birth=disapproved_user.date_of_birth,
+            gender=disapproved_user.gender,
+            contact_number=disapproved_user.contact_number,
+            useraddress=disapproved_user.useraddress,
+            roleuser=disapproved_user.roleuser,
+            is_approved=True,
+            approved_date=timezone.now(),
+            approved_by=request.user,
+        )
+
+        login_url = request.build_absolute_uri(reverse('my_login'))
+
+        subject = "Agrosavvy Account Has Been Approved"
+        message = f"""
+            Dear {disapproved_user.firstname} {disapproved_user.lastname},
+
+            We are pleased to inform you that your account has been successfully approved by {request.user.firstname} {request.user.lastname}. Congratulations! 🎉
+
+            You now have full access to our system and all its features. We're excited to have you on board and look forward to your contributions. 
+            Should you have any questions or need assistance, feel free to reach out to us at any time. 
+
+            You can now login your account here:
+            {login_url}
+
+            Welcome to the team, and thank you for being a valued member of our community!
+
+            Best regards,
+            The Agrosavvy Team
+        """
+        recipient_list = [disapproved_user.email]
+        
+        send_mail(
+            subject,
+            message,
+            django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+            recipient_list,
+            fail_silently=True,
+        )
+
+        disapproved_user.delete()
+        messages.success(
+            request, f"User has been approved successfully."
+        )
+        return redirect("user_management")
+    return render(
+        request,
+        "app_agrosavvy/confirm_approve.html",
+        {"disapproved_user": disapproved_user},
+    )
 
 
 
 
 
 
-
-# # field management
-# def manage_field(request, field_id):    
-#     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or
-#         request.user.roleuser.roleuser == "brgy_officer"                                  
-#         ):
-#         field = get_object_or_404(Field, field_id=field_id)
-
-#         # Soil Data
-#         soil_filter_type = request.GET.get('soil_filter', '')
-#         soil_sort_by = request.GET.get('soil_sort', '')
-
-#         fieldsoildata = FieldSoilData.objects.filter(field=field, is_deleted=False)
-
-#         if soil_filter_type:
-#             if soil_filter_type == 'acidic':
-#                 fieldsoildata = fieldsoildata.filter(ph__lt=7)
-#             elif soil_filter_type == 'neutral':
-#                 fieldsoildata = fieldsoildata.filter(ph=7)
-#             elif soil_filter_type == 'alkaline':
-#                 fieldsoildata = fieldsoildata.filter(ph__gt=7)
-
-#         if soil_sort_by:
-#             if soil_sort_by == 'date_asc':
-#                 fieldsoildata = fieldsoildata.order_by('record_date')
-#             elif soil_sort_by == 'date_desc':
-#                 fieldsoildata = fieldsoildata.order_by('-record_date')
-#             elif soil_sort_by == 'ph_asc':
-#                 fieldsoildata = fieldsoildata.order_by('ph')
-#             elif soil_sort_by == 'ph_desc':
-#                 fieldsoildata = fieldsoildata.order_by('-ph')
-
-#         # Crop Data
-#         crop_filter_type = request.GET.get('crop_filter', '')
-#         crop_sort_by = request.GET.get('crop_sort', '')
-
-#         fieldcropdata = FieldCropData.objects.filter(field=field, is_deleted=False)
-
-#         if crop_filter_type:
-#             fieldcropdata = fieldcropdata.filter(crop_planted_id=crop_filter_type)
-
-#         if crop_sort_by:
-#             if crop_sort_by == 'planting_asc':
-#                 fieldcropdata = fieldcropdata.order_by('planting_date')
-#             elif crop_sort_by == 'planting_desc':
-#                 fieldcropdata = fieldcropdata.order_by('-planting_date')
-#             # elif crop_sort_by == 'harvest_asc':
-#             #     fieldcropdata = fieldcropdata.order_by('harvest_date')
-#             # elif crop_sort_by == 'harvest_desc':
-#             #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
-
-#         # Create form instance for adding soil data
-#         asdform = FieldSoilDataForm()
-#         acdform = FieldCropForm()
-
-#         # Create a dictionary of forms for each soil and crop data instance
-#         fsdforms = {fsd.soil_id: FieldSoilDataForm(instance=fsd) for fsd in fieldsoildata}
-#         fcdforms = {fcd.fieldcrop_id: FieldCropForm(instance=fcd) for fcd in fieldcropdata}
-
-#         # Pagination for fieldsoildata
-#         soil_paginator = Paginator(fieldsoildata, 3)
-#         soil_page_number = request.GET.get("soil_page")
-#         fsdpage_obj = soil_paginator.get_page(soil_page_number)
-
-#         # Pagination for fieldcropdata
-#         crop_paginator = Paginator(fieldcropdata, 3)
-#         crop_page_number = request.GET.get("crop_page")
-#         fcdpage_obj = crop_paginator.get_page(crop_page_number)
-
-#         context = {
-#             "field": field,
-#             "fieldsoildata": fieldsoildata,
-#             "fieldcropdata": fieldcropdata,
-#             "asdform": asdform,
-#             "acdform": acdform,
-#             "fsdforms": fsdforms,
-#             "fcdforms": fcdforms,
-#             "fsdpage_obj": fsdpage_obj,
-#             "fcdpage_obj": fcdpage_obj,
-#             "soil_filter_type": soil_filter_type,
-#             "soil_sort_by": soil_sort_by,
-#             "crop_filter_type": crop_filter_type,
-#             "crop_sort_by": crop_sort_by,
-#             "crops": Crop.objects.all(),
-#         }
-#         return render(request, "app_agrosavvy/manage_field.html", context)
-#     else:
-#         return redirect("forbidden")
-
-
-
-
-
-
-
-# field management
 def manage_field(request, field_id):    
-    if request.user.is_authenticated:
+    if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
         user_role = request.user.roleuser.roleuser
-        field = get_object_or_404(Field, field_id=field_id)
+        field = get_object_or_404(Field, field_id=field_id, is_deleted=False)
 
         # ownership validation and RBAC
         if user_role == "brgy_officer":
@@ -1534,10 +1386,7 @@ def manage_field(request, field_id):
                 fieldcropdata = fieldcropdata.order_by('planting_date')
             elif crop_sort_by == 'planting_desc':
                 fieldcropdata = fieldcropdata.order_by('-planting_date')
-            # elif crop_sort_by == 'harvest_asc':
-            #     fieldcropdata = fieldcropdata.order_by('harvest_date')
-            # elif crop_sort_by == 'harvest_desc':
-            #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
+         
 
         # Create form instance for adding soil data
         asdform = FieldSoilDataForm()
@@ -1582,7 +1431,7 @@ def manage_field(request, field_id):
 
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
-        field = get_object_or_404(Field, field_id=field_id)
+        field = get_object_or_404(Field, field_id=field_id, is_deleted=False)
         if request.method == "POST":
             field_form = FieldForm(request.POST, instance=field)
             address_instance = field.address
@@ -1617,12 +1466,15 @@ def update_field(request, field_id):
     
 
     if request.user.is_authenticated and request.user.roleuser.roleuser == "brgy_officer":
-        field = get_object_or_404(Field, field_id=field_id)
+        field = get_object_or_404(Field, field_id=field_id, is_deleted=False)
+        # Retrieve user's barangay information
+        bo_user_address = request.user.useraddress.useraddress
+        bo_user_barangay = bo_user_address.split(",")[0].strip()
+        # Check if the field belongs to the same barangay
+        if field.address.barangay.brgy_name != bo_user_barangay:
+            return redirect("forbidden")
+        
         if request.method == "POST":
-            # Retrieve user's barangay information
-            bo_user_address = request.user.useraddress.useraddress
-            bo_user_barangay = bo_user_address.split(",")[0].strip()
-            
             field_form = FieldForm(request.POST, instance=field)
             address_instance = field.address
             address_form = AddressForm(request.POST, instance=address_instance)
@@ -1630,7 +1482,9 @@ def update_field(request, field_id):
                 updated_field = field_form.save(commit=False)
                 updated_field.owner = field.owner
                 updated_field.save()
-                updated_address = address_form.save()
+                updated_address= address_form.save()
+                # maybe we can directly save like this:
+                # address_form.save()
                 messages.success(request, "Field updated successfully.")
                 return JsonResponse({"status": "success"})
             else:
@@ -1643,13 +1497,15 @@ def update_field(request, field_id):
                         },
                     }
                 )
-        # GET request (opening the page only)
+
         else:
             # Retrieve user's barangay information
             bo_user_address = request.user.useraddress.useraddress
             bo_user_barangay = bo_user_address.split(",")[0].strip()
             field_form = FieldForm(instance=field)
             address_form = AddressForm(instance=field.address)
+
+
         context = {
             "field_form": field_form,
             "address_form": address_form,
@@ -1657,25 +1513,32 @@ def update_field(request, field_id):
             "MAPBOX_API_KEY" : django_settings.MAPBOX_API_KEY,
         }
         return render(request, "app_agrosavvy/brgy_update_field.html", context)
-    
-
     else:
         return redirect("forbidden")
+
+
+
 
 
 def delete_field(request, field_id):
-    if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin"
-        or request.user.roleuser.roleuser =="brgy_officer"):
-        field = get_object_or_404(Field, pk=field_id)
-        field.delete()
-        messages.success(request, "Field is successfuly deleted")
-        return redirect("dashboard")
-    else:
+    if not request.user.is_authenticated:
         return redirect("forbidden")
+    
+    if request.user.roleuser.roleuser not in ["da_admin", "brgy_officer"]:
+        return redirect("forbidden")
+    
+    field = get_object_or_404(Field, pk=field_id, is_deleted=False)
 
-
-
-
+    if request.user.roleuser.roleuser == "brgy_officer":
+        bo_user_address = request.user.useraddress.useraddress
+        bo_user_barangay = bo_user_address.split(",")[0].strip()
+        # Check if the field belongs to the same barangay
+        if field.address.barangay.brgy_name != bo_user_barangay:
+            return redirect("forbidden")
+        
+    field.delete()
+    messages.success(request, "Field is successfuly deleted")
+    return redirect("dashboard")
 
 
 
@@ -2017,10 +1880,6 @@ def bofa_delete_chat_group(request, group_id):
 
 
 
-def bofa_encode_image(image_file):
-    # with open(image_path, "rb") as image_file:
-    return base64.b64encode(image_file.read()).decode('utf-8')
-
 
 def bofa_image_analysis(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
@@ -2036,7 +1895,7 @@ def bofa_image_analysis(request):
                 image = form.cleaned_data.get('image') 
 
                 if image:
-                    base64_image = bofa_encode_image(image)
+                    base64_image = encode_image(image)
 
                     try:
                         # Send the request to the API
@@ -2282,6 +2141,28 @@ def bofa_view_profile(request):
         return render(request, "bofa_pages/bofa_view_profile.html", context)
     else:
         return redirect("forbidden")
+    
+
+    
+
+def bofa_view_notification(request):
+    if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
+        notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
+        notifications_unread_count = notifications.filter(is_read=False).count()
+
+        paginator = Paginator(notifications, 4)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        context = {
+            'notifications': notifications,
+            'page_obj': page_obj,
+            'notifications_unread_count': notifications_unread_count,  
+        }
+        return render(request, 'bofa_pages/bofa_view_notification.html', context)
+    else:
+        return redirect("forbidden")
+    
 
 
 
@@ -2330,10 +2211,6 @@ def bofa_manage_field(request, field_id):
                 fieldcropdata = fieldcropdata.order_by('planting_date')
             elif crop_sort_by == 'planting_desc':
                 fieldcropdata = fieldcropdata.order_by('-planting_date')
-            # elif crop_sort_by == 'harvest_asc':
-            #     fieldcropdata = fieldcropdata.order_by('harvest_date')
-            # elif crop_sort_by == 'harvest_desc':
-            #     fieldcropdata = fieldcropdata.order_by('-harvest_date')
 
         # Create form instance for adding soil data
         asdform = FieldSoilDataForm()
@@ -2471,17 +2348,26 @@ def reviewrating(request):
     return {"rform": rform}
 
 
-# for line chart
-def get_nutrient_data(request):
-    field_id = request.GET.get('field_id')
-    nutrient = request.GET.get('nutrient')
+
+def mark_notifications_as_read(request):
+    # Mark all unread notifications as read for the current user
+    Notification.objects.filter(user_receiver = request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'status': 'success'})
+
+
+
+
+# # for line chart
+# def get_nutrient_data(request):
+#     field_id = request.GET.get('field_id')
+#     nutrient = request.GET.get('nutrient')
     
-    data = FieldSoilData.objects.filter(field_id=field_id).order_by('record_date')
+#     data = FieldSoilData.objects.filter(field_id=field_id).order_by('record_date')
     
-    labels = [d.record_date.strftime('%Y-%m-%d') for d in data]
-    values = [getattr(d, nutrient) for d in data]
+#     labels = [d.record_date.strftime('%Y-%m-%d') for d in data]
+#     values = [getattr(d, nutrient) for d in data]
     
-    return JsonResponse({'labels': labels, 'values': values})
+#     return JsonResponse({'labels': labels, 'values': values})
 
 
 
@@ -2890,8 +2776,6 @@ def image_analysis_title_generator(firstline_output):
 
 
 
-
-
 def translate_to_bisaya(cleaned_content):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2913,10 +2797,8 @@ def translate_to_bisaya(cleaned_content):
 
 
 
-
-
-
-
+def encode_image(image_file):
+    return base64.b64encode(image_file.read()).decode('utf-8')
 
 
 
@@ -3206,7 +3088,7 @@ def bofa_deactivate_account(request):
 
 
 
-# error pages
+
 def forbidden(request):
     return render(request, "error_pages/forbidden.html")
 

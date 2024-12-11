@@ -168,7 +168,7 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 
 
 
-
+# superadmin UI
 JAZZMIN_SETTINGS = {
     "site_title": "Agrosavvy Admin",  # The title in the browser tab
     "site_header": "Agrosavvy Admin",  # The title in the admin page header
@@ -179,11 +179,7 @@ JAZZMIN_SETTINGS = {
     "site_logo_classes": "img-circle",
 }
 
-
-
-
 # email configurations
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -197,5 +193,13 @@ PASSWORD_RESET_TIMEOUT_DAYS = 1
 
 LOGIN_URL = 'my_login'
 
-# Increase the maximum number of form fields allowed
-DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Adjust this number as needed
+# Increase the maximum number of form fields allowed (django admin)
+# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Adjust this number as needed
+
+
+# Session settings  - recheck this for compatibility
+# SESSION_COOKIE_AGE = 1800  
+# SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
+# SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+# SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
+# SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
