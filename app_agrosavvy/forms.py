@@ -25,7 +25,7 @@ import re
 
 
 
-# okay
+
 class LoginForm(forms.Form):
     username = forms.CharField(
         label="",
@@ -49,7 +49,7 @@ class LoginForm(forms.Form):
 
 
 
-# okay
+
 class PendingUserForm(forms.ModelForm):
     # basic validations, labels, and design
     official_user_id = forms.CharField(
@@ -239,7 +239,7 @@ class PendingUserForm(forms.ModelForm):
 
 
 
-# okay
+
 class CustomUserUpdateForm(UserChangeForm):
     password = None
     
@@ -370,7 +370,7 @@ class CustomUserUpdateForm(UserChangeForm):
 
 
 
-# okay
+
 class CustomPasswordChangeForm(PasswordChangeForm):    
     class Meta:
         model = CustomUser
@@ -534,7 +534,7 @@ class AddressForm(forms.ModelForm):
 
 
 
-# okay
+
 class FieldCropForm(forms.ModelForm):
     planting_date = forms.DateField(
         widget=forms.DateInput(
@@ -563,7 +563,7 @@ class FieldCropForm(forms.ModelForm):
 
 
 
-# okay
+
 class FieldSoilDataForm(forms.ModelForm):
     nitrogen = forms.DecimalField(
         max_digits=5,
@@ -668,7 +668,7 @@ class FieldSoilDataForm(forms.ModelForm):
         return rd
 
 
-# okay
+
 class ReviewratingForm(forms.ModelForm):
     review_header = forms.CharField(
         max_length=30,
@@ -730,7 +730,7 @@ class ReviewratingForm(forms.ModelForm):
 
 
 
-# okay
+
 class ImageAnalysisForm(forms.ModelForm):
     class Meta:
         model = ImageAnalysis
@@ -746,7 +746,7 @@ class ImageAnalysisForm(forms.ModelForm):
 
 
 
-# okay
+
 class CreateNotificationForm(forms.ModelForm):
     NOTIF_CHOICES = [
         ('all', 'All Users'),

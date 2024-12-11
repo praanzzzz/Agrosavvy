@@ -1,100 +1,261 @@
 {% extends 'bofa_base.html' %}
-
+{% load static %}
 {% block content %}
+
 <style>
-    .weather-card {
-        max-width: 800px;
-        width: 100%;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    body {
+        background-color: #f0f4f8;
+        font-family: 'Roboto', sans-serif;
+        color: #2c3e50;
+    }
+    .weather-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .weather-header {
+        background: linear-gradient(135deg, #43a047, #1b5e20);
+        color: white;
+        padding: 20px;
+        border-radius: 15px 15px 0 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .weather-content {
+        background-color: white;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    .current-weather {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: white;
+        padding: 40px;
+        position: relative;
+    }
+    .current-weather::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+    }
+    .current-weather > * {
+        position: relative;
+        z-index: 1;
     }
     .temperature {
-        font-size: 3rem;
-        color: #007bff;
+        font-size: 4rem;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     .weather-icon {
-        width: 80px;
+        width: 100px;
+        height: 100px;
+        filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
+    }
+    .weather-details {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-around;
+        padding: 20px;
+        background-color: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    .weather-detail-item {
+        text-align: center;
+        margin: 10px;
+    }
+    .forecast {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+    .forecast-item {
+        background-color: #e8f5e9;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid #c8e6c9;
+    }
+    .forecast-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    .forecast-date {
+        font-weight: bold;
+        color: #2e7d32;
+        margin-bottom: 10px;
+    }
+    .forecast-temp {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #1b5e20;
+    }
+    .forecast-details {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 10px;
+    }
+    .agricultural-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+    }
+    .toggle-button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        transition-duration: 0.4s;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .toggle-button:hover {
+        background-color: #45a049;
+    }
+    .forecast-container {
+        padding: 20px;
     }
 </style>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="weather-card bg-white p-4 rounded-4 shadow-sm">
-                <div class="text-center">
-                    <h2 class="text-primary">Weather in Cebu City</h2>
-                    {% if weather_data %}
-                        <div class="text-muted">{{ weather_data.current.dt|date:"Y-m-d H:i" }} (Local time)</div>
-                        <div class="temperature mb-3">{{ weather_data.current.temp }}°C</div>
-                        <div class="weather-description text-capitalize mb-3">{{ weather_data.current.weather.0.description }}</div>
-                        <img src="https://openweathermap.org/img/wn/{{ weather_data.current.weather.0.icon }}@2x.png" alt="Weather Icon" class="weather-icon">
-                        <div>Feels Like: {{ weather_data.current.feels_like }}°C</div>
-                        <div>Cloudiness: {{ weather_data.current.clouds }}%</div>
-                        <div>UV Index: {{ weather_data.current.uvi }}</div>
-                        <div>Visibility: {{ weather_data.current.visibility }} m</div>
-                        <div>Sunrise: {{ weather_data.current.sunrise|date:"H:i" }} | Sunset: {{ weather_data.current.sunset|date:"H:i" }}</div>
-                    {% else %}
-                        <p class="text-danger">Unable to fetch weather data.</p>
-                    {% endif %}
+<div class="weather-container">
+    <div class="weather-header">
+        <h1 class="text-center text-4xl font-bold mb-2">AgriWeather: Cebu City</h1>
+        <p class="text-center text-xl">Your Daily Agricultural Weather Companion</p>
+    </div>
+    
+    <div class="weather-content">
+        {% if weather_data %}
+        <div class="current-weather" style="background-image: url('{% static "images/cebu_city_map.png" %}');">
+            <div class="flex justify-between items-center">
+                <div>
+                    <div class="temperature">{{ weather_data.current.temp }}°C</div>
+                    <div class="text-2xl mt-2">{{ weather_data.current.weather.0.description|title }}</div>
+                    <div class="text-lg mt-1">{{ weather_data.current.dt|date:"l, F d, Y H:i" }}</div>
                 </div>
-
-                {% if weather_data %}
-                    <div class="row text-center mt-4">
-                        <div class="col">
-                            <h6 class="mb-0">Humidity</h6>
-                            <span>{{ weather_data.current.humidity }}%</span>
-                        </div>
-                        <div class="col">
-                            <h6 class="mb-0">Wind Speed</h6>
-                            <span>{{ weather_data.current.wind_speed }} m/s ({{ weather_data.current.wind_deg }}°)</span>
-                        </div>
-                        <div class="col">
-                            <h6 class="mb-0">Pressure</h6>
-                            <span>{{ weather_data.current.pressure }} hPa</span>
-                        </div>
-                    </div>
-
-                    <div class="mt-4">
-                        <h5 class="text-center">8-Day Forecast</h5>
-                        <div class="list-group">
-                            {% for day in weather_data.daily %}
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>{{ day.dt|date:"l, M d" }}</strong> - {{ day.summary }}
-                                        </div>
-                                        <div>
-                                            <img src="https://openweathermap.org/img/wn/{{ day.weather.0.icon }}@2x.png" alt="Weather Icon" class="weather-icon">
-                                            {{ day.temp.day }}°C
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 d-flex justify-content-between">
-                                        <span>🌞 Sunrise: {{ day.sunrise|date:"H:i" }} | Sunset: {{ day.sunset|date:"H:i" }}</span>
-                                        <span>🌙 Moonrise: {{ day.moonrise|date:"H:i" }} | Moonset: {{ day.moonset|date:"H:i" }}</span>
-                                    </div>
-                                    <div class="mt-2">
-                                        <strong>Temperature:</strong> Morning: {{ day.temp.morn }}°C, Day: {{ day.temp.day }}°C, Evening: {{ day.temp.eve }}°C, Night: {{ day.temp.night }}°C
-                                    </div>
-                                    <div class="mt-2">
-                                        <strong>Feels Like:</strong> Morning: {{ day.feels_like.morn }}°C, Day: {{ day.feels_like.day }}°C, Evening: {{ day.feels_like.eve }}°C, Night: {{ day.feels_like.night }}°C
-                                    </div>
-                                    <div class="mt-2">
-                                        <span><strong>Humidity:</strong> {{ day.humidity }}%</span> |
-                                        <span><strong>Wind Speed:</strong> {{ day.wind_speed }} m/s, {{ day.wind_deg }}°</span> |
-                                        <span><strong>Pressure:</strong> {{ day.pressure }} hPa</span>
-                                    </div>
-                                    <div class="mt-2">
-                                        <span><strong>Rain:</strong> {{ day.rain|default:"0" }} mm</span> |
-                                        <span><strong>Pop:</strong> {{ day.pop|floatformat:0 }}%</span> |
-                                        <span><strong>UV Index:</strong> {{ day.uvi }}</span>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
+                <img src="https://openweathermap.org/img/wn/{{ weather_data.current.weather.0.icon }}@4x.png" alt="Weather Icon" class="weather-icon">
+            </div>
+            
+            <div class="weather-details">
+                <div class="weather-detail-item">
+                    <img src="{% static 'weather_icons/humidity.png' %}" alt="Humidity" class="agricultural-icon mx-auto">
+                    <div class="text-sm">Humidity</div>
+                    <div class="font-bold">{{ weather_data.current.humidity }}%</div>
+                </div>
+                <div class="weather-detail-item">
+                    <img src="{% static 'weather_icons/wind.png' %}" alt="Wind" class="agricultural-icon mx-auto">
+                    <div class="text-sm">Wind Speed</div>
+                    <div class="font-bold">{{ weather_data.current.wind_speed }} m/s</div>
+                </div>
+                <div class="weather-detail-item">
+                    <img src="{% static 'weather_icons/pressure.png' %}" alt="Pressure" class="agricultural-icon mx-auto">
+                    <div class="text-sm">Pressure</div>
+                    <div class="font-bold">{{ weather_data.current.pressure }} hPa</div>
+                </div>
             </div>
         </div>
+        
+        <div class="text-center mt-4">
+            <button id="toggleForecast" class="toggle-button">
+                Show Hourly Forecast
+            </button>
+        </div>
+
+        <div id="dailyForecast" class="forecast-container">
+            <h2 class="text-2xl font-bold text-green-800 mb-4">Daily Forecast</h2>
+            <div class="forecast">
+                {% for day in weather_data.daily %}
+                <div class="forecast-item">
+                    <div class="forecast-date">{{ day.dt|date:"l, M d" }}</div>
+                    <img src="https://openweathermap.org/img/wn/{{ day.weather.0.icon }}.png" alt="Weather Icon" class="mx-auto" style="width: 50px; height: 50px;">
+                    <div class="forecast-temp">{{ day.temp.day }}°C</div>
+                    <div class="text-sm">{{ day.weather.0.description|title }}</div>
+                    <div class="forecast-details">
+                        <div>
+                            <img src="{% static 'weather_icons/humidity.png' %}" alt="Humidity" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ day.humidity }}%</div>
+                        </div>
+                        <div>
+                            <img src="{% static 'weather_icons/rain.png' %}" alt="Rain" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ day.pop|floatformat:0 }}%</div>
+                        </div>
+                        <div>
+                            <img src="{% static 'weather_icons/wind.png' %}" alt="Wind" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ day.wind_speed }} m/s</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div id="hourlyForecast" class="forecast-container" style="display: none;">
+            <h2 class="text-2xl font-bold text-green-800 mb-4">Hourly Forecast</h2>
+            <div class="forecast">
+                {% for hour in weather_data.hourly|slice:":24" %}
+                <div class="forecast-item">
+                    <div class="forecast-date">{{ hour.dt|date:"l, H:i" }}</div>
+                    <img src="https://openweathermap.org/img/wn/{{ hour.weather.0.icon }}.png" alt="Weather Icon" class="mx-auto" style="width: 50px; height: 50px;">
+                    <div class="forecast-temp">{{ hour.temp }}°C</div>
+                    <div class="text-sm">{{ hour.weather.0.description|title }}</div>
+                    <div class="forecast-details">
+                        <div>
+                            <img src="{% static 'weather_icons/humidity.png' %}" alt="Humidity" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ hour.humidity }}%</div>
+                        </div>
+                        <div>
+                            <img src="{% static 'weather_icons/rain.png' %}" alt="Rain" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ hour.pop|floatformat:0 }}%</div>
+                        </div>
+                        <div>
+                            <img src="{% static 'weather_icons/wind.png' %}" alt="Wind" class="agricultural-icon mx-auto">
+                            <div class="text-xs">{{ hour.wind_speed }} m/s</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% else %}
+        <div class="p-4">
+            <p class="text-red-600 text-center">Unable to fetch weather data. Please try again later.</p>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleButton = document.getElementById('toggleForecast');
+        const dailyForecast = document.getElementById('dailyForecast');
+        const hourlyForecast = document.getElementById('hourlyForecast');
+
+        toggleButton.addEventListener('click', function() {
+            if (dailyForecast.style.display !== 'none') {
+                dailyForecast.style.display = 'none';
+                hourlyForecast.style.display = 'block';
+                toggleButton.textContent = 'Show Daily Forecast';
+            } else {
+                dailyForecast.style.display = 'block';
+                hourlyForecast.style.display = 'none';
+                toggleButton.textContent = 'Show Hourly Forecast';
+            }
+        });
+    });
+</script>
+
 {% endblock %}
