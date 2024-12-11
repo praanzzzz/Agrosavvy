@@ -268,6 +268,7 @@
       <span class="tooltip">Profile</span>
     </li> -->
    
+    {% if request.user.roleuser.roleuser == "da_admin" %}
     <li>
       <a href="{% url 'create_notification' %}">
         <i class="fa-solid fa-bell"></i>
@@ -275,6 +276,9 @@
       </a>
       <span class="tooltip">Create Notifications</span>
     </li>
+    {% endif %}
+
+    
     <li>
       <a href="{% url 'my_logout' %}">
         <i class="fas fa-sign-out-alt"></i>
