@@ -128,7 +128,6 @@ urlpatterns = [
 
     #forbidden
     path('forbidden', views.forbidden, name='forbidden'),
-
 ]
 
 

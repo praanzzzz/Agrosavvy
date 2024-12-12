@@ -19,7 +19,6 @@ from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from datetime import date
-from django.core.validators import RegexValidator, MinValueValidator, MaxValueValidator
 import re
 
 
@@ -29,6 +28,7 @@ import re
 class LoginForm(forms.Form):
     username = forms.CharField(
         label="",
+        max_length=10,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -39,6 +39,7 @@ class LoginForm(forms.Form):
     )
     password = forms.CharField(
         label="",
+        max_length = 50,
         widget=forms.PasswordInput(
             attrs={"class": "form-control", "placeholder": "Password"}
         ),
@@ -179,12 +180,16 @@ class PendingUserForm(forms.ModelForm):
         contact_number = self.cleaned_data.get('contact_number', '')
         if not re.match(r'^9\d{9}$', contact_number):
             raise ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
+        if PendingUser.objects.filter(contact_number = contact_number).exists():
+            raise forms.ValidationError("Contact number is already used by one of the pending user.")
+        if CustomUser.objects.filter(contact_number=contact_number).exists():
+            raise forms.ValidationError("Contact number is already used by one of the registered user.")
         return f'+63{contact_number}'
     
 
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get("date_of_birth")
-        if dob:  # Only validate if the field is not empty
+        if dob: 
             if dob > date.today():
                 raise forms.ValidationError("The date of birth cannot be in the future.")
         return dob
@@ -296,13 +301,6 @@ class CustomUserUpdateForm(UserChangeForm):
         ),
     )
 
-    # useraddress = forms.ModelChoiceField(
-    #     queryset=UserAddress.objects.all(),  # Dynamically fetch all addresses
-    #     label="Address",  # Change label
-    #     widget=forms.Select(attrs={"class": "form-control"}),  # Add styling
-    #     empty_label="Select an Address",  # Placeholder option
-    # )
-
     # email = forms.EmailField(
     #     max_length=254, 
     #     widget=forms.EmailInput(attrs={"class": "form-control"}),
@@ -347,6 +345,8 @@ class CustomUserUpdateForm(UserChangeForm):
         contact_number = self.cleaned_data.get('contact_number', '')
         if not re.match(r'^9\d{9}$', contact_number):
             raise ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
+        if CustomUser.objects.filter(contact_number=contact_number).exists():
+            raise forms.ValidationError("Contact number is already used by one of the registered user.")
         return f'+63{contact_number}'
 
 
@@ -361,9 +361,6 @@ class CustomUserUpdateForm(UserChangeForm):
         email = self.cleaned_data.get("email")
         if CustomUser.objects.filter(email__iexact=email).exclude(id=self.instance.id).exists():
             raise forms.ValidationError("Email already in use.")
-            
-        if PendingUser.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("This email is pending approval.")
         return email
     
 
