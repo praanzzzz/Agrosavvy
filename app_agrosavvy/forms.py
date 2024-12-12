@@ -186,7 +186,7 @@ class PendingUserForm(forms.ModelForm):
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('contact_number', '')
         if not re.match(r'^9\d{9}$', contact_number):
-            raise ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
+            raise forms.ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
         if PendingUser.objects.filter(contact_number = contact_number).exists():
             raise forms.ValidationError("Contact number is already used by one of the pending user.")
         if CustomUser.objects.filter(contact_number=contact_number).exists():
@@ -351,7 +351,7 @@ class CustomUserUpdateForm(UserChangeForm):
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('contact_number', '')
         if not re.match(r'^9\d{9}$', contact_number):
-            raise ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
+            raise forms.ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
         if CustomUser.objects.filter(contact_number=contact_number).exists():
             raise forms.ValidationError("Contact number is already used by one of the registered user.")
         return f'+63{contact_number}'
@@ -440,6 +440,11 @@ class FieldForm(forms.ModelForm):
             "field_acres": "Field Hectares"
         }
         
+    def clean_field_name(self):
+        field_name = self.cleaned_data.get("field_name")
+        if Field.objects.filter(field_name=field_name).exclude(id=self.instance.id).exists():
+            raise forms.ValidationError("Field Name is already being used.")
+        return field_name
 
     def clean_field_acres(self):
         field_acres = self.cleaned_data.get("field_acres")
@@ -452,7 +457,6 @@ class FieldForm(forms.ModelForm):
 
 
 
-# okay
 class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
@@ -479,8 +483,6 @@ class AddressForm(forms.ModelForm):
                     "value": "Philippines",
                 }
             ),
-            # "latitude": forms.HiddenInput(),
-            # "longitude": forms.HiddenInput(),
             "latitude": forms.NumberInput(
                   attrs={
                     "class": "form-control",
@@ -502,16 +504,25 @@ class AddressForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['barangay'].queryset = Barangay.objects.all().order_by('brgy_name')
 
+    def clean_city(self):
+        city = self.cleaned_data.get("city")
+        if city != "Cebu City":
+            raise forms.ValidationError("The City must be in Cebu City only.")
+        return city
+    
+    def clean_country(self):
+        country = self.cleaned_data.get("country")
+        if country != "Philippines":
+            raise forms.ValidationError('The country must be in the Philippines only.')
+        return country
+            
 
-    # checks for coordinates if exists
     def clean(self):
         cleaned_data = super().clean()
         latitude = cleaned_data.get("latitude")
         longitude = cleaned_data.get("longitude")
-        
-        # Check if latitude and longitude are provided
+
         if latitude and longitude:
-            # Get the current instance being updated
             current_instance = self.instance
             
             # Check if we're updating an existing object (i.e., it's not a new one) (only old instance has pk)
@@ -524,10 +535,7 @@ class AddressForm(forms.ModelForm):
 
             # If the address already exists (except for the current one), raise validation error
             if existing_address.exists():
-                raise forms.ValidationError(
-                    "The location with these coordinates already exists. Please move the marker."
-                )
-        
+                raise forms.ValidationError("The location with these coordinates already exists. Please move the marker.")
         return cleaned_data
 
 
