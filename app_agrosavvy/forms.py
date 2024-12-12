@@ -439,12 +439,7 @@ class FieldForm(forms.ModelForm):
         labels = {
             "field_acres": "Field Hectares"
         }
-        
-    def clean_field_name(self):
-        field_name = self.cleaned_data.get("field_name")
-        if Field.objects.filter(field_name=field_name).exclude(id=self.instance.id).exists():
-            raise forms.ValidationError("Field Name is already being used.")
-        return field_name
+
 
     def clean_field_acres(self):
         field_acres = self.cleaned_data.get("field_acres")
