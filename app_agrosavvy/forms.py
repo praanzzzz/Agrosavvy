@@ -153,6 +153,13 @@ class PendingUserForm(forms.ModelForm):
         empty_label="Select an Address",  # Placeholder option
     )
 
+
+
+    email = forms.EmailField(
+        max_length=50, 
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+    ),
+
     class Meta:
         model = PendingUser
         fields = [
@@ -301,10 +308,10 @@ class CustomUserUpdateForm(UserChangeForm):
         ),
     )
 
-    # email = forms.EmailField(
-    #     max_length=254, 
-    #     widget=forms.EmailInput(attrs={"class": "form-control"}),
-    # ),
+    email = forms.EmailField(
+        max_length=50, 
+        widget=forms.EmailInput(attrs={"class": "form-control"}),
+    ),
 
 
     class Meta:
