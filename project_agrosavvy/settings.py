@@ -14,7 +14,7 @@ from pathlib import Path
 from decouple import config
 
 MAPBOX_API_KEY = config('MAPBOX_API_KEY')
-WEATHER_API_KEY=config('WEATHER_API_KEY')
+# WEATHER_API_KEY=config('WEATHER_API_KEY')
 ONECALL_API_KEY=config('ONECALL_API_KEY')
 OPENAI_API_KEY=config('OPENAI_API_KEY')
 
@@ -26,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*)n76u@pc%ctqk--2^z$31dy_()0#yi-yn)-n*^#s^jn2$a_us'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,6 +38,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # admin UI
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -103,7 +104,7 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'agrosavvydb3',
+        'NAME': 'agrosavvydb',
         'USER': 'postgres',
         'PASSWORD': 'NASA',
         'HOST': 'localhost',
@@ -172,7 +173,6 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 JAZZMIN_SETTINGS = {
     "site_title": "Agrosavvy Admin",  # The title in the browser tab
     "site_header": "Agrosavvy Admin",  # The title in the admin page header
-    # Optional: Customize the index_title if desired
     "site_brand": "Agrosavvy Admin",
     "welcome_sign": "Welcome to Agrosavvy Admin Panel",
     "site_logo": "/images/Logo_Agrosavvy.png",
@@ -184,9 +184,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'franzgabijan55@gmail.com'
-EMAIL_HOST_PASSWORD = 'alhe ycpj zvae stnp'
-DEFAULT_FROM_EMAIL = 'franzgabijan55@gmail.com'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 # Password reset URL configuration
 PASSWORD_RESET_TIMEOUT_DAYS = 1
@@ -194,7 +194,7 @@ PASSWORD_RESET_TIMEOUT_DAYS = 1
 LOGIN_URL = 'my_login'
 
 # Increase the maximum number of form fields allowed (django admin)
-# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000  # Adjust this number as needed
+# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000 
 
 
 # Session settings  - recheck this for compatibility

@@ -13,7 +13,7 @@ handler404 = 'project_agrosavvy.urls.custom_404_view'
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('agroADMINsavvyCGLR/', admin.site.urls),
     path('',include('app_agrosavvy.urls')),
     path('datawizard/', include('data_wizard.urls')),
 ]
