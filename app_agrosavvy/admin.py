@@ -185,7 +185,7 @@ class PendingUserAdmin(admin.ModelAdmin):
         "lastname",
     )
 
-    # Prevent deletion of pending users directly from admin
+    # # Prevent deletion of pending users directly from admin
     def has_delete_permission(self, request, obj=None):
         return False
 
@@ -363,13 +363,13 @@ admin.site.register(SoilDataSFM)
 
 
 
-# admin.site.register(ChatGroup, ChatGroupAdmin)
-# admin.site.register(Address)
-# admin.site.register(Crop)
-# admin.site.register(RoleUser)
-# admin.site.register(Barangay)
-# admin.site.register(Gender)
-# admin.site.register(UserAddress)
+admin.site.register(ChatGroup, ChatGroupAdmin)
+admin.site.register(Address)
+admin.site.register(Crop)
+admin.site.register(RoleUser)
+admin.site.register(Barangay)
+admin.site.register(Gender)
+admin.site.register(UserAddress)
 
 
 

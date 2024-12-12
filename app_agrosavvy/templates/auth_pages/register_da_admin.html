@@ -102,6 +102,9 @@
 
 </style>
 
+
+
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
       const usernameField = document.querySelector('input[name="username"]');
@@ -118,17 +121,24 @@
               return;
           }
 
-          // Generate suggestions
+          // Generate suggestions, ensuring they don't exceed 10 characters
           const suggestions = [
               input + Math.floor(Math.random() * 1000),
               input + Math.floor(Math.random() * 1000),
               input + Math.floor(Math.random() * 1000),
               input + Math.floor(Math.random() * 1000),
-            
           ];
 
+          // Limit suggestions to 10 characters
+          const limitedSuggestions = suggestions.map((suggestion) => {
+              if (suggestion.length > 10) {
+                  return suggestion.substring(0, 10);
+              }
+              return suggestion;
+          });
+
           // Display suggestions
-          suggestions.forEach((suggestion) => {
+          limitedSuggestions.forEach((suggestion) => {
               const suggestionElement = document.createElement("span");
               suggestionElement.textContent = suggestion;
               suggestionElement.style.cursor = "pointer";
@@ -148,5 +158,6 @@
       });
   });
 </script>
+
 
 {% endblock %}

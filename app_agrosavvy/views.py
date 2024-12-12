@@ -62,6 +62,9 @@ OpenAI.api_key = django_settings.OPENAI_API_KEY
 client = OpenAI()
 
 
+
+
+
 # Main pages for da_admin and brgy officers
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)   # implement to all functions that needs authentication
 def dashboard(request):
@@ -1168,7 +1171,7 @@ def admin_disapprove_user(request, user_id):
         send_mail(
             subject,
             message,
-            django_settings.DEFAULT_FROM_EMAIL,  # Ensure this is set in your settings
+            django_settings.DEFAULT_FROM_EMAIL,
             recipient_list,
             fail_silently=True,
         )
@@ -2905,12 +2908,44 @@ def register_farmer(request):
 
 
 
+
+
+
+
+# MAX_FAILED_ATTEMPTS = 4
+# BLOCK_TIME_MINUTES = 60
+
+# def is_user_blocked(username):
+#     """Check if the user is blocked based on login attempts."""
+#     # Get the time window to check
+#     time_threshold = now() - timedelta(minutes=BLOCK_TIME_MINUTES)
+    
+#     # Count failed login attempts for this username in the time window
+#     failed_attempts = LoginEvent.objects.filter(
+#         login_type=2, 
+#         username=username,
+#         datetime__gte=time_threshold,
+#     ).count()
+    
+#     # Check if attempts exceed the max allowed
+#     return failed_attempts >= MAX_FAILED_ATTEMPTS   
+
+
+
 def my_login(request):
     form = LoginForm(request.POST or None)
     if request.method == "POST":
         if form.is_valid():
             username = form.cleaned_data.get("username")
             password = form.cleaned_data.get("password")
+
+            #  # Check if the user is blocked
+            # if is_user_blocked(username):
+            #     messages.error(
+            #         request,
+            #         f"Too many failed login attempts. Try again after {BLOCK_TIME_MINUTES} minutes.",
+            #     )
+            #     return render(request, "auth_pages/my_login.html", {"form": form})
 
             # Check if the user is in the PendingUser table
             try:
@@ -2948,10 +2983,7 @@ def my_login(request):
                 else:
                     messages.error(request, "Organization is unsubscribed.")
             else:
-                messages.error(
-                    request,
-                    "Invalid username or password",
-                )
+                messages.error(request, "Invalid username or password")
         else:
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})
