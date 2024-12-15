@@ -23,8 +23,6 @@ import re
 
 
 
-
-
 class LoginForm(forms.Form):
     username = forms.CharField(
         label="",
@@ -187,8 +185,6 @@ class PendingUserForm(forms.ModelForm):
         contact_number = self.cleaned_data.get('contact_number', '')
         if not re.match(r'^9\d{9}$', contact_number):
             raise forms.ValidationError("Enter a valid 10-digit phone number starting with 9 (e.g., 9123456789).")
-        if PendingUser.objects.filter(contact_number = contact_number).exists():
-            raise forms.ValidationError("Contact number is already used by one of the pending user.")
         if CustomUser.objects.filter(contact_number=contact_number).exists():
             raise forms.ValidationError("Contact number is already used by one of the registered user.")
         return f'+63{contact_number}'
@@ -409,6 +405,7 @@ class CustomPasswordChangeForm(PasswordChangeForm):
 class FieldForm(forms.ModelForm):
     field_name = forms.CharField(
         max_length=20,
+        label= "Field name",
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -440,6 +437,18 @@ class FieldForm(forms.ModelForm):
             "field_acres": "Field Hectares"
         }
 
+    def clean_field_name(self):
+        field_name = self.cleaned_data.get("field_name")
+        if field_name:
+            current_instance = self.instance
+
+            if current_instance.pk:
+                existing_field_name = Field.objects.exclude(pk=current_instance.pk).filter(field_name=field_name, is_deleted=False)
+            else:
+                existing_field_name = Field.objects.filter(field_name=field_name, is_deleted=False)
+            if existing_field_name.exists():
+                raise forms.ValidationError("The field name already is used. Please use another field name.")
+        return field_name
 
     def clean_field_acres(self):
         field_acres = self.cleaned_data.get("field_acres")
@@ -460,22 +469,11 @@ class AddressForm(forms.ModelForm):
             "barangay": forms.Select(
                 attrs={"class": "form-control", "placeholder": "Enter barangay"}
             ),
-
-        
             "city_municipality": forms.TextInput(
                 attrs={
                     "class": "form-control",
                     "placeholder": "Enter city or municipality",
                     "readonly": "readonly",
-                    "value": "Cebu City",
-                }
-            ),
-            "country": forms.HiddenInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Enter country",
-                    "readonly": "readonly",
-                    "value": "Philippines",
                 }
             ),
             "latitude": forms.NumberInput(
@@ -492,15 +490,18 @@ class AddressForm(forms.ModelForm):
                     "readonly": "readonly",
                 }
             ),
+            "country": forms.HiddenInput(), 
         }
 
-
+    # Ensure barangay options are ordered alphabetically , initialize values of city and country
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['barangay'].queryset = Barangay.objects.all().order_by('brgy_name')
+        self.fields["city_municipality"].initial = "Cebu City"
+        self.fields["country"].initial = "Philippines"
 
-    def clean_city(self):
-        city = self.cleaned_data.get("city")
+    def clean_city_municipality(self):
+        city = self.cleaned_data.get("city_municipality")
         if city != "Cebu City":
             raise forms.ValidationError("The City must be in Cebu City only.")
         return city
@@ -511,7 +512,7 @@ class AddressForm(forms.ModelForm):
             raise forms.ValidationError('The country must be in the Philippines only.')
         return country
             
-
+    # checks for duplicate coordinates - address cannot be deleted even if related field is deleted - always validate - coordinates is unli
     def clean(self):
         cleaned_data = super().clean()
         latitude = cleaned_data.get("latitude")
@@ -519,7 +520,6 @@ class AddressForm(forms.ModelForm):
 
         if latitude and longitude:
             current_instance = self.instance
-            
             # Check if we're updating an existing object (i.e., it's not a new one) (only old instance has pk)
             if current_instance.pk:
                 # Exclude the current instance from the search to avoid a conflict with itself
@@ -636,7 +636,7 @@ class FieldSoilDataForm(forms.ModelForm):
         required=False,
         decimal_places=2,
         min_value=0, 
-        max_value=10,
+        max_value=14,
         widget=forms.NumberInput(
             attrs={
                 "class": "form-control",
@@ -667,12 +667,28 @@ class FieldSoilDataForm(forms.ModelForm):
         model = FieldSoilData
         fields = ["nitrogen", "phosphorous", "potassium", "ph", "record_date"]
 
+    # checks that at least one value must be submitted
+    def clean(self):
+        cleaned_data = super().clean()
+        nitrogen = cleaned_data.get("nitrogen")
+        phosphorous = cleaned_data.get("phosphorous")
+        potassium = cleaned_data.get("potassium")
+        ph = cleaned_data.get("ph")
+
+        if not any([nitrogen, phosphorous, potassium, ph]):
+            raise forms.ValidationError("At least one nutrient level (Nitrogen, Phosphorous, Potassium, or pH) must be provided.")
+        return cleaned_data
+
     def clean_record_date(self):
         rd = self.cleaned_data.get("record_date")
         if rd:  # Only validate if the field is not empty
             if rd > date.today():
                 raise forms.ValidationError("The record date cannot be in the future.")
         return rd
+
+
+
+
 
 
 
@@ -720,7 +736,7 @@ class ReviewratingForm(forms.ModelForm):
                     ("4", "Bad"),
                     ("5", "Worse"),
                 ],
-                attrs={"class": "form-control"},
+                attrs={"class": "form-control",  "required": True},
             ),
         }
 
@@ -750,6 +766,35 @@ class ImageAnalysisForm(forms.ModelForm):
             })
         }
 
+        def clean_image(self):
+            import os
+            import imghdr
+            from django.utils.text import slugify
+
+            image = self.cleaned_data.get('image')
+            if image:
+                # File extension validation
+                allowed_extensions = ['jpg', 'jpeg', 'png']
+                if not image.name.split('.')[-1].lower() in allowed_extensions:
+                    raise forms.ValidationError("Only image files (JPG, JPEG, PNG) are allowed.")
+
+                # MIME type validation
+                valid_mime_types = ['jpeg', 'png']
+                mime_type = imghdr.what(image)
+                if mime_type not in valid_mime_types:
+                    raise forms.ValidationError("Invalid image format. Only JPEG, PNG are supported.")
+
+                # File size validation
+                max_size = 5 * 1024 * 1024  # 5 MB
+                if image.size > max_size:
+                    raise forms.ValidationError("Image size must not exceed 5 MB.")
+
+                # Sanitize file name
+                base, ext = os.path.splitext(image.name)
+                sanitized_name = f"{slugify(base)}{ext.lower()}"
+                image.name = sanitized_name
+            return image
+
 
 
 
@@ -761,9 +806,6 @@ class CreateNotificationForm(forms.ModelForm):
         ('role', 'By Role'),
         ('useraddress', 'By User Address'),
     ]
-
-
-
     subject = forms.CharField(
         max_length=30,
         widget=forms.TextInput(

@@ -173,7 +173,16 @@
     <!-- Sidebar for History -->
     <div class="sidebar-history ms-4">
         <div class="message-label mt-4"><h6>Analysis History</h6></div>
-        <ul id="analyzed_image-history">
+        
+        <!-- <div class="message-label mt-4 d-flex justify-content-between align-items-center">
+            <h6>Analysis History</h6>
+            <button id="toggleImageAnalysisHistoryButton" class="btn btn-outline-primary btn-sm">
+                <i id="toggleIcon" class="fa fa-eye-slash"></i>
+            </button>
+        </div> -->
+
+
+        <ul id="analyzed_image-history" class="mt-3">
             {% if history %}
             {% for item in history %}
             <li class="history-item mb-3" id="analysis-{{ item.pk }}" onclick="showAnalysisDetails('{{ item.pk }}', '{{ item.image.url }}', '{{ item.analysis_output|escapejs }}')">
@@ -282,7 +291,6 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <!-- Review form -->
           <form method="POST" action="{% url 'reviewrating' %}">
             {% csrf_token %}
             {{ rform.as_p }}
@@ -292,6 +300,126 @@
       </div>
     </div>
 </div>
+
+
+<!-- review modal -->
+<!-- <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">Submit Your Review</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+        
+          <form method="POST" action="{% url 'reviewrating' %}">
+            {% csrf_token %}
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="1" {% if rform.rating.value == "1" %} checked {% endif %} />
+                <label for="star5" title="Excellent">★</label>
+
+                <input type="radio" id="star4" name="rating" value="2" {% if rform.rating.value == "2" %} checked {% endif %} />
+                <label for="star4" title="Good">★</label>
+
+                <input type="radio" id="star3" name="rating" value="3" {% if rform.rating.value == "3" %} checked {% endif %} />
+                <label for="star3" title="Average">★</label>
+
+                <input type="radio" id="star2" name="rating" value="4" {% if rform.rating.value == "4" %} checked {% endif %} />
+                <label for="star2" title="Bad">★</label>
+
+                <input type="radio" id="star1" name="rating" value="5" {% if rform.rating.value == "5" %} checked {% endif %} />
+                <label for="star1" title="Worse">★</label>
+            </div>
+            <div class="mb-3">
+                {{ rform.review_header }}
+            </div>
+            <div class="mb-3">
+                {{ rform.review_body }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+          </form>
+        </div>
+      </div>
+    </div>
+</div>
+
+<style>
+    .star-rating {
+    direction: rtl;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 30px;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.star-rating input:checked ~ label {
+    color: #ffcc00; 
+}
+
+.star-rating input:hover ~ label,
+.star-rating input:focus ~ label {
+    color: #ffcc00; 
+}
+
+.star-rating label:hover,
+.star-rating label:focus {
+    color: #ffcc00; 
+}
+
+</style>
+
+
+<script>
+  
+document.querySelectorAll('.star-rating input').forEach(input => {
+    input.addEventListener('change', function () {
+        let selectedValue = this.value;
+        console.log("Selected rating value: " + selectedValue);
+    });
+});
+
+</script> -->
+
+
+
+
+
+
+
+<!-- 
+
+<script>
+
+    document.getElementById('analyzed_image-history').style.display = "none";
+
+
+    document.getElementById('toggleImageAnalysisHistoryButton').addEventListener('click', function() {
+        var analyzed_image_history = document.getElementById('analyzed_image-history');
+        var toggleIcon = document.getElementById('toggleIcon');
+        
+
+        if (analyzed_image_history.style.display === "none") {
+            analyzed_image_history.style.display = "block";
+            toggleIcon.className = "fa fa-eye";
+        } else {
+            analyzed_image_history.style.display = "none"; 
+            toggleIcon.className = "fa fa-eye-slash"; 
+        }
+    });
+</script> -->
+
+
 
 
 

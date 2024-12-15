@@ -12,9 +12,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
 
 MAPBOX_API_KEY = config('MAPBOX_API_KEY')
-# WEATHER_API_KEY=config('WEATHER_API_KEY')
 ONECALL_API_KEY=config('ONECALL_API_KEY')
 OPENAI_API_KEY=config('OPENAI_API_KEY')
 
@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     # automatic data import from csv
     'data_wizard',
     'data_wizard.sources',
+    # automated ban on failedlogins
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +68,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # redirection when banned due to failed login attemps
+    'axes.middleware.AxesMiddleware',
 
 ]
 
@@ -93,14 +97,6 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -168,6 +164,14 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 
 
 
+AUTHENTICATION_BACKENDS = [
+    # AxesStandaloneBackend should be the first backend in the AUTHENTICATION_BACKENDS list.
+    'axes.backends.AxesStandaloneBackend',
+
+    # Django ModelBackend is the default authentication backend.
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 # superadmin UI
 JAZZMIN_SETTINGS = {
@@ -193,8 +197,38 @@ PASSWORD_RESET_TIMEOUT_DAYS = 1
 
 LOGIN_URL = 'my_login'
 
-# Increase the maximum number of form fields allowed (django admin)
+
+# number of rows superadmin can select in one go - django admin site
 # DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000 
+
+
+
+
+
+# axes configurations - use cache redis for optimization
+# once a user succesfully logged in, the data access attempts will clear.
+# just view the data on easyaudit, the blocking works.
+
+
+# bugs: 
+# the access failures, don't work
+# the django admin can still be lockedout
+
+
+# fetch IP addresses from a HTTP header such as X-Forwarded-For. (for render compatibility)
+AXES_IPWARE_META_PRECEDENCE_ORDER = [
+    'HTTP_X_FORWARDED_FOR',
+    'REMOTE_ADDR',
+]
+
+AXES_USE_CACHE = False
+AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
+AXES_FAILURE_LIMIT = 3
+AXES_COOLOFF_TIME = timedelta(minutes=5)  
+AXES_ONLY_USER_FAILURES = False
+AXES_LOCKOUT_TEMPLATE = 'app_agrosavvy/locked_out.html'
+AXES_IGNORE_PERM_PATHS = [ r'^/agroADMINsavvyCGLR/?',]
+
 
 
 # Session settings  - recheck this for compatibility
