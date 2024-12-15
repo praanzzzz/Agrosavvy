@@ -34,7 +34,6 @@ urlpatterns = [
 
     # main pages for da admin
     path('dashboard/', views.dashboard, name='dashboard'),
-    # path('api/nutrient-data/', views.get_nutrient_data, name='get_nutrient_data'),
 
     # ai
     path('chat/', views.chat, name='chat'),
@@ -133,6 +132,6 @@ urlpatterns = [
 
 
 # it enables django to fetch static files during developmemt phase.
-# on production stage, must use nginx or apache web server to serve files
+# on production stage, must use static and media file server
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

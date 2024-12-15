@@ -66,7 +66,7 @@ client = OpenAI()
 
 
 # Main pages for da_admin and brgy officers
-@cache_control(no_cache=True, must_revalidate=True, no_store=True)   # implement to all functions that needs authentication
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)   # prevents chache on data-sensitive pages
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         # Search, Filter, and Sort functions for list of farms table
@@ -293,6 +293,7 @@ def dashboard(request):
 
 THIS_MODEL = "gpt-4o-mini"
 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def chat(request, group_id=None):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         chat_group = None
@@ -456,7 +457,7 @@ def chat(request, group_id=None):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def delete_chat_group(request, group_id):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         if request.method == 'POST':
@@ -478,7 +479,7 @@ def delete_chat_group(request, group_id):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def image_analysis(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         analysis = None
@@ -581,7 +582,7 @@ def image_analysis(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def delete_image_analysis(request, pk):
     if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
         if request.method == "POST":
@@ -595,6 +596,8 @@ def delete_image_analysis(request, pk):
         return render(request, "app_agrosavvy/ai/analysisai.html")
     else:
         return redirect("forbidden")
+
+
 
 
 def map(request):
@@ -643,6 +646,8 @@ def map(request):
 
 # add server side validation on address and coordinates, check if the is_valid refers to the forms.py. 
 # para didto nalang ibutang ang logic and serverside validation.
+# add rate limits
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
@@ -739,7 +744,7 @@ def weather(request):
         return redirect("forbidden")
 
 
-# update profile
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def settings(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -777,7 +782,7 @@ def settings(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def view_profile(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser=='da_admin' or request.user.roleuser.roleuser=='brgy_officer'):
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -802,7 +807,7 @@ def view_profile(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def user_management(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
         user_role = request.user.roleuser.roleuser
@@ -991,7 +996,7 @@ def user_management(request):
 
 
 
-# Create notification based on the selected option
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def create_notification(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -1045,7 +1050,7 @@ def create_notification(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def view_notification(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         notifications = Notification.objects.filter(user_receiver=request.user, is_deleted=False).order_by('-created_at')
@@ -1095,6 +1100,7 @@ def view_notification(request):
 
 
 # user management for da admin and brgy officer
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_deactivate_account(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1116,6 +1122,9 @@ def admin_deactivate_account(request, user_id):
     return render(request, "app_agrosavvy/user_management.html")
 
 
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_activate_account(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1137,6 +1146,9 @@ def admin_activate_account(request, user_id):
 
 
 
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_disapprove_user(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1182,6 +1194,9 @@ def admin_disapprove_user(request, user_id):
 
 
 
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_approve_user(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1256,6 +1271,9 @@ def admin_approve_user(request, user_id):
 
 
 
+
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_approve_disapproved_user(request, user_id):
 
     if not request.user.is_authenticated:
@@ -1332,7 +1350,7 @@ def admin_approve_disapproved_user(request, user_id):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def manage_field(request, field_id):    
     if request.user.is_authenticated and request.user.roleuser.roleuser in ["da_admin", "brgy_officer"]:
         user_role = request.user.roleuser.roleuser
@@ -1432,6 +1450,8 @@ def manage_field(request, field_id):
 
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, field_id=field_id, is_deleted=False)
@@ -1522,7 +1542,7 @@ def update_field(request, field_id):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def delete_field(request, field_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1568,8 +1588,7 @@ def delete_field(request, field_id):
 
 
 # farmers pages
-# main pages
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -1678,7 +1697,7 @@ def bofa_dashboard(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_chat(request, group_id=None):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         chat_group = None
@@ -1860,7 +1879,7 @@ def bofa_chat(request, group_id=None):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_delete_chat_group(request, group_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == 'POST':
@@ -1883,7 +1902,7 @@ def bofa_delete_chat_group(request, group_id):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_image_analysis(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         analysis = None 
@@ -1980,7 +1999,7 @@ def bofa_image_analysis(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_delete_image_analysis(request, pk):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == "POST":
@@ -2042,7 +2061,7 @@ def bofa_map(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == "POST":
@@ -2080,6 +2099,8 @@ def bofa_add_field(request):
         return redirect("forbidden")
 
 
+
+
 def bofa_weather(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         weather_data = get_weather_data_with_minutely_hourly("Cebu City")
@@ -2092,6 +2113,8 @@ def bofa_weather(request):
 
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_settings(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -2127,7 +2150,7 @@ def bofa_settings(request):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_view_profile(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser =='farmer':
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -2147,7 +2170,7 @@ def bofa_view_profile(request):
     
 
     
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_view_notification(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -2171,7 +2194,7 @@ def bofa_view_notification(request):
 
 
 
-# bofa manage fields/ farms
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_manage_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         field = get_object_or_404(Field, field_id=field_id)
@@ -2257,7 +2280,7 @@ def bofa_manage_field(request, field_id):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         field = get_object_or_404(Field, field_id=field_id)
@@ -2300,6 +2323,8 @@ def bofa_update_field(request, field_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def bofa_delete_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         field = get_object_or_404(Field, pk=field_id)
@@ -2329,6 +2354,7 @@ def bofa_delete_field(request, field_id):
 
 
 # callable functions (used in da admin and bofa)
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def reviewrating(request):
     if request.method == "POST":
         rform = ReviewratingForm(request.POST)
@@ -2351,7 +2377,7 @@ def reviewrating(request):
     return {"rform": rform}
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def mark_notifications_as_read(request):
     # Mark all unread notifications as read for the current user
     Notification.objects.filter(user_receiver = request.user, is_read=False).update(is_read=True)
@@ -2359,23 +2385,9 @@ def mark_notifications_as_read(request):
 
 
 
-
-# # for line chart
-# def get_nutrient_data(request):
-#     field_id = request.GET.get('field_id')
-#     nutrient = request.GET.get('nutrient')
-    
-#     data = FieldSoilData.objects.filter(field_id=field_id).order_by('record_date')
-    
-#     labels = [d.record_date.strftime('%Y-%m-%d') for d in data]
-#     values = [getattr(d, nutrient) for d in data]
-    
-#     return JsonResponse({'labels': labels, 'values': values})
-
-
-
+# check security on field ownership if ma deny or approve
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def add_soil_data(request, field_id):
-    # to make it secure, only validate a field according to role and its scope
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
         if request.method == "POST":
@@ -2421,6 +2433,8 @@ def add_soil_data(request, field_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def add_crop_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
@@ -2467,6 +2481,8 @@ def add_crop_data(request, field_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def update_soil_data(request, field_id, soil_id):
     if request.user.is_authenticated:
         soil = get_object_or_404(FieldSoilData, soil_id=soil_id)
@@ -2515,6 +2531,8 @@ def update_soil_data(request, field_id, soil_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def update_crop_data(request, fieldcrop_id, field_id):
     if request.user.is_authenticated:
         crop = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
@@ -2562,6 +2580,8 @@ def update_crop_data(request, fieldcrop_id, field_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def delete_soil_data(request, soil_id):
     soil_data = get_object_or_404(FieldSoilData, soil_id=soil_id)
     field_id = soil_data.field.field_id
@@ -2581,6 +2601,8 @@ def delete_soil_data(request, soil_id):
         return redirect("forbidden")
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def delete_crop_data(request, fieldcrop_id):
     crop_data = get_object_or_404(FieldCropData, fieldcrop_id=fieldcrop_id)
     field_id = crop_data.field.field_id
@@ -2623,6 +2645,7 @@ def delete_crop_data(request, fieldcrop_id):
 
 # AI FEATURES
 # for weather
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_location_with_openai(message):
     prompt = (
         f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. \n\n"
@@ -2635,6 +2658,7 @@ def extract_location_with_openai(message):
 
 
 # checks for 2 words
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_brgy_name(message, brgy_list=None):
     brgy_list = [
         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
@@ -2657,6 +2681,7 @@ def extract_brgy_name(message, brgy_list=None):
 
 
 # reversed conversation history = get the latest brgy 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
     brgy_list = [
         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
@@ -2682,6 +2707,7 @@ def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
     return None
 
 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def classify_intent(message):
     prompt = f"""
     You are an AI that classifies user intents. 
@@ -2710,6 +2736,7 @@ def classify_intent(message):
     return intent
 
 # main prompt for chat
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def ask_openai(message):
     response = client.chat.completions.create(
         model = THIS_MODEL,
@@ -2734,7 +2761,7 @@ def ask_openai(message):
     return answer   
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def chatgroup_title_generator(message):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2756,6 +2783,8 @@ def chatgroup_title_generator(message):
     return title
 
 
+
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def image_analysis_title_generator(firstline_output):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2778,7 +2807,7 @@ def image_analysis_title_generator(firstline_output):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def translate_to_bisaya(cleaned_content):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2799,7 +2828,7 @@ def translate_to_bisaya(cleaned_content):
 
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def encode_image(image_file):
     return base64.b64encode(image_file.read()).decode('utf-8')
 
@@ -2827,7 +2856,7 @@ def encode_image(image_file):
 def landing_page(request):
     return render(request, "auth_pages/landing_page.html", {})
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def register_da_admin(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
@@ -2846,14 +2875,13 @@ def register_da_admin(request):
            return render(request, 'auth_pages/register_da_admin.html', {'form': form})
     else:
         form = PendingUserForm()
-    
     context = {
         "form": form,
     }
     return render(request, "auth_pages/register_da_admin.html", context)
 
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def register_barangay_officer(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
@@ -2880,7 +2908,7 @@ def register_barangay_officer(request):
         },
     )
 
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def register_farmer(request):
     if request.method == "POST":
         form = PendingUserForm(request.POST)
@@ -2912,40 +2940,13 @@ def register_farmer(request):
 
 
 
-# MAX_FAILED_ATTEMPTS = 4
-# BLOCK_TIME_MINUTES = 60
-
-# def is_user_blocked(username):
-#     """Check if the user is blocked based on login attempts."""
-#     # Get the time window to check
-#     time_threshold = now() - timedelta(minutes=BLOCK_TIME_MINUTES)
-    
-#     # Count failed login attempts for this username in the time window
-#     failed_attempts = LoginEvent.objects.filter(
-#         login_type=2, 
-#         username=username,
-#         datetime__gte=time_threshold,
-#     ).count()
-    
-#     # Check if attempts exceed the max allowed
-#     return failed_attempts >= MAX_FAILED_ATTEMPTS   
-
-
-
+@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def my_login(request):
     form = LoginForm(request.POST or None)
     if request.method == "POST":
         if form.is_valid():
             username = form.cleaned_data.get("username")
             password = form.cleaned_data.get("password")
-
-            #  # Check if the user is blocked
-            # if is_user_blocked(username):
-            #     messages.error(
-            #         request,
-            #         f"Too many failed login attempts. Try again after {BLOCK_TIME_MINUTES} minutes.",
-            #     )
-            #     return render(request, "auth_pages/my_login.html", {"form": form})
 
             # Check if the user is in the PendingUser table
             try:
@@ -2960,7 +2961,7 @@ def my_login(request):
             except PendingUser.DoesNotExist:
                 pass
 
-            user = authenticate(username=username, password=password)
+            user = authenticate(request, username=username, password=password)
             # if user exist in the custom user
             if user is not None:
                 if user.is_subscribed:
@@ -3015,7 +3016,9 @@ def password_change(request):
             passwordchangeform = CustomPasswordChangeForm(request.user, request.POST)
             if passwordchangeform.is_valid():
                 user = passwordchangeform.save()
-                update_session_auth_hash(request, user)  # Maintain the user's session
+                # Maintain the user's session, we can remove this kay this wont make sense 
+                # since we need to logout users after password change
+                update_session_auth_hash(request, user) 
                 logout(request)
                 messages.success(
                     request, "Your password has been changed. Please log in again."

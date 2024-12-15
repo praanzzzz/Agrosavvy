@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
+from django.contrib.admin.models import LogEntry
+from django.utils.translation import gettext_lazy as _
 import data_wizard
 from .models import (
     CustomUser,
@@ -347,8 +349,43 @@ class NotificationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+    
 
 
+
+
+
+
+
+
+class LogEntryAdmin(admin.ModelAdmin):
+    list_display = ('user', 'action_time', 'content_type', 'object_repr', 'change_message')
+    list_filter = ('action_time', 'user', 'content_type')
+    search_fields = ('object_repr', 'change_message')
+    readonly_fields = ('user', 'action_time', 'content_type', 'object_repr', 'change_message', 'object_id', 'action_flag')
+
+    def get_model_perms(self, request):
+        """
+        Allow only superusers to access the log entries.
+        """
+        if request.user.is_superuser:
+            return super().get_model_perms(request)
+        return {}
+    
+      # # Prevent deletion of pending users directly from admin
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # Prevent adding new pending users directly from admin
+    def has_add_permission(self, request):
+        return False
+    
+
+
+
+
+
+admin.site.register(LogEntry, LogEntryAdmin)
 data_wizard.register(SoilDataSFM)
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
@@ -370,6 +407,11 @@ admin.site.register(RoleUser)
 admin.site.register(Barangay)
 admin.site.register(Gender)
 admin.site.register(UserAddress)
+
+
+
+
+
 
 
 

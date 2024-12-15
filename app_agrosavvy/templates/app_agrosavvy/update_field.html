@@ -13,10 +13,27 @@
                     <h4 class="card-title mb-4 text-primary"><strong>Update Field Details</strong></h4>
                     <form id="fieldForm" method="POST">
                         {% csrf_token %}
-                        {{ field_form.as_p }}
-    
-                        <h5><strong>Address Details</strong> (Cebu City only)</h5>
-                        {{ address_form.as_p }}
+                        {% for field_form in field_form %}
+                            <div class="form-group mb-3">
+                                {{field_form.label}}
+                                {{field_form}}
+                                {{field_form.errors}}
+                            </div>
+                        {% endfor %}
+
+                        <h5 class="mt-4 text-secondary"><strong>Address Details</strong> <small>(Cebu City only)</small>
+                        </h5>
+                        <!-- {{ address_form.as_p }} -->
+                        {% for address_form in address_form %}
+                            <div class="form-group mb-3">
+                                {% if address_form.name != "country" %}
+                                    {{ address_form.label }}
+                                {% endif %}
+                                
+                                {{address_form}}
+                                {{address_form.errors}}
+                            </div>
+                        {% endfor %}
                         <div class="form-group mt-4">
                             <button type="submit" class="btn btn-success btn-block mb-2 w-100">Submit</button>
                         </div>
