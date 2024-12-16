@@ -590,3 +590,17 @@ def get_weather_data_with_minutely_hourly(location):
     except requests.exceptions.RequestException as e:
         print(f"Error getting weather data: {e}")
         return None
+
+
+
+
+
+
+
+
+class BannedIP(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.ip_address
