@@ -23,6 +23,7 @@ from .models import (
     ImageAnalysis,
     Notification,
     SoilDataSFM,
+    BannedIP,
 )
 
 
@@ -383,6 +384,16 @@ class LogEntryAdmin(admin.ModelAdmin):
 
 
 
+class BannedIPAdmin(admin.ModelAdmin):
+    common_fields = (
+        "id",
+        "ip_address",
+        "created_at",
+    )
+
+    list_display = common_fields
+    search_fields = ("ip_address", "created_at",)
+    ordering = common_fields
 
 
 admin.site.register(LogEntry, LogEntryAdmin)
@@ -397,6 +408,7 @@ admin.site.register(Chat, ChatAdmin)
 admin.site.register(ImageAnalysis, ImageAnalysisAdmin)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(SoilDataSFM)
+admin.site.register(BannedIP, BannedIPAdmin)
 
 
 

@@ -70,6 +70,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # redirection when banned due to failed login attemps
     'axes.middleware.AxesMiddleware',
+    # custom middleware for blocking ips
+    'app_agrosavvy.middleware.block_ips.BlockBannedIPsMiddleware',
+
 
 ]
 
@@ -212,7 +215,7 @@ LOGIN_URL = 'my_login'
 
 # bugs: 
 # the access failures, don't work
-# the django admin can still be lockedout
+# the django admin can still be locked_out
 
 
 # fetch IP addresses from a HTTP header such as X-Forwarded-For. (for render compatibility)
@@ -223,10 +226,9 @@ AXES_IPWARE_META_PRECEDENCE_ORDER = [
 
 AXES_USE_CACHE = False
 AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
-AXES_FAILURE_LIMIT = 3
-AXES_COOLOFF_TIME = timedelta(minutes=5)  
-AXES_ONLY_USER_FAILURES = False
-AXES_LOCKOUT_TEMPLATE = 'app_agrosavvy/locked_out.html'
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=30)  
+AXES_LOCKOUT_TEMPLATE = 'error_pages/locked_out.html'
 AXES_IGNORE_PERM_PATHS = [ r'^/agroADMINsavvyCGLR/?',]
 
 
@@ -237,3 +239,18 @@ AXES_IGNORE_PERM_PATHS = [ r'^/agroADMINsavvyCGLR/?',]
 # SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 # SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
 # SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
+
+
+
+# django security deployment checklist
+
+# # HTTPS settings
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+# SECURE_SSL_REDIRECT = True
+
+# # HSTS settings
+# SECURE_HSTS_SECONDS = 31536000  # 1 year
+# SECURE_HSTS_PRELOAD = True
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
