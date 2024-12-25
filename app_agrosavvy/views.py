@@ -16,6 +16,7 @@ from .models import (
     ChatGroup,
     SoilDataSFM,
     Address,
+    FailedLoginAttempt,
 )
 
 from .forms import (
@@ -33,6 +34,7 @@ from .forms import (
 )
 
 # others
+from django_ratelimit.decorators import ratelimit
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import json
@@ -55,8 +57,6 @@ from django.core.serializers import serialize
 from django.core.mail import send_mail
 from django.views.decorators.cache import cache_control
 from django.db.models.functions import TruncMonth
-
-# AI
 from openai import OpenAI, APIConnectionError, OpenAIError
 OpenAI.api_key = django_settings.OPENAI_API_KEY
 client = OpenAI()
@@ -66,7 +66,7 @@ client = OpenAI()
 
 
 # Main pages for da_admin and brgy officers
-@cache_control(no_cache=True, must_revalidate=True, no_store=True)   # prevents chache on data-sensitive pages
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)   # prevents cache on data-sensitive pages
 def dashboard(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         # Search, Filter, and Sort functions for list of farms table
@@ -294,6 +294,7 @@ def dashboard(request):
 THIS_MODEL = "gpt-4o-mini"
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def chat(request, group_id=None):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         chat_group = None
@@ -479,7 +480,8 @@ def delete_chat_group(request, group_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def image_analysis(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         analysis = None
@@ -648,6 +650,7 @@ def map(request):
 # para didto nalang ibutang ang logic and serverside validation.
 # add rate limits
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
@@ -997,6 +1000,7 @@ def user_management(request):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def create_notification(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -1100,7 +1104,6 @@ def view_notification(request):
 
 
 # user management for da admin and brgy officer
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_deactivate_account(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1124,7 +1127,6 @@ def admin_deactivate_account(request, user_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_activate_account(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1148,7 +1150,6 @@ def admin_activate_account(request, user_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_disapprove_user(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1196,7 +1197,6 @@ def admin_disapprove_user(request, user_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_approve_user(request, user_id):
     if not request.user.is_authenticated:
         return redirect("forbidden")
@@ -1273,7 +1273,6 @@ def admin_approve_user(request, user_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def admin_approve_disapproved_user(request, user_id):
 
     if not request.user.is_authenticated:
@@ -1451,7 +1450,7 @@ def manage_field(request, field_id):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
 def update_field(request, field_id):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         field = get_object_or_404(Field, field_id=field_id, is_deleted=False)
@@ -1697,7 +1696,8 @@ def bofa_dashboard(request):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def bofa_chat(request, group_id=None):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         chat_group = None
@@ -1903,6 +1903,7 @@ def bofa_delete_chat_group(request, group_id):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def bofa_image_analysis(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         analysis = None 
@@ -2061,7 +2062,8 @@ def bofa_map(request):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@cache_control(no_cache=True, must_revalidate=True, no_store=True)
+@ratelimit(key='ip', rate='3/m', method='POST', block=True) 
 def bofa_add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == "POST":
@@ -2354,7 +2356,8 @@ def bofa_delete_field(request, field_id):
 
 
 # callable functions (used in da admin and bofa)
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+# @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='2/m', method='POST', block=True)
 def reviewrating(request):
     if request.method == "POST":
         rform = ReviewratingForm(request.POST)
@@ -2387,6 +2390,7 @@ def mark_notifications_as_read(request):
 
 # check security on field ownership if ma deny or approve
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def add_soil_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
@@ -2435,6 +2439,7 @@ def add_soil_data(request, field_id):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+@ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def add_crop_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
@@ -2645,7 +2650,6 @@ def delete_crop_data(request, fieldcrop_id):
 
 # AI FEATURES
 # for weather
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_location_with_openai(message):
     prompt = (
         f"The user asked about the weather. Please extract and return only the location name if there is any in the message below. \n\n"
@@ -2658,7 +2662,6 @@ def extract_location_with_openai(message):
 
 
 # checks for 2 words
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_brgy_name(message, brgy_list=None):
     brgy_list = [
         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
@@ -2681,7 +2684,6 @@ def extract_brgy_name(message, brgy_list=None):
 
 
 # reversed conversation history = get the latest brgy 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
     brgy_list = [
         "Adlaon", "Agsungot", "Babag", "Binaliw", "Bonbon", "Budlaan", "Buhisan", "Buot-Taup", "Busay", 
@@ -2707,7 +2709,6 @@ def extract_brgy_name_conv_history(conversation_history, brgy_list=None):
     return None
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def classify_intent(message):
     prompt = f"""
     You are an AI that classifies user intents. 
@@ -2736,7 +2737,6 @@ def classify_intent(message):
     return intent
 
 # main prompt for chat
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def ask_openai(message):
     response = client.chat.completions.create(
         model = THIS_MODEL,
@@ -2761,7 +2761,7 @@ def ask_openai(message):
     return answer   
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+
 def chatgroup_title_generator(message):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2784,7 +2784,7 @@ def chatgroup_title_generator(message):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+
 def image_analysis_title_generator(firstline_output):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2807,7 +2807,7 @@ def image_analysis_title_generator(firstline_output):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+
 def translate_to_bisaya(cleaned_content):
     response = client.chat.completions.create(
         model=THIS_MODEL,
@@ -2828,7 +2828,7 @@ def translate_to_bisaya(cleaned_content):
 
 
 
-@cache_control(no_cache=True, must_revalidate=True, no_store=True) 
+
 def encode_image(image_file):
     return base64.b64encode(image_file.read()).decode('utf-8')
 
@@ -2939,10 +2939,32 @@ def register_farmer(request):
 
 
 
+def get_client_ip(request):
+    """Extract the client's IP address from the request."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+
+
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
 def my_login(request):
     form = LoginForm(request.POST or None)
+    ip_address = get_client_ip(request)
+
+    # Check if IP or username is blocked
+    if request.method == "POST":
+        username = request.POST.get("username")
+        if FailedLoginAttempt.is_blocked(ip_address=ip_address, username=username):
+            messages.error(request,"Too many failed login attempts. Please try again after 30 minutes.")
+            return render(request, "auth_pages/my_login.html", {"form": form})
+        
+
     if request.method == "POST":
         if form.is_valid():
             username = form.cleaned_data.get("username")
@@ -2985,6 +3007,8 @@ def my_login(request):
                     messages.error(request, "Organization is unsubscribed.")
             else:
                 messages.error(request, "Invalid username or password")
+                # Log failed login attempt
+                FailedLoginAttempt.objects.create(ip_address=ip_address, username=username)
         else:
             messages.error(request, "Error validating form")
     return render(request, "auth_pages/my_login.html", {"form": form})

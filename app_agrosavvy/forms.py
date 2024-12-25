@@ -450,6 +450,7 @@ class FieldForm(forms.ModelForm):
                 raise forms.ValidationError("The field name already is used. Please use another field name.")
         return field_name
 
+
     def clean_field_acres(self):
         field_acres = self.cleaned_data.get("field_acres")
         if field_acres is not None:

@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
-from datetime import timedelta
 
 MAPBOX_API_KEY = config('MAPBOX_API_KEY')
 ONECALL_API_KEY=config('ONECALL_API_KEY')
@@ -38,8 +37,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # admin UI
-    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -54,8 +51,8 @@ INSTALLED_APPS = [
     # automatic data import from csv
     'data_wizard',
     'data_wizard.sources',
-    # automated ban on failedlogins
-    'axes',
+    # ratelimit
+    'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -68,12 +65,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # redirection when banned due to failed login attemps
-    'axes.middleware.AxesMiddleware',
     # custom middleware for blocking ips
     'app_agrosavvy.middleware.block_ips.BlockBannedIPsMiddleware',
-
-
 ]
 
 ROOT_URLCONF = 'project_agrosavvy.urls'
@@ -166,25 +159,17 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 
 
 
-
-AUTHENTICATION_BACKENDS = [
-    # AxesStandaloneBackend should be the first backend in the AUTHENTICATION_BACKENDS list.
-    'axes.backends.AxesStandaloneBackend',
-
-    # Django ModelBackend is the default authentication backend.
-    'django.contrib.auth.backends.ModelBackend',
-]
-
-
-# superadmin UI
-JAZZMIN_SETTINGS = {
-    "site_title": "Agrosavvy Admin",  # The title in the browser tab
-    "site_header": "Agrosavvy Admin",  # The title in the admin page header
-    "site_brand": "Agrosavvy Admin",
-    "welcome_sign": "Welcome to Agrosavvy Admin Panel",
-    "site_logo": "/images/Logo_Agrosavvy.png",
-    "site_logo_classes": "img-circle",
+# caching with redis (ratelimit and others) (for render hosting- just change the location code)
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  # Redis server on localhost (default Redis port)
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
 }
+
 
 # email configurations
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -202,48 +187,18 @@ LOGIN_URL = 'my_login'
 
 
 # number of rows superadmin can select in one go - django admin site
-# DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000 
-
-
-
-
-
-# axes configurations - use cache redis for optimization
-# once a user succesfully logged in, the data access attempts will clear.
-# just view the data on easyaudit, the blocking works.
-
-
-# bugs: 
-# the access failures, don't work
-# the django admin can still be locked_out
-
-
-# fetch IP addresses from a HTTP header such as X-Forwarded-For. (for render compatibility)
-AXES_IPWARE_META_PRECEDENCE_ORDER = [
-    'HTTP_X_FORWARDED_FOR',
-    'REMOTE_ADDR',
-]
-
-AXES_USE_CACHE = False
-AXES_HANDLER = 'axes.handlers.database.AxesDatabaseHandler'
-AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = timedelta(minutes=30)  
-AXES_LOCKOUT_TEMPLATE = 'error_pages/locked_out.html'
-AXES_IGNORE_PERM_PATHS = [ r'^/agroADMINsavvyCGLR/?',]
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000 
 
 
 # Session settings  - recheck this for compatibility
-# SESSION_COOKIE_AGE = 1800  
-# SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
+SESSION_COOKIE_AGE = 1800  # 30 minutes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
 # SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 # SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
 # SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
 
 
-
-# django security deployment checklist
-
+## django security deployment checklist
 # # HTTPS settings
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True

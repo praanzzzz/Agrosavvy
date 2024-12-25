@@ -29,4 +29,4 @@ if heysettings.DEBUG:
 
 
 # note: 404 ovveride is only used for development stage
-# change to debug false and use nginx or apache to serve static files on production stage
+# change to debug false and static and media server(aws) to serve static files on production stage

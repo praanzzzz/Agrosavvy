@@ -1,5 +1,4 @@
 from django.http import HttpResponseForbidden
-# from django.contrib.admin.models import BannedIP
 from django.shortcuts import render
 from app_agrosavvy.models import BannedIP
 
@@ -13,12 +12,12 @@ class BlockBannedIPsMiddleware:
             return HttpResponseForbidden(render(request, '403.html'))
         return self.get_response(request)
 
-    # for testing
+    # # for testing - hardcode ip address
     # def __call__(self, request):
     #     banned_ips = ['127.0.0.1', '192.168.1.1']  # List of banned IPs
     #     ip = request.META.get('REMOTE_ADDR')
     #     if ip in banned_ips:
-    #         return HttpResponseForbidden("<h1>Sorry, you do not have permission to access or perform this action.</h1><p>You have been blocked by the admins in using this system.</p>")
+    #         return HttpResponseForbidden(render(request, '403.html'))
     #     response = self.get_response(request)
     #     return response
 
