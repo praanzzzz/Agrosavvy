@@ -601,7 +601,7 @@
             .catch(error => {
                 // Handle network or unexpected errors
                 console.error('Error during message fetch:', error);
-                showToast('Network issue or AI service error. Please try again later.', 'error');
+                showToast('Possible Issue: Network, AI or Rate Limit Exceeded. Please try again later.', 'error');
             })
             .finally(() => {
                 // Hide the spinner after the response is received

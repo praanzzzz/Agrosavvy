@@ -4,6 +4,8 @@ import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
+from datetime import timedelta
+from django.utils.timezone import now
 
 
 
@@ -593,14 +595,38 @@ def get_weather_data_with_minutely_hourly(location):
 
 
 
-
-
-
-
-
+# manual banning of IP
 class BannedIP(models.Model):
     ip_address = models.GenericIPAddressField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return self.ip_address
+
+
+
+
+# automatic blocking of ip or username independently
+class FailedLoginAttempt(models.Model):
+    ip_address = models.GenericIPAddressField()
+    username = models.CharField(max_length=150, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    @staticmethod
+    def is_blocked(ip_address=None, username=None):
+        now_time = now()
+        time_threshold = now_time - timedelta(minutes=30)
+
+        # Check failed attempts for IP address or username independently
+        ip_attempts = FailedLoginAttempt.objects.filter(
+            ip_address=ip_address,
+            timestamp__gte=time_threshold
+        ).count()
+
+        user_attempts = FailedLoginAttempt.objects.filter(
+            username=username,
+            timestamp__gte=time_threshold
+        ).count()
+
+        # Block if either IP or username exceeds threshold
+        return ip_attempts >= 5 or user_attempts >= 5

@@ -132,6 +132,6 @@ urlpatterns = [
 
 
 # it enables django to fetch static files during developmemt phase.
-# on production stage, must use static and media file server
+# on production phase, must use static and media file server (aws)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

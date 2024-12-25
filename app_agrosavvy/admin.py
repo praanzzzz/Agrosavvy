@@ -24,6 +24,7 @@ from .models import (
     Notification,
     SoilDataSFM,
     BannedIP,
+    FailedLoginAttempt,
 )
 
 
@@ -358,7 +359,7 @@ class NotificationAdmin(admin.ModelAdmin):
 
 
 
-
+# to monitor agrosavvy team actions
 class LogEntryAdmin(admin.ModelAdmin):
     list_display = ('user', 'action_time', 'content_type', 'object_repr', 'change_message')
     list_filter = ('action_time', 'user', 'content_type')
@@ -373,11 +374,9 @@ class LogEntryAdmin(admin.ModelAdmin):
             return super().get_model_perms(request)
         return {}
     
-      # # Prevent deletion of pending users directly from admin
     def has_delete_permission(self, request, obj=None):
         return False
 
-    # Prevent adding new pending users directly from admin
     def has_add_permission(self, request):
         return False
     
@@ -396,8 +395,19 @@ class BannedIPAdmin(admin.ModelAdmin):
     ordering = common_fields
 
 
+class FailedLoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ('username', 'ip_address', 'timestamp')
+    search_fields = ('username', 'ip_address')
+    list_filter = ('timestamp',)
+
+
+
+
+
+
 admin.site.register(LogEntry, LogEntryAdmin)
 data_wizard.register(SoilDataSFM)
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(PendingUser, PendingUserAdmin)
 admin.site.register(Field, FieldAdmin)
@@ -409,6 +419,7 @@ admin.site.register(ImageAnalysis, ImageAnalysisAdmin)
 admin.site.register(Notification, NotificationAdmin)
 admin.site.register(SoilDataSFM)
 admin.site.register(BannedIP, BannedIPAdmin)
+admin.site.register(FailedLoginAttempt, FailedLoginAttemptAdmin)
 
 
 
