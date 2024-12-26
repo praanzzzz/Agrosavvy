@@ -105,7 +105,7 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 # }
 
 import dj_database_url
-DATABASE = {
+DATABASES = {
     'default': dj_database_url.parse(config('EXTERNAL_DATABASE_URL'))
 }
 
