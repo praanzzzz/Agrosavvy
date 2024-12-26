@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'data_wizard',
     'data_wizard.sources',
     # ratelimit
-    'django_ratelimit',
+    # 'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +105,8 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 #     }
 # }
 
+
+# database in render hosting
 import dj_database_url
 DATABASES = {
     'default': dj_database_url.parse(config('EXTERNAL_DATABASE_URL'))
@@ -168,15 +170,15 @@ AUTH_USER_MODEL = 'app_agrosavvy.CustomUser'
 
 
 # caching with redis (ratelimit and others) (for render hosting- just change the location code)
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',  # Redis server on localhost (default Redis port)
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        }
-    }
-}
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django_redis.cache.RedisCache',
+#         'LOCATION': 'redis://127.0.0.1:6379/1',  # Redis server on localhost (default Redis port)
+#         'OPTIONS': {
+#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+#         }
+#     }
+# }
 
 
 # email configurations
@@ -203,7 +205,7 @@ SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
 SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
-SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
+# SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
 
 
 # django security deployment checklist
