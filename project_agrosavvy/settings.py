@@ -28,10 +28,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
-# ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -93,15 +93,20 @@ WSGI_APPLICATION = 'project_agrosavvy.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'agrosavvydb',
-        'USER': 'postgres',
-        'PASSWORD': 'NASA',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'agrosavvydb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'NASA',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+import dj_database_url
+DATABASE = {
+    'default': dj_database_url.parse(config('EXTERNAL_DATABASE_URL'))
 }
 
 
@@ -138,15 +143,12 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
-
+# serve static and media files thru this url
 STATIC_URL = 'static/'
-
-# MINE
 MEDIA_URL = '/media/'
 
-# MINE -- FOR STATIC FILES - CSS AND IMAGES
+# stores uploaded files in a static and media directory
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-# MEDIA_ROOT = BASE_DIR / 'static/images'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -193,19 +195,19 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 # Session settings  - recheck this for compatibility
 SESSION_COOKIE_AGE = 1800  # 30 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True 
-# SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-# SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
-# SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+SESSION_COOKIE_SECURE = True  # Ensure cookies are sent over HTTPS
+SESSION_SAVE_EVERY_REQUEST = True  # Save session data on every request
 
 
-## django security deployment checklist
-# # HTTPS settings
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SECURE_SSL_REDIRECT = True
+# django security deployment checklist
+# HTTPS settings
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True
 
-# # HSTS settings
-# SECURE_HSTS_SECONDS = 31536000  # 1 year
-# SECURE_HSTS_PRELOAD = True
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# HSTS settings
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_PRELOAD = True
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
