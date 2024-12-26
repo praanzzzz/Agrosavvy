@@ -34,7 +34,7 @@ from .forms import (
 )
 
 # others
-from django_ratelimit.decorators import ratelimit
+# from django_ratelimit.decorators import ratelimit
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 import json
@@ -294,7 +294,7 @@ def dashboard(request):
 THIS_MODEL = "gpt-4o-mini"
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
-@ratelimit(key='ip', rate='5/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def chat(request, group_id=None):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         chat_group = None
@@ -481,7 +481,7 @@ def delete_chat_group(request, group_id):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
-@ratelimit(key='ip', rate='5/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def image_analysis(request):
     if request.user.is_authenticated and (request.user.roleuser.roleuser == "da_admin" or request.user.roleuser.roleuser == "brgy_officer"):
         analysis = None
@@ -650,7 +650,7 @@ def map(request):
 # para didto nalang ibutang ang logic and serverside validation.
 # add rate limits
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='3/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='3/m', method='POST', block=True)
 def add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         if request.method == "POST":
@@ -1000,7 +1000,7 @@ def user_management(request):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='1/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def create_notification(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "da_admin":
         notifications = Notification.objects.filter(user_receiver=request.user).order_by('-created_at')
@@ -1697,7 +1697,7 @@ def bofa_dashboard(request):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
-@ratelimit(key='ip', rate='5/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def bofa_chat(request, group_id=None):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         chat_group = None
@@ -1903,7 +1903,7 @@ def bofa_delete_chat_group(request, group_id):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='1/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def bofa_image_analysis(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         analysis = None 
@@ -2063,7 +2063,7 @@ def bofa_map(request):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True)
-@ratelimit(key='ip', rate='3/m', method='POST', block=True) 
+# @ratelimit(key='ip', rate='3/m', method='POST', block=True) 
 def bofa_add_field(request):
     if request.user.is_authenticated and request.user.roleuser.roleuser == "farmer":
         if request.method == "POST":
@@ -2357,7 +2357,7 @@ def bofa_delete_field(request, field_id):
 
 # callable functions (used in da admin and bofa)
 # @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='2/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='2/m', method='POST', block=True)
 def reviewrating(request):
     if request.method == "POST":
         rform = ReviewratingForm(request.POST)
@@ -2390,7 +2390,7 @@ def mark_notifications_as_read(request):
 
 # check security on field ownership if ma deny or approve
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='1/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def add_soil_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
@@ -2439,7 +2439,7 @@ def add_soil_data(request, field_id):
 
 
 @cache_control(no_cache=True, must_revalidate=True, no_store=True) 
-@ratelimit(key='ip', rate='1/m', method='POST', block=True)
+# @ratelimit(key='ip', rate='1/m', method='POST', block=True)
 def add_crop_data(request, field_id):
     field = get_object_or_404(Field, field_id=field_id)
     if request.user.is_authenticated:
