@@ -22,7 +22,9 @@ cd Agrosavvy
 ```bash
 # Let's install virtualenv first
 pip install virtualenv
+```
 
+```bash
 # Then we create our virtual environment
 py -m venv venv
 
