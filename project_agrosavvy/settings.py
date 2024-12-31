@@ -150,6 +150,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
+# used in whitenoise
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # stores uploaded files in a static and media directory
