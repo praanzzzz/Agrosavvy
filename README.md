@@ -1,5 +1,14 @@
 # Agrosavvy
-Crop Recommendation with OpenAI and Mapbox using Django Python
+An innovative recommendation application designed specifically for Cebu City farmers. It leverages advanced technology to provide data-driven insights and tools to support better agricultural decision-making.
+
+
+🔹 Chat AI: Ask questions and receive accurate recommendations for crop planting, pest management, and other agricultural needs, powered by OpenAI.
+🔹 Image Analysis: Upload crop photos to analyze health conditions, identifying potential diseases or pests with precision.
+🔹 GIS Tools: Utilize an interactive map built with Mapbox to view farms and crops planted across Cebu City, enabling effective monitoring and management.
+🔹 Collaboration: Farmers can contribute data to enhance the system, creating a comprehensive and reliable resource for the community.
+🔹 Tech Stack: Built with OpenAI, Mapbox, Django, and Python
+
+Agrosavvy is more than a tool; it’s a step toward smarter farming and sustainable agriculture in Cebu City.
 
 
 
